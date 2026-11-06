@@ -1,0 +1,45 @@
+{
+  "headerLogoText": "POUCH SUPPLY",
+  "headerLogoSubtext": "Premium Nicotine",
+  "headerLogoImage": "",
+  "footerLogoText": "POUCH SUPPLY",
+  "footerLogoDescription": "Leading premium directory for tobacco-free nicotine slim white canisters.",
+  "footerLogoImage": "",
+  "klaviyoPublicKey": "admin",
+  "cloudinaryCloudName": "",
+  "cloudinaryApiKey": "",
+  "cloudinaryApiSecret": "admin",
+  "menuItems": [
+    {
+      "id": "1",
+      "label": "Home",
+      "tab": "frontend-home",
+      "type": "tab"
+    },
+    {
+      "id": "2",
+      "label": "Subscribe",
+      "tab": "frontend-subscribe",
+      "type": "tab"
+    },
+    {
+      "id": "3",
+      "label": "Shop Now",
+      "tab": "frontend-shop",
+      "type": "tab"
+    },
+    {
+      "id": "4",
+      "label": "All Brands",
+      "tab": "frontend-brands",
+      "type": "tab"
+    },
+    {
+      "id": "5",
+      "label": "About",
+      "tab": "about",
+      "type": "tab"
+    }
+  ],
+  "id": "layout_settings"
+}

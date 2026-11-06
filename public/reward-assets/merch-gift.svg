@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Pouch Supply merchandise gift">
+  <title>Pouch Supply merchandise gift</title>
+  <defs>
+    <linearGradient id="psMerchShirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b4c7d"/>
+      <stop offset="1" stop-color="#071d37"/>
+    </linearGradient>
+    <linearGradient id="psMerchGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0bd68"/>
+      <stop offset="1" stop-color="#dfa047"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="80" cy="80" r="78" fill="#f4f7fb"/>
+
+  <!-- T-shirt -->
+  <path d="M60 40l-22 12 8 18 10-5v42a4 4 0 004 4h40a4 4 0 004-4V65l10 5 8-18-22-12-9 6a13 13 0 01-22 0z" fill="url(#psMerchShirt)"/>
+  <path d="M69 40a11 11 0 0022 0" fill="none" stroke="#f4f7fb" stroke-width="3" stroke-linecap="round"/>
+  <!-- Chest badge -->
+  <rect x="70" y="72" width="20" height="20" rx="4" fill="url(#psMerchGold)"/>
+  <text x="80" y="87" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#071d37">PS</text>
+
+  <!-- Keyring -->
+  <circle cx="36" cy="118" r="9" fill="none" stroke="url(#psMerchGold)" stroke-width="4"/>
+  <rect x="42" y="114" width="16" height="9" rx="3" fill="url(#psMerchGold)"/>
+
+  <!-- Stickers -->
+  <rect x="104" y="106" width="22" height="22" rx="5" fill="url(#psMerchGold)" transform="rotate(-12 115 117)"/>
+  <circle cx="126" cy="122" r="9" fill="#1b4c7d"/>
+</svg>
