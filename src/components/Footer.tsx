@@ -41,67 +41,6 @@ export default function Footer({ onNavigate, layoutSettings }: FooterProps) {
 
   return (
     <>
-      {/* 60-Second Subscription CTA Transition Banner into Footer */}
-      <div className="w-full bg-linear-to-b from-slate-50 to-white py-16 px-6 border-t border-slate-200 text-center relative overflow-hidden">
-        {/* Subtle background decoration */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-indigo-55/35 rounded-full blur-3xl -z-10" />
-        
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="space-y-2 animate-fade-in">
-            <span className="text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold uppercase py-1 px-3.5 rounded-full inline-block tracking-widest shadow-3xs">
-              STILL UNSURE?
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight leading-none">
-              Build your own subscription in under 60 seconds.
-            </h2>
-            <p className="text-xs text-slate-500 font-medium max-w-lg mx-auto">
-              Get premium nicotine pouches delivered on your terms. Save money, stay fresh, cancel anytime.
-            </p>
-          </div>
-
-          {/* Three checklist checkmarks */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs font-bold text-slate-700">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-[10px] font-black shrink-0">✔</span>
-              <span>Save up to £55/month</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-[10px] font-black shrink-0">✔</span>
-              <span>Change flavours anytime</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-[10px] font-black shrink-0">✔</span>
-              <span>Pause whenever you like</span>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            {/*
-              A real link to /pages/subscribe, not a bare button.
-
-              It used to be a button whose only action was `onNavigate?.(...)` —
-              an optional prop, so anywhere the Footer was rendered without it
-              the button silently did nothing, and there was no href to fall
-              back on. As an anchor it always goes somewhere: the click handler
-              keeps the in-app navigation when the prop is there, and the href
-              does the job when it is not.
-            */}
-            <a
-              href="/pages/subscribe"
-              onClick={(e) => {
-                if (!onNavigate) return; // let the browser follow the href
-                e.preventDefault();
-                onNavigate('frontend-subscribe');
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 text-white font-black text-xs sm:text-sm py-3.5 px-8 rounded-2xl transition-all shadow-md hover:shadow-indigo-200 cursor-pointer uppercase tracking-widest inline-flex items-center gap-2 mx-auto no-underline"
-            >
-              <span>Start Your Subscription</span>
-              <ArrowRight className="h-4 w-4 stroke-[2.5]" />
-            </a>
-          </div>
-        </div>
-      </div>
-
       <footer id="global-footer" className="bg-slate-900 text-white border-t border-slate-800">
       
       {/* Brand value propositions row */}
@@ -123,7 +62,7 @@ export default function Footer({ onNavigate, layoutSettings }: FooterProps) {
             </div>
             <div>
               <h4 className="font-extrabold text-white text-xs uppercase tracking-wide">Flexible Schedules</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">Pause or skip subscription anytime</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">Easy returns within our return window</p>
             </div>
           </div>
 
@@ -194,7 +133,6 @@ export default function Footer({ onNavigate, layoutSettings }: FooterProps) {
             <li onClick={() => onNavigate?.('about')} className="hover:text-white transition-colors cursor-pointer">About</li>
             <li onClick={() => onNavigate?.('contact')} className="hover:text-white transition-colors cursor-pointer">Contact</li>
             <li onClick={() => onNavigate?.('blogs')} className="hover:text-white transition-colors cursor-pointer">Journal</li>
-            <li onClick={() => onNavigate?.('subscription-faqs')} className="hover:text-white transition-colors cursor-pointer">Subscription Faqs</li>
           </ul>
         </div>
 

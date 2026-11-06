@@ -168,17 +168,17 @@ export default function DiscountEditor({
 
     // Method & Type Summary
     if (form.type === 'Amount off order') {
-      const amtStr = form.valueType === 'Percentage' ? `${form.valueAmount}%` : `£${form.valueAmount}`;
+      const amtStr = form.valueType === 'Percentage' ? `${form.valueAmount}%` : `₹${form.valueAmount}`;
       lines.push(`${amtStr} off entire order`);
     } else if (form.type === 'Amount off products') {
-      const amtStr = form.valueType === 'Percentage' ? `${form.valueAmount}%` : `£${form.valueAmount}`;
+      const amtStr = form.valueType === 'Percentage' ? `${form.valueAmount}%` : `₹${form.valueAmount}`;
       const targetStr = form.appliesToType === 'Specific products' ? 'products' : 'collections';
       const count = form.appliesToIds?.length || 0;
       lines.push(`${amtStr} off ${count > 0 ? `${count} selected` : 'all'} ${targetStr}`);
     } else if (form.type === 'Buy X get Y') {
       const buyQty = form.customerBuysValue || 1;
       const getQty = form.customerGetsValue || 1;
-      const discountVal = form.customerGetsDiscountType === 'Free' ? 'Free' : (form.customerGetsDiscountType === 'Percentage' ? `${form.customerGetsDiscountValue}% off` : `£${form.customerGetsDiscountValue} off`);
+      const discountVal = form.customerGetsDiscountType === 'Free' ? 'Free' : (form.customerGetsDiscountType === 'Percentage' ? `${form.customerGetsDiscountValue}% off` : `₹${form.customerGetsDiscountValue} off`);
       lines.push(`Buy ${buyQty} items, get ${getQty} items ${discountVal}`);
     } else if (form.type === 'Free shipping') {
       lines.push('Free shipping on order');
@@ -215,7 +215,7 @@ export default function DiscountEditor({
         lines.push(`For ${count} selected countries`);
       }
       if (form.excludeShippingRatesOverAmount) {
-        lines.push(`Exclude rates over £${form.excludeShippingRatesAmount}`);
+        lines.push(`Exclude rates over ₹${form.excludeShippingRatesAmount}`);
       }
     }
 
@@ -223,7 +223,7 @@ export default function DiscountEditor({
     if (!form.minRequirementsType || form.minRequirementsType === 'No minimum requirements') {
       lines.push('No minimum purchase requirement');
     } else if (form.minRequirementsType === 'Minimum purchase amount ($)') {
-      lines.push(`Minimum purchase of £${(form.minRequirementsValue || 0).toFixed(2)}`);
+      lines.push(`Minimum purchase of ₹${(form.minRequirementsValue || 0).toFixed(2)}`);
     } else if (form.minRequirementsType === 'Minimum quantity of items') {
       lines.push(`Minimum quantity of ${form.minRequirementsValue} items`);
     }
@@ -428,7 +428,7 @@ export default function DiscountEditor({
                       className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-bold pr-8 focus:ring-1 focus:ring-slate-500 focus:outline-none"
                     />
                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500 text-xs font-bold">
-                      {form.valueType === 'Percentage' ? '%' : '£'}
+                      {form.valueType === 'Percentage' ? '%' : '₹'}
                     </div>
                   </div>
                 </div>
@@ -464,7 +464,7 @@ export default function DiscountEditor({
                       className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-bold pr-8 focus:ring-1 focus:ring-slate-500 focus:outline-none"
                     />
                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500 text-xs font-bold">
-                      {form.valueType === 'Percentage' ? '%' : '£'}
+                      {form.valueType === 'Percentage' ? '%' : '₹'}
                     </div>
                   </div>
                 </div>
@@ -567,7 +567,7 @@ export default function DiscountEditor({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      {form.customerBuysType === 'Minimum quantity of items' ? 'Quantity' : 'Minimum purchase amount (£)'}
+                      {form.customerBuysType === 'Minimum quantity of items' ? 'Quantity' : 'Minimum purchase amount (₹)'}
                     </label>
                     <input
                       type="number"
@@ -766,7 +766,7 @@ export default function DiscountEditor({
                           onChange={(e) => setForm(prev => ({ ...prev, customerGetsDiscountValue: Number(e.target.value) }))}
                           className="w-full border border-slate-200 rounded-lg p-2 text-xs font-bold focus:ring-1 focus:ring-slate-500 focus:outline-none pr-8"
                         />
-                        <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-bold">£</span>
+                        <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
                       </div>
                     )}
 
@@ -858,7 +858,7 @@ export default function DiscountEditor({
                           onChange={(e) => setForm(prev => ({ ...prev, excludeShippingRatesAmount: Number(e.target.value) }))}
                           className="w-full border border-slate-200 rounded-lg p-2 text-xs font-bold focus:ring-1 focus:ring-slate-500 focus:outline-none pr-8"
                         />
-                        <span className="absolute right-3 top-2 text-xs text-slate-500 font-bold">£</span>
+                        <span className="absolute right-3 top-2 text-xs text-slate-500 font-bold">₹</span>
                       </div>
                     )}
                   </div>
@@ -1092,7 +1092,7 @@ export default function DiscountEditor({
                                   <p className="text-[10px] text-slate-500">Inventory: {p.inventory || 0} in stock</p>
                                 </div>
                                 <span className="text-xs font-black text-slate-900 shrink-0">
-                                  £{p.price?.toFixed(2)}
+                                  ₹{p.price?.toFixed(2)}
                                 </span>
                               </label>
                             );
@@ -1248,7 +1248,7 @@ export default function DiscountEditor({
                   className="text-slate-900 focus:ring-slate-500 h-4 w-4 mt-0.5"
                 />
                 <div className="flex-1">
-                  <span className="text-xs font-bold text-slate-700 block">Minimum purchase amount (£)</span>
+                  <span className="text-xs font-bold text-slate-700 block">Minimum purchase amount (₹)</span>
                   {form.minRequirementsType === 'Minimum purchase amount ($)' && (
                     <div className="mt-2 max-w-xs relative">
                       <input
@@ -1258,7 +1258,7 @@ export default function DiscountEditor({
                         onChange={(e) => setForm(prev => ({ ...prev, minRequirementsValue: Number(e.target.value) }))}
                         className="w-full border border-slate-200 rounded-lg p-2 text-xs font-bold focus:ring-1 focus:ring-slate-500 focus:outline-none pr-8"
                       />
-                      <span className="absolute right-3 top-2 text-xs text-slate-500 font-bold">£</span>
+                      <span className="absolute right-3 top-2 text-xs text-slate-500 font-bold">₹</span>
                     </div>
                   )}
                 </div>
@@ -1616,7 +1616,7 @@ export default function DiscountEditor({
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-slate-900 truncate">{p.title}</p>
-                          <p className="text-slate-500 font-medium">£{p.price.toFixed(2)}</p>
+                          <p className="text-slate-500 font-medium">₹{p.price.toFixed(2)}</p>
                         </div>
                       </label>
                     );

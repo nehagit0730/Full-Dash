@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { Order, Product } from '../../types';
 import { parseOrderTime } from '../../utils';
-import { RoyalMailOrderActions } from './RoyalMailOrderActions';
 import SubscriptionIcon from '../SubscriptionIcon';
 import {
   extractSubscriptionDetails,
@@ -17,13 +16,7 @@ import {
   getOrderSubscriptionId
 } from '../../utils/subscriptionParser';
 import { getPlanImage, getPlanSlug } from '../../utils/planImages';
-import {
-  UK_COUNTRY_CODE,
-  UK_COUNTRY_NAME,
-  normalizeUkPhone,
-  normalizeUkPostcode,
-  validateUkDelivery
-} from '../../utils/ukValidation';
+import { INDIA_COUNTRY_NAME, INDIA_STATES, validateIndiaAddress } from '../../utils/indiaValidation';
 
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&q=80&w=300";
 
@@ -81,7 +74,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 }) => {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [recentlyDeletedOrders, setRecentlyDeletedOrders] = useState<Order[]>([]);
-  const [orderTypeFilter, setOrderTypeFilter] = useState<'All' | 'Standard' | 'Subscription' | 'Cancelled Subscription'>('All');
 
   // Refund Dialog & Execution State
   const [showRefundModal, setShowRefundModal] = useState(false);
@@ -89,8 +81,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   const [customRefundAmount, setCustomRefundAmount] = useState<string>('');
   const [isProcessingRefund, setIsProcessingRefund] = useState(false);
   const [refundToastMessage, setRefundToastMessage] = useState<string | null>(null);
-  /** Which row's Worldpay reference was just copied, for the tick confirmation. */
-  const [copiedRefOrderId, setCopiedRefOrderId] = useState<string | null>(null);
   const [isMarkingDelivered, setIsMarkingDelivered] = useState(false);
   const [showDeliveredConfirm, setShowDeliveredConfirm] = useState(false);
 
@@ -101,6 +91,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     customerEmail: '',
     addressLine1: '',
     city: '',
+    state: '',
     postcode: '',
     phone: ''
   });
@@ -124,8 +115,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     return {
       addressLine1: String(raw.addressLine1 || raw.address1 || raw.line1 || '').trim(),
       city: String(raw.city || raw.town || '').trim(),
-      postcode: String(raw.postcode || raw.postCode || '').trim(),
-      country: String(raw.country || UK_COUNTRY_NAME).trim(),
+      state: String(raw.state || '').trim(),
+      postcode: String(raw.pincode || raw.postcode || raw.postCode || '').trim(),
+      country: String(raw.country || INDIA_COUNTRY_NAME).trim(),
       phone: String(raw.phone || (order as any).customerPhone || '').trim()
     };
   };
@@ -159,6 +151,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       // is what the admin gets to correct.
       addressLine1: address.addressLine1 || String(selectedOrder.destination || ''),
       city: address.city,
+      state: address.state,
       postcode: address.postcode,
       phone: address.phone
     });
@@ -181,8 +174,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     const email = customerForm.customerEmail.trim().toLowerCase();
     const addressLine1 = customerForm.addressLine1.trim();
     const city = customerForm.city.trim();
-    const postcode = normalizeUkPostcode(customerForm.postcode);
-    const phone = normalizeUkPhone(customerForm.phone) || customerForm.phone.trim();
 
     if (!name) {
       setCustomerFormError('A customer name is required.');
@@ -197,13 +188,20 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       return;
     }
 
-    // The same UK rules checkout applies. An address corrected by hand still has
-    // to be one Royal Mail will accept, or the label cannot be bought for it.
-    const check = validateUkDelivery({ phone, postcode, country: UK_COUNTRY_NAME });
-    if (!check.valid) {
+    // The same rules checkout applies, so a hand-corrected address is still deliverable.
+    const check = validateIndiaAddress({
+      fullName: name,
+      address1: addressLine1,
+      city,
+      state: customerForm.state,
+      pincode: customerForm.postcode,
+      phone: customerForm.phone
+    });
+    if (!check.valid || !check.address) {
       setCustomerFormError(check.errors[0]);
       return;
     }
+    const { pincode: postcode, phone, state } = check.address;
 
     const existingAddress: any =
       (selectedOrder as any).shippingAddress ||
@@ -214,18 +212,19 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       customerName: name,
       customerEmail: email,
       customerPhone: phone,
-      destination: buildDestination(addressLine1, city, postcode, UK_COUNTRY_NAME),
+      destination: buildDestination(addressLine1, city, `${state} ${postcode}`, INDIA_COUNTRY_NAME),
       // Spread the existing address so fields this form does not show are kept.
       shippingAddress: {
         ...existingAddress,
         fullName: name,
         email,
         phone,
+        address1: addressLine1,
         addressLine1,
         city,
-        postcode,
-        country: UK_COUNTRY_NAME,
-        countryCode: UK_COUNTRY_CODE
+        state,
+        pincode: postcode,
+        country: INDIA_COUNTRY_NAME
       }
     };
 
@@ -265,10 +264,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   const isSubOrder = (order: Order) => {
     if (order.isSubscription) return true;
     if (Array.isArray(order.tags) && order.tags.some(t => typeof t === 'string' && t.toLowerCase().includes('subscription'))) return true;
-    if (Array.isArray(order.items) && order.items.some((i: any) => 
-      i.isSubscription || 
-      i.vendor === 'Subscription Pack' || 
-      (i.productTitle && (i.productTitle.toLowerCase().includes('subscription') || i.productTitle.toLowerCase().includes('pack')))
+    // Stored flags only. Subscriptions are no longer sold; this recognises orders
+    // bought as subscriptions before they were removed, so their box contents
+    // still display. Title words like "pack" or "plan" are not evidence.
+    if (Array.isArray(order.items) && order.items.some((i: any) =>
+      i.isSubscription || String(i.productId || '').startsWith('sub-pack')
     )) return true;
     return false;
   };
@@ -281,23 +281,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
     return false;
   };
 
-  /**
-   * The reference this recurring order was charged under in Worldpay, or '' when
-   * there is none to show.
-   *
-   * Read straight off the order rather than rebuilt from the id, because it has
-   * to be the string that is actually in the Worldpay dashboard. Renewals taken
-   * from now on carry `SUB-ORD-<order id>`, but ones taken earlier are booked
-   * under the formats used at the time — a bare `PS65700-R20260917`, or a random
-   * `SUB-1758…`. Recomputing would show those orders a reference Worldpay has
-   * never seen, which is worse than showing nothing.
-   *
-   * `gatewayTxId` is always the reference; `worldpayTxId` is the payment id and
-   * is only a fallback for older rows written before the reference was kept.
-   */
-  const getGatewayReference = (order: Order): string =>
-    String(order.gatewayTxId || order.worldpayTxId || '').trim();
-
   // Helper to extract subscription metadata and selected products for detailed display.
   // The catalogue is passed in so every box item is reported under its exact
   // product title and the variant the customer actually picked.
@@ -308,8 +291,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
   /**
    * Records delivery by hand.
    *
-   * Nothing else can: Click & Drop reports despatch but never delivery, and
-   * Royal Mail's Tracking API is not integrated. The backend performs the write,
+   * No courier integration reports delivery to the store, so an admin confirms
+   * it here. The backend performs the write,
    * and the 'order_delivered' email is emitted by the status transition inside
    * saveSingleOrder — NOT fired from here. Sending it from the client as well
    * would duplicate it, which is the mistake the refund flow's comment at the
@@ -380,35 +363,19 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
         })
       });
 
-      // 2. Dispatch email notification trigger
-      fetch('/api/email/send-trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'order_refunded',
-          orderData: { ...selectedOrder, paymentStatus: 'Refunded' },
-          refundAmount,
-          reason
-        })
-      }).catch(err => console.warn('[Admin Refund Email Error]', err));
-
-      const updatedOrder: Order = {
-        ...selectedOrder,
-        paymentStatus: 'Refunded' as const
-      };
-
-      if (response.ok) {
-        const data = await response.json().catch(() => null);
-        if (data && data.order) {
-          Object.assign(updatedOrder, data.order);
-        }
+      // The server refunds through the payment gateway and only then records the
+      // refund (and sends the customer email). Anything else is shown as an error.
+      const data = await response.json().catch(() => ({} as any));
+      if (!response.ok || !data?.order) {
+        throw new Error(data?.error || `Refund failed (${response.status}).`);
       }
+      const updatedOrder: Order = { ...selectedOrder, ...data.order };
 
       const updatedOrders = parentOrders.map(o => String(o.id) === String(selectedOrder.id) ? updatedOrder : o);
       parentOnUpdateOrders(updatedOrders);
       setSelectedOrder(updatedOrder);
 
-      const refundComment = `Refund of £${refundAmount.toFixed(2)} processed successfully (${reason}).`;
+      const refundComment = `Refund of ₹${refundAmount.toFixed(2)} processed successfully (${reason}).`;
       setTimelineComments(prev => ({
         ...prev,
         [selectedOrder.id]: [
@@ -418,11 +385,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
       }));
 
       setShowRefundModal(false);
-      setRefundToastMessage(`Successfully refunded £${refundAmount.toFixed(2)} for Order #${selectedOrder.id}`);
+      setRefundToastMessage(`Successfully refunded ₹${refundAmount.toFixed(2)} for Order #${selectedOrder.id}`);
       setTimeout(() => setRefundToastMessage(null), 5000);
     } catch (err: any) {
       console.error('[Admin Refund Execution Error]', err);
-      alert('An error occurred while processing the refund. Please check network connection.');
+      alert(err?.message || 'The refund could not be processed.');
     } finally {
       setIsProcessingRefund(false);
     }
@@ -430,16 +397,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
   // Ensure newly created orders ALWAYS show at the very top (sorted newest first)
   const sortedFilteredOrders = useMemo(() => {
-    let list = [...filteredOrders];
-    if (orderTypeFilter === 'Subscription') {
-      list = list.filter(o => isSubOrder(o) && !isSubscriptionCancelled(o));
-    } else if (orderTypeFilter === 'Cancelled Subscription') {
-      list = list.filter(isSubscriptionCancelled);
-    } else if (orderTypeFilter === 'Standard') {
-      list = list.filter(o => !isSubOrder(o));
-    }
+    const list = [...filteredOrders];
     return list.sort((a, b) => parseOrderTime(b) - parseOrderTime(a));
-  }, [filteredOrders, orderTypeFilter]);
+  }, [filteredOrders]);
 
   const allVisibleSelected = sortedFilteredOrders.length > 0 && sortedFilteredOrders.every(o => selectedOrderIds.includes(String(o.id)));
 
@@ -579,69 +539,9 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             ))}
           </div>
 
-          <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-
-          {/* Customer / Subscription Toggle Pills */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-            <button
-              onClick={() => setOrderTypeFilter('All')}
-              className={`py-1 px-2.5 rounded-lg font-bold transition-all cursor-pointer ${
-                orderTypeFilter === 'All'
-                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setOrderTypeFilter('Standard')}
-              className={`py-1 px-2.5 rounded-lg font-bold transition-all cursor-pointer ${
-                orderTypeFilter === 'Standard'
-                  ? 'bg-white text-slate-900 shadow-2xs font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Standard
-            </button>
-            <button
-              onClick={() => setOrderTypeFilter('Subscription')}
-              className={`py-1 px-3 rounded-lg font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
-                orderTypeFilter === 'Subscription'
-                  ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'text-indigo-700 hover:bg-indigo-50 font-black'
-              }`}
-            >
-              <RefreshCw className="w-3 h-3" />
-              Subscriptions ({orders.filter(o => isSubOrder(o) && !isSubscriptionCancelled(o)).length})
-            </button>
-            <button
-              onClick={() => setOrderTypeFilter('Cancelled Subscription')}
-              className={`py-1 px-3 rounded-lg font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
-                orderTypeFilter === 'Cancelled Subscription'
-                  ? 'bg-rose-600 text-white shadow-2xs'
-                  : orders.filter(isSubscriptionCancelled).length > 0
-                  ? 'bg-rose-100 text-rose-800 hover:bg-rose-200 font-black'
-                  : 'text-rose-700 hover:bg-rose-50 font-medium'
-              }`}
-            >
-              <AlertTriangle className="w-3 h-3 text-rose-500" />
-              Cancelled Subscriptions ({orders.filter(isSubscriptionCancelled).length})
-            </button>
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {onNavigateToShipping && (
-            <button
-              onClick={onNavigateToShipping}
-              className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold p-2 px-2.5 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-              title="Configure Royal Mail API Key & Shipping Settings"
-            >
-              <Truck className="h-3.5 w-3.5 text-rose-600" />
-              <span>Royal Mail Settings</span>
-            </button>
-          )}
-
           <button
             onClick={handleExportOrders}
             className="bg-white hover:bg-slate-50 border border-slate-200 font-bold p-2 px-2.5 rounded-lg text-xs text-slate-700 flex items-center gap-1 transition cursor-pointer shadow-2xs"
@@ -758,41 +658,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                           );
                         })()}
 
-                        {/* The Worldpay reference this recurring charge was
-                            booked under, so a payment in the Worldpay dashboard
-                            can be matched to the order it paid for without
-                            opening anything. Renewals only — a checkout order is
-                            already findable in Worldpay by its own id. */}
-                        {(() => {
-                          if (!isRenewalOrder(order)) return null;
-                          const ref = getGatewayReference(order);
-                          if (!ref) return null;
-                          return (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigator.clipboard?.writeText(ref).then(
-                                  () => {
-                                    setCopiedRefOrderId(String(order.id));
-                                    setTimeout(() => setCopiedRefOrderId(null), 1500);
-                                  },
-                                  () => {}
-                                );
-                              }}
-                              title={`Worldpay transaction reference for this recurring order — click to copy\n${ref}`}
-                              className="mt-1 inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-violet-50 hover:bg-violet-100 text-violet-800 border border-violet-200 px-1.5 py-0.5 rounded transition-colors cursor-pointer max-w-full"
-                            >
-                              <span className="font-sans font-black text-violet-500 shrink-0">WP</span>
-                              <span className="truncate">{ref}</span>
-                              {copiedRefOrderId === String(order.id) ? (
-                                <Check className="w-2.5 h-2.5 shrink-0 text-emerald-600" />
-                              ) : (
-                                <Copy className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                              )}
-                            </button>
-                          );
-                        })()}
-
                         {/* The selected box products are intentionally NOT listed
                             here — they belong to the order detail view, which
                             shows the full breakdown under "Selected Plan
@@ -829,27 +694,21 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                           {order.fulfillmentStatus || 'Unfulfilled'}
                         </span>
                         {(() => {
-                          const trk = order.trackingNumber || order.trackingId || order.data?.royalMail?.trackingNumber;
+                          const trk = order.trackingNumber || order.trackingId;
                           if (!trk) return null;
                           return (
                             <div className="mt-1 flex items-center justify-center gap-1">
-                              <a
-                                href={`https://www.royalmail.com/track-your-item#/tracking-results/${encodeURIComponent(trk)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 px-1.5 py-0.5 rounded transition-colors shadow-3xs"
-                                title="Click to track on Royal Mail official site"
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-slate-50 text-slate-700 border border-slate-200 px-1.5 py-0.5 rounded"
+                                title={`${order.carrier || 'Courier'} tracking number`}
                               >
-                                <span className="font-sans font-black text-rose-600">RM</span>
                                 <span>{trk}</span>
-                                <ExternalLink className="h-2.5 w-2.5 opacity-70" />
-                              </a>
+                              </span>
                             </div>
                           );
                         })()}
                       </td>
-                      <td className="p-4 text-right font-extrabold text-slate-900">£{(Number(order.total) || 0).toFixed(2)}</td>
+                      <td className="p-4 text-right font-extrabold text-slate-900">₹{(Number(order.total) || 0).toFixed(2)}</td>
                       <td className="p-4 text-center flex items-center justify-center gap-2">
                         <button
                           onClick={() => setSelectedOrder(order)}
@@ -930,44 +789,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   )}
                 </div>
 
-                {/* Where this recurring charge came from: the original checkout
-                    and the plan it renews. Shown on the detail view because that
-                    is where an admin lands when reconciling a Worldpay charge. */}
-                {(() => {
-                const parentId = resolveParentOrderId(selectedOrder, orders);
-                const subId = getOrderSubscriptionId(selectedOrder);
-                if (!parentId && !subId) return null;
-                const parent = parentId ? orders.find(o => String(o.id) === parentId) : null;
-                return (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                    {parentId && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
-                        <CornerDownRight className="w-3 h-3 text-slate-400" />
-                        <span className="uppercase tracking-wider text-[9.5px]">Parent order</span>
-                        {parent ? (
-                          <button
-                            onClick={() => setSelectedOrder(parent)}
-                            className="font-mono font-black text-indigo-700 hover:text-indigo-900 hover:underline cursor-pointer"
-                          >
-                            #{parentId}
-                          </button>
-                        ) : (
-                          <span className="font-mono font-black text-slate-700" title="This order is not in the current list — clear any filter or search to open it.">
-                            #{parentId}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {subId && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
-                        <RefreshCw className="w-3 h-3 text-slate-400" />
-                        <span className="uppercase tracking-wider text-[9.5px]">Subscription</span>
-                        <span className="font-mono font-black text-slate-700">{subId}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-                })()}
                 </div>
               </div>
 
@@ -1011,172 +832,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
             
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
-
-              {/* SUBSCRIPTION CANCELLATION HIGHLIGHT BANNER FOR ADMINS */}
-              {isSubscriptionCancelled(selectedOrder) && (
-                <div className="bg-rose-50 border-2 border-rose-500/80 p-4 rounded-2xl space-y-2 text-left shadow-md animate-fadeIn">
-                  <div className="flex items-center gap-2 text-rose-800">
-                    <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0" />
-                    <span className="font-black text-sm uppercase tracking-wide">Subscription Plan Cancelled by Customer</span>
-                    <span className="ml-auto text-[10px] bg-rose-600 text-white font-black px-2 py-0.5 rounded uppercase">Cancelled</span>
-                  </div>
-                  <p className="text-xs text-rose-800 leading-relaxed font-medium">
-                    The customer cancelled their recurring subscription plan via their account portal. Recurring renewals and automatic charges for this subscription have been discontinued.
-                  </p>
-                  <div className="flex flex-wrap gap-4 text-xs font-semibold text-rose-900 pt-1 border-t border-rose-200">
-                    <div>
-                      <span className="text-slate-500 font-normal">Reason: </span>
-                      <span className="font-bold">{selectedOrder.subscriptionCancellationReason || getSubscriptionDetails(selectedOrder).cancellationReason || 'Customer requested cancellation'}</span>
-                    </div>
-                    {selectedOrder.subscriptionCancelledAt && (
-                      <div>
-                        <span className="text-slate-500 font-normal">Cancelled On: </span>
-                        <span className="font-bold">{new Date(selectedOrder.subscriptionCancelledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/*
-                RESUMED SUBSCRIPTION NOTICE. Without it, a customer resuming a
-                plan only removes the cancellation banner, and the dashboard
-                gives no sign that the subscription is billing again.
-              */}
-              {!isSubscriptionCancelled(selectedOrder) && selectedOrder.subscriptionResumedAt && (
-                <div className="bg-emerald-50 border-2 border-emerald-500/70 p-4 rounded-2xl space-y-1 text-left shadow-md animate-fadeIn">
-                  <div className="flex items-center gap-2 text-emerald-800">
-                    <RefreshCw className="h-5 w-5 text-emerald-600 shrink-0" />
-                    <span className="font-black text-sm uppercase tracking-wide">Subscription Resumed by Customer</span>
-                    <span className="ml-auto text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded uppercase">Active</span>
-                  </div>
-                  <p className="text-xs text-emerald-900 leading-relaxed font-medium">
-                    The customer restarted this cancelled plan from their account portal on{' '}
-                    <span className="font-bold">
-                      {new Date(selectedOrder.subscriptionResumedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    . Recurring renewals have started again from the next billing date.
-                  </p>
-                </div>
-              )}
-
-              {/* SUBSCRIPTION CUSTOMER ORDER DETAILS PANEL */}
-              {isSubOrder(selectedOrder) && (() => {
-                const subDetails = getSubscriptionDetails(selectedOrder);
-                const isCancelled = isSubscriptionCancelled(selectedOrder);
-                return (
-                  <div className={`text-white p-5 rounded-2xl shadow-lg border space-y-4 ${
-                    isCancelled 
-                      ? 'bg-slate-900 border-rose-500/50' 
-                      : 'bg-slate-900 border-slate-800'
-                  }`}>
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl border ${
-                          isCancelled 
-                            ? 'bg-rose-500/20 border-rose-400/30 text-rose-400' 
-                            : 'bg-indigo-500/20 border-indigo-400/30 text-indigo-400'
-                        }`}>
-                          {isCancelled ? (
-                            <AlertTriangle className="w-5 h-5" />
-                          ) : (
-                            <RefreshCw className="w-5 h-5 animate-spin-slow" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-black text-sm tracking-tight text-white uppercase">Subscription Customer Order</h3>
-                            {isCancelled ? (
-                              <span className="text-[9.5px] bg-rose-600 text-white font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                                CANCELLED BY CUSTOMER
-                              </span>
-                            ) : (
-                              <span className="text-[9.5px] bg-emerald-500 text-slate-950 font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                                {subDetails.paymentStatus === 'Paid' ? 'PAID & ACTIVE' : subDetails.paymentStatus.toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-400 font-medium">
-                            {isCancelled 
-                              ? 'Recurring subscription cancelled — no further automatic renewals' 
-                              : 'Recurring Subscription Delivery & Automatic Billing'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block mb-1">Subscription Plan</span>
-                        <span className="font-black text-sm text-white">{subDetails.planName}</span>
-                      </div>
-
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block mb-1">Delivery Frequency</span>
-                        <span className="font-black text-sm text-white">{subDetails.frequency}</span>
-                        <span className="text-[10px] font-bold text-emerald-400 block mt-0.5">({subDetails.frequencyDiscount} Discount)</span>
-                      </div>
-
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block mb-1">Subscription Status</span>
-                        {isCancelled ? (
-                          <span className="font-black text-sm text-rose-400 flex items-center gap-1">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Cancelled
-                          </span>
-                        ) : (
-                          <span className="font-black text-sm text-emerald-400 flex items-center gap-1">
-                            <CheckSquare className="w-3.5 h-3.5" /> Active (Paid)
-                          </span>
-                        )}
-                        <span className="text-[10px] text-slate-400 block mt-0.5">£{(Number(selectedOrder.total) || 0).toFixed(2)} / cycle</span>
-                      </div>
-
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block mb-1">Next Payment Date</span>
-                        {isCancelled ? (
-                          <>
-                            <span className="font-black text-sm text-rose-400">Cancelled</span>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">Billing suspended</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="font-black text-sm text-amber-300">{subDetails.nextPaymentDate}</span>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">Auto-renewal scheduled</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Selected Products & Variants Breakdown */}
-                    {subDetails.selectedProducts && subDetails.selectedProducts.length > 0 && (
-                      <div className="bg-slate-800/90 border border-slate-700/80 rounded-xl p-3.5 space-y-2 mt-2">
-                        <div className="flex items-center justify-between text-[11px] font-black text-indigo-300 uppercase tracking-wider">
-                          <span className="flex items-center gap-1.5">
-                            <Package className="w-3.5 h-3.5 text-indigo-400" />
-                            Selected Plan Products & Variants ({subDetails.selectedProducts.reduce((sum: number, p: any) => sum + (p.quantity || 1), 0)} Total Cans):
-                          </span>
-                          <span className="text-emerald-400 text-[10px] font-bold">Included in {subDetails.planName}</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          {subDetails.selectedProducts.map((p: any, pIdx: number) => (
-                            <div key={pIdx} className="flex items-center justify-between bg-slate-900/90 border border-slate-700/60 p-2.5 rounded-lg text-xs">
-                              <div className="min-w-0 pr-2">
-                                <p className="font-extrabold text-white text-xs truncate">{p.name}</p>
-                                {(p.variant || p.variantName) && (
-                                  <p className="text-[10px] text-indigo-300 font-bold">Variant: {p.variant || p.variantName}</p>
-                                )}
-                              </div>
-                              <span className="bg-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded-full shrink-0">
-                                × {p.quantity}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
 
               {/* WITHDRAWAL ACTION BANNER FOR ADMINS */}
               {Array.isArray(selectedOrder.tags) && selectedOrder.tags.includes('Withdrawal Requested') && (
@@ -1388,9 +1043,6 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         (item as any).isSubscription ||
                         item.productId?.startsWith('sub-pack') ||
                         item.productId?.includes('sub-pack') ||
-                        item.productTitle?.toLowerCase().includes('subscription') ||
-                        item.productTitle?.toLowerCase().includes('plan') ||
-                        (item as any).vendor === 'Subscription Pack' ||
                         isSubOrder(selectedOrder)
                       );
                       const subDetails = getSubscriptionDetails(selectedOrder);
@@ -1530,33 +1182,15 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
                           <div className="text-right shrink-0">
                             <p className={`text-xs font-black ${isRewardItem ? 'text-emerald-700' : 'text-slate-900'}`}>
-                              {isRewardItem ? 'FREE' : `£${(Number((item.price || 0) * (item.quantity || 1))).toFixed(2)}`}
+                              {isRewardItem ? 'FREE' : `₹${(Number((item.price || 0) * (item.quantity || 1))).toFixed(2)}`}
                             </p>
-                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">£{(Number(item.price) || 0).toFixed(2)} × {item.quantity || 1}</p>
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">₹{(Number(item.price) || 0).toFixed(2)} × {item.quantity || 1}</p>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Royal Mail Click & Drop Integration Section */}
-                  <RoyalMailOrderActions
-                    order={selectedOrder}
-                    onUpdateOrder={(updated) => {
-                      setSelectedOrder(updated);
-                      const updatedOrders = parentOrders.map(o => String(o.id) === String(updated.id) ? updated : o);
-                      parentOnUpdateOrders(updatedOrders);
-                    }}
-                    onAddTimelineComment={(text) => {
-                      setTimelineComments(prev => ({
-                        ...prev,
-                        [selectedOrder.id]: [
-                          ...(prev[selectedOrder.id] || []),
-                          { text, date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }
-                        ]
-                      }));
-                    }}
-                  />
 
                   {/* Manual Tracking Section Fallback */}
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1565,7 +1199,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                       <div className="flex items-center gap-2 mt-1">
                         <Truck className="h-4 w-4 text-slate-600" />
                         <span className="text-xs font-extrabold text-slate-800">
-                          {selectedOrder.carrier || 'Royal Mail'} {selectedOrder.trackingId ? `- ${selectedOrder.trackingId}` : '(No tracking yet)'}
+                          {selectedOrder.carrier || 'Courier'} {selectedOrder.trackingId ? `- ${selectedOrder.trackingId}` : '(No tracking yet)'}
                         </span>
                       </div>
                     </div>
@@ -1573,7 +1207,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                     <button
                       onClick={() => {
                         setTrackingNumberInput(selectedOrder.trackingId || '');
-                        setCarrierInput(selectedOrder.carrier || 'Royal Mail Tracked 24');
+                        setCarrierInput(selectedOrder.carrier || '');
                         setShowTrackingModal(true);
                       }}
                       className="py-1.5 px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-lg transition-all shadow-3xs cursor-pointer select-none"
@@ -1582,8 +1216,8 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                     </button>
                   </div>
 
-                  {/* Manual delivery confirmation. Royal Mail Click & Drop reports
-                      despatch but never delivery, so without this an order stays on
+                  {/* Manual delivery confirmation. Without a courier integration that
+                      reports delivery, an order would otherwise stay on
                       'Dispatched' indefinitely and the delivery email never sends. */}
                   {selectedOrder.fulfillmentStatus !== 'Cancelled' && (
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1599,7 +1233,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         </div>
                         {selectedOrder.fulfillmentStatus !== 'Delivered' && (
                           <span className="text-[10px] text-slate-500 block mt-1">
-                            Royal Mail does not report delivery to us. Confirm here once the parcel has arrived.
+                            No courier reports delivery to the store yet. Confirm here once the parcel has arrived.
                           </span>
                         )}
                       </div>
@@ -1631,21 +1265,21 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                       {selectedOrder.paymentStatus || 'Paid'}
                     </span>
                   </div>
-                  <span className="text-xs font-extrabold text-slate-900">£{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
+                  <span className="text-xs font-extrabold text-slate-900">₹{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between text-slate-600">
                     <span>Subtotal ({selectedOrder.items ? selectedOrder.items.length : 0} items)</span>
-                    <span className="font-extrabold text-slate-800">£{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
+                    <span className="font-extrabold text-slate-800">₹{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
-                    <span>Shipping (Royal Mail)</span>
-                    <span className="font-extrabold text-slate-800">£0.00</span>
+                    <span>Shipping</span>
+                    <span className="font-extrabold text-slate-800">₹0.00</span>
                   </div>
                   <div className="flex justify-between text-slate-900 font-black text-sm pt-2 border-t border-slate-100">
                     <span>Total Paid</span>
-                    <span>£{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
+                    <span>₹{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1751,7 +1385,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                           <>
                             <p className="text-slate-600">{address.addressLine1}</p>
                             {cityLine && <p className="text-slate-600">{cityLine}</p>}
-                            <p className="text-slate-600">{address.country || UK_COUNTRY_NAME}</p>
+                            <p className="text-slate-600">{address.country || INDIA_COUNTRY_NAME}</p>
                           </>
                         ) : (
                           // Orders taken before the address was stored as separate
@@ -1838,20 +1472,34 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         type="text"
                         value={customerForm.city}
                         onChange={(e) => setCustomerForm(prev => ({ ...prev, city: e.target.value }))}
-                        placeholder="e.g. Telford"
+                        placeholder="e.g. Pune"
                         className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-500"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[9.5px] mb-1">Postcode</label>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider text-[9.5px] mb-1">PIN code</label>
                       <input
                         type="text"
+                        inputMode="numeric"
+                        maxLength={6}
                         value={customerForm.postcode}
-                        onChange={(e) => setCustomerForm(prev => ({ ...prev, postcode: e.target.value }))}
-                        placeholder="e.g. TF4 2TQ"
-                        className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-500 uppercase"
+                        onChange={(e) => setCustomerForm(prev => ({ ...prev, postcode: e.target.value.replace(/\D/g, '') }))}
+                        placeholder="e.g. 411001"
+                        className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-500"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase tracking-wider text-[9.5px] mb-1">State</label>
+                    <select
+                      value={customerForm.state}
+                      onChange={(e) => setCustomerForm(prev => ({ ...prev, state: e.target.value }))}
+                      className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    >
+                      <option value="">Select state</option>
+                      {INDIA_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                    </select>
                   </div>
 
                   <div>
@@ -1860,11 +1508,11 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                       type="tel"
                       value={customerForm.phone}
                       onChange={(e) => setCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="e.g. 07700 900123"
+                      placeholder="e.g. 98765 43210"
                       className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-500"
                     />
                     <p className="text-[9.5px] text-slate-400 mt-1">
-                      Royal Mail prints this on the label and the courier uses it for delivery problems.
+                      The courier uses this for delivery updates.
                     </p>
                   </div>
 
@@ -1928,7 +1576,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                       type="text"
                       value={carrierInput}
                       onChange={(e) => setCarrierInput(e.target.value)}
-                      placeholder="e.g. Royal Mail Tracked 24"
+                      placeholder="e.g. Delhivery, Blue Dart"
                       className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-500"
                     />
                   </div>
@@ -2050,7 +1698,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   <div className="p-3.5 bg-purple-50/70 border border-purple-100 rounded-xl space-y-1.5 text-slate-700">
                     <div className="flex justify-between font-bold">
                       <span>Original Order Total:</span>
-                      <span className="text-slate-900 font-black">£{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
+                      <span className="text-slate-900 font-black">₹{(Number(selectedOrder.total) || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-[11px] text-slate-500">
                       <span>Customer Email:</span>
@@ -2060,7 +1708,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
 
                   <div>
                     <label className="block font-black text-slate-700 uppercase tracking-wider text-[10px] mb-1.5">
-                      Refund Amount (£)
+                      Refund Amount (₹)
                     </label>
                     <input
                       type="number"
@@ -2092,7 +1740,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
                     <span>
-                      Processing this refund will update the order status to <strong>Refunded</strong>, trigger an automated refund confirmation email to the customer, and register the refund on Worldpay gateway.
+                      Processing this refund will update the order status to <strong>Refunded</strong>, send the refund to Razorpay, and email the customer a refund confirmation. Orders paid before Razorpay was introduced must be refunded in the original provider's dashboard.
                     </span>
                   </div>
                 </div>
@@ -2118,7 +1766,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                     ) : (
                       <>
                         <Check className="w-4 h-4 stroke-[3]" />
-                        <span>Confirm Refund (£{customRefundAmount || (Number(selectedOrder.total) || 0).toFixed(2)})</span>
+                        <span>Confirm Refund (₹{customRefundAmount || (Number(selectedOrder.total) || 0).toFixed(2)})</span>
                       </>
                     )}
                   </button>

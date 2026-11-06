@@ -828,9 +828,9 @@ export default function ProductEditor({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Price (Retail GBP)</label>
+                <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Price (Retail INR)</label>
                 <div className="relative rounded-xl overflow-hidden border border-slate-250 focus-within:ring-2 focus-within:ring-[#008060]/20 focus-within:border-[#008060] transition-all">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-450 font-bold font-mono text-xs">£</span>
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-450 font-bold font-mono text-xs">₹</span>
                   <input
                     type="number"
                     step="0.01"
@@ -846,7 +846,7 @@ export default function ProductEditor({
               <div>
                 <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Compare-at Price (original MSRP)</label>
                 <div className="relative rounded-xl overflow-hidden border border-slate-250 focus-within:ring-2 focus-within:ring-[#008060]/20 focus-within:border-[#008060] transition-all">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-450 font-bold font-mono text-xs">£</span>
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-450 font-bold font-mono text-xs">₹</span>
                   <input
                     type="number"
                     step="0.01"
@@ -1177,7 +1177,7 @@ export default function ProductEditor({
                       <div className="md:col-span-7 space-y-3.5">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                           <div>
-                            <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Price (£ GBP)</label>
+                            <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Price (₹ INR)</label>
                             <input
                               type="number"
                               step="0.01"
@@ -1262,7 +1262,7 @@ export default function ProductEditor({
               <p className="text-[#3c4043] font-sans text-[11px] leading-relaxed pt-1 select-all h-[40px] line-clamp-2">
                 {seoDescription || description || 'Discover the freshest European nicotine pouch canisters available. Ultra-fast UK shipping and wholesale options.'}
               </p>
-              <span className="text-emerald-700 font-sans text-[10px] block pt-1 font-bold">🛒 Prices start from £{price ? price.toFixed(2) : '4.99'} GBP</span>
+              <span className="text-emerald-700 font-sans text-[10px] block pt-1 font-bold">🛒 Prices start from ₹{price ? price.toFixed(2) : '4.99'} INR</span>
             </div>
 
             {showSeoFields && (

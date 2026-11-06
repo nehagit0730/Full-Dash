@@ -141,7 +141,7 @@ export default function RecycleBinTab({ onRestored, onCountChange }: RecycleBinT
 
   const formatWhen = (iso: string) => {
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) +
       ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 

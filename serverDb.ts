@@ -231,7 +231,7 @@ export async function ensureNeonTablesExist(): Promise<void> {
       );
     `);
 
-    // 5. Orders, Customers & Subscriptions
+    // 5. Orders & Customers
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Order" (
         "id" TEXT PRIMARY KEY,
@@ -240,8 +240,6 @@ export async function ensureNeonTablesExist(): Promise<void> {
         "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
         "fulfillmentStatus" TEXT NOT NULL DEFAULT 'Unfulfilled',
         "paymentStatus" TEXT DEFAULT 'Paid',
-        "worldpayTxId" TEXT,
-        "worldpayAuthCode" TEXT,
         "gatewayTxId" TEXT,
         "gatewayAuthCode" TEXT,
         "cardBrand" TEXT,
@@ -286,41 +284,6 @@ export async function ensureNeonTablesExist(): Promise<void> {
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Subscription" (
-        "id" TEXT PRIMARY KEY,
-        "customerId" TEXT,
-        "customerEmail" TEXT NOT NULL,
-        "customerName" TEXT,
-        "planId" TEXT NOT NULL,
-        "planName" TEXT NOT NULL,
-        "amount" DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-        "currency" TEXT NOT NULL DEFAULT 'GBP',
-        "status" TEXT NOT NULL DEFAULT 'active',
-        "billingInterval" TEXT NOT NULL DEFAULT 'month',
-        "nextBillingDate" TIMESTAMP(3),
-        "worldpayTransactionId" TEXT,
-        "worldpayTokenHref" TEXT,
-        "worldpayRecurringHref" TEXT,
-        "worldpaySchemeReference" TEXT,
-        "lastPaymentStatus" TEXT,
-        "lastPaymentId" TEXT,
-        "lastPaymentAt" TIMESTAMP(3),
-        "failedPaymentCount" INTEGER NOT NULL DEFAULT 0,
-        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // The CREATE above only runs on a fresh database, so a column added after
-    // the table already existed has to be applied separately or every write of
-    // it is discarded by Postgres. `worldpayTokenHref` holds the stored-card
-    // token Worldpay returns on the tokenCreated webhook — without it no
-    // subscription can present a card on its renewal.
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "Subscription" ADD COLUMN IF NOT EXISTS "worldpayTokenHref" TEXT;
-    `);
-
     // 6. Blog Posts, Discounts, Layout & Analytics
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "BlogPost" (
@@ -382,18 +345,21 @@ export async function ensureNeonTablesExist(): Promise<void> {
       );
     `);
 
-    // Centralised integration settings — see prisma/migrations/20261106_integration_settings.
-    // Run here as well so a deployment that never ran the migration by hand still works.
+    // Additive migrations (integration settings, payment transactions). Run here
+    // as well so a deployment that never ran them by hand still works.
+    // Destructive migrations are NEVER listed here.
     try {
-      const migrationSql = fs.readFileSync(
-        path.join(process.cwd(), 'prisma', 'migrations', '20261106_integration_settings', 'migration.sql'),
-        'utf8'
-      );
-      const statements = migrationSql
-        .split(/;\s*$/m)
-        .map(s => s.split('\n').filter(l => !l.trim().startsWith('--')).join('\n').trim())
-        .filter(Boolean);
-      for (const stmt of statements) await prisma.$executeRawUnsafe(stmt);
+      for (const name of ['20261106_integration_settings', '20261107_payment_transactions']) {
+        const migrationSql = fs.readFileSync(
+          path.join(process.cwd(), 'prisma', 'migrations', name, 'migration.sql'),
+          'utf8'
+        );
+        const statements = migrationSql
+          .split(/;\s*$/m)
+          .map(s => s.split('\n').filter(l => !l.trim().startsWith('--')).join('\n').trim())
+          .filter(Boolean);
+        for (const stmt of statements) await prisma.$executeRawUnsafe(stmt);
+      }
     } catch (intErr) {
       // The SQL file is not bundled on every platform; fall back to the minimal inline form.
       await prisma.$executeRawUnsafe(`
@@ -411,6 +377,18 @@ export async function ensureNeonTablesExist(): Promise<void> {
           "id" TEXT PRIMARY KEY, "integrationId" TEXT NOT NULL, "action" TEXT NOT NULL, "actor" TEXT,
           "changedFields" TEXT[] DEFAULT ARRAY[]::TEXT[], "details" JSONB,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "PaymentTransaction" (
+          "id" TEXT PRIMARY KEY, "provider" TEXT NOT NULL, "orderId" TEXT NOT NULL UNIQUE,
+          "providerOrderId" TEXT UNIQUE, "providerPaymentId" TEXT, "amount" INTEGER NOT NULL,
+          "currency" TEXT NOT NULL DEFAULT 'INR', "status" TEXT NOT NULL DEFAULT 'created',
+          "mode" TEXT NOT NULL DEFAULT 'test', "customerEmail" TEXT, "checkout" JSONB NOT NULL,
+          "refunds" JSONB NOT NULL DEFAULT '[]', "refundedAmount" INTEGER NOT NULL DEFAULT 0,
+          "lastError" TEXT, "orderRecorded" BOOLEAN NOT NULL DEFAULT false, "paidAt" TIMESTAMP(3),
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
       `);
     }
@@ -904,7 +882,7 @@ async function syncToPrismaModel(resource: string, item: any): Promise<void> {
       // One shared, schema-checked writer for the Order table - see
       // src/lib/orderRow.ts. This branch used to list the columns by hand and
       // omitted isSubscription, subscriptionDetails, subtotal, shippingCost,
-      // trackingNumber and royalMailOrderId, so every order it wrote was a
+      // and trackingNumber, so every order it wrote was a
       // partial row that disagreed with the StoreResource copy.
       const { upsertOrderRow } = await import('./src/lib/orderRow');
       await upsertOrderRow(item);
@@ -1011,14 +989,6 @@ async function syncToPrismaModel(resource: string, item: any): Promise<void> {
           }
         }
       }
-    } else if (norm === 'subscriptions' || norm === 'subscription') {
-      // One shared, schema-checked writer - see src/lib/subscriptionRow.ts.
-      // The hand-listed columns here dropped items, cansCount, itemPrice,
-      // shippingCost, shippingAddress, deliveryMethod and sourceOrderId, so the
-      // typed row could not reproduce the box or the shipping charge, and
-      // customerId was written unchecked against the Customer foreign key.
-      const { upsertSubscriptionRow } = await import('./src/lib/subscriptionRow');
-      await upsertSubscriptionRow(item);
     }
   } catch (mErr: any) {
     console.warn(`[Prisma Model Sync] ${norm} sync warning:`, mErr?.message);
@@ -1039,8 +1009,6 @@ async function fetchFromPrismaModel(resource: string): Promise<any[]> {
           tags: o.tags,
           fulfillmentStatus: o.fulfillmentStatus,
           paymentStatus: o.paymentStatus,
-          worldpayTxId: o.worldpayTxId,
-          worldpayAuthCode: o.worldpayAuthCode,
           gatewayTxId: o.gatewayTxId,
           gatewayAuthCode: o.gatewayAuthCode,
           cardBrand: o.cardBrand,
@@ -1058,47 +1026,6 @@ async function fetchFromPrismaModel(resource: string): Promise<any[]> {
           createdAt: o.createdAt ? o.createdAt.toISOString() : undefined
         };
       });
-    } else if (norm === 'subscriptions' || norm === 'subscription') {
-      const items = await prisma.subscription.findMany({ orderBy: { createdAt: 'desc' } });
-      return items.map(s => ({
-        id: s.id,
-        customerId: s.customerId,
-        customerEmail: s.customerEmail,
-        customerName: s.customerName,
-        planId: s.planId,
-        planName: s.planName,
-        amount: Number(s.amount),
-        currency: s.currency,
-        status: s.status,
-        billingInterval: s.billingInterval,
-        nextBillingDate: s.nextBillingDate ? s.nextBillingDate.toISOString() : null,
-        worldpayTransactionId: s.worldpayTransactionId,
-        worldpayTokenHref: s.worldpayTokenHref,
-        worldpayRecurringHref: s.worldpayRecurringHref,
-        worldpaySchemeReference: s.worldpaySchemeReference,
-        lastPaymentStatus: s.lastPaymentStatus,
-        lastPaymentId: s.lastPaymentId,
-        lastPaymentAt: s.lastPaymentAt ? s.lastPaymentAt.toISOString() : null,
-        failedPaymentCount: s.failedPaymentCount,
-        createdAt: s.createdAt.toISOString(),
-        updatedAt: s.updatedAt.toISOString(),
-        // Every lookup that ties a subscription to its order matches on
-        // sourceOrderId: the duplicate guard, the repair sweep, token matching
-        // and the inspection script. This mapping used to omit it, so a
-        // subscription whose StoreResource copy was missing or overwritten came
-        // back from here with no order at all — invisible to all of them, while
-        // the renewal cron, which reads this table directly, still billed it.
-        //
-        // Spread only when present: this object is merged OVER the StoreResource
-        // copy, so emitting a null would erase a value the other copy holds.
-        ...(s.sourceOrderId ? { sourceOrderId: s.sourceOrderId } : {}),
-        ...(s.items ? { items: s.items } : {}),
-        ...(s.itemPrice !== null && s.itemPrice !== undefined ? { itemPrice: Number(s.itemPrice) } : {}),
-        ...(s.shippingCost !== null && s.shippingCost !== undefined ? { shippingCost: Number(s.shippingCost) } : {}),
-        ...(s.shippingAddress ? { shippingAddress: s.shippingAddress } : {}),
-        ...(s.deliveryMethod ? { deliveryMethod: s.deliveryMethod } : {}),
-        ...(s.cansCount !== null && s.cansCount !== undefined ? { cansCount: s.cansCount } : {})
-      }));
     } else if (norm === 'products') {
       const items = await prisma.product.findMany();
       return items.map(p => (p.data && typeof p.data === 'object') ? { ...(p.data as object), id: p.id } : p);
@@ -1685,7 +1612,6 @@ export async function fetchLayoutSettings(): Promise<any> {
       footerLogoImage: '',
       menuItems: [
         { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },
-        { id: '2', label: 'Subscribe', tab: 'frontend-subscribe', type: 'tab' },
         { id: '3', label: 'Shop Now', tab: 'frontend-shop', type: 'tab' },
         { id: '4', label: 'All Brands', tab: 'frontend-brands', type: 'tab' },
         { id: '5', label: 'About', tab: 'about', type: 'tab' }

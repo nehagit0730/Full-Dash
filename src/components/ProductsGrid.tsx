@@ -46,7 +46,6 @@ export default function ProductsGrid({
   
   // Custom Toggles
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [subscriptionEligible, setSubscriptionEligible] = useState(true);
   const [bestSellersOnly, setBestSellersOnly] = useState(false);
   const [newArrivalsOnly, setNewArrivalsOnly] = useState(false);
 
@@ -116,7 +115,6 @@ export default function ProductsGrid({
     setSelectedFlavours([]);
     setPriceRange(maxCatalogPrice);
     setInStockOnly(false);
-    setSubscriptionEligible(false);
     setBestSellersOnly(false);
     setNewArrivalsOnly(false);
   };
@@ -431,7 +429,7 @@ export default function ProductsGrid({
               <span className="text-sm">🇪🇺</span> EU Official Supplier
             </span>
             <span className="flex items-center gap-1.5 text-slate-600">
-              <span className="text-sm">🚚</span> Royal Mail Tracked Delivery
+              <span className="text-sm">🚚</span> Tracked Delivery
             </span>
           </div>
           <div className="flex items-center gap-6 mx-auto sm:mx-0">
@@ -489,59 +487,6 @@ export default function ProductsGrid({
               <span className="flex items-center gap-1 text-slate-800 font-extrabold tracking-tight">
                 <span className="text-emerald-500">★</span> Trustpilot
               </span>
-            </div>
-          </div>
-
-          {/* Right Column (SAVE MORE WITH SUBSCRIPTION Box) */}
-          <div className="lg:w-[380px] bg-slate-50 border border-slate-150 rounded-xl p-4.5 flex items-center justify-between gap-4 relative overflow-hidden group">
-            <div className="space-y-2.5 z-10 max-w-[210px]">
-              <span className="inline-flex items-center gap-1 text-[8.5px] font-extrabold tracking-widest text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full uppercase">
-                ⭐ SAVE MORE WITH SUBSCRIPTION
-              </span>
-              <h3 className="text-sm font-black text-slate-800 leading-tight">
-                Save up to 20% on every order
-              </h3>
-              <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-                Choose any flavours • Change anytime
-              </p>
-              
-              <button 
-                onClick={() => {
-                  try {
-                    window.history.pushState({}, '', '/subscribe');
-                  } catch (e) {}
-                  window.dispatchEvent(new Event('popstate'));
-                }}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[10.5px] py-2 px-4 rounded-lg flex items-center gap-1 shadow-sm transition-all cursor-pointer"
-              >
-                <span>Compare Plans</span>
-                <ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
-
-            {/* Custom high-fidelity CSS 3D Box Illustration */}
-            <div className="relative w-28 h-24 flex items-center justify-center shrink-0">
-              {/* Outer perspective wrapper */}
-              <div className="w-24 h-16 bg-slate-900 border border-slate-800 rounded-lg shadow-md flex flex-col justify-end p-2 relative overflow-hidden transform group-hover:scale-103 transition-transform">
-                <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 to-slate-850 opacity-95" />
-                
-                {/* Simulated box depth line */}
-                <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-slate-750" />
-                
-                <div className="relative z-10 text-[7px] font-extrabold text-amber-500 tracking-widest">POUCH</div>
-                <div className="relative z-10 text-[9px] font-black text-white tracking-widest leading-none">SUPPLY</div>
-                
-                {/* Canisters popping out dynamically */}
-                <div className="absolute -top-5 -left-1 w-9 h-9 rounded-full bg-indigo-650 border border-indigo-400 shadow-lg flex items-center justify-center text-[7px] font-black text-white transform -rotate-12 animate-bounce duration-2000">
-                  ZYN
-                </div>
-                <div className="absolute -top-7 right-4 w-10 h-10 rounded-full bg-emerald-650 border border-emerald-400 shadow-xl flex items-center justify-center text-[7.5px] font-black text-white transform rotate-12">
-                  77
-                </div>
-                <div className="absolute -top-4 -right-2 w-9 h-9 rounded-full bg-rose-600 border border-rose-450 shadow-lg flex items-center justify-center text-[7px] font-black text-white transform -rotate-6">
-                  VELO
-                </div>
-              </div>
             </div>
           </div>
 
@@ -721,7 +666,7 @@ export default function ProductsGrid({
               <div className="flex justify-between items-center text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
                 <span>Price Range</span>
                 <span className="text-slate-800 font-black text-xs">
-                  {priceRange >= maxCatalogPrice ? `All Prices (£${maxCatalogPrice.toFixed(2)}+)` : `Max £${priceRange.toFixed(2)}`}
+                  {priceRange >= maxCatalogPrice ? `All Prices (₹${maxCatalogPrice.toFixed(2)}+)` : `Max ₹${priceRange.toFixed(2)}`}
                 </span>
               </div>
               <input
@@ -734,8 +679,8 @@ export default function ProductsGrid({
                 className="w-full accent-slate-950 h-1.5 bg-slate-100 rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[9px] text-slate-400 font-bold">
-                <span>£1.00</span>
-                <span>£{maxCatalogPrice}.00+</span>
+                <span>₹1.00</span>
+                <span>₹{maxCatalogPrice}.00+</span>
               </div>
             </div>
 
@@ -751,15 +696,6 @@ export default function ProductsGrid({
                 <span>In Stock Only</span>
               </label>
 
-              <label className="flex items-center gap-2 text-xs text-slate-700 font-semibold hover:text-slate-900 cursor-pointer py-1">
-                <input
-                  type="checkbox"
-                  checked={subscriptionEligible}
-                  onChange={(e) => setSubscriptionEligible(e.target.checked)}
-                  className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 h-3.5 w-3.5"
-                />
-                <span>Subscription Eligible</span>
-              </label>
 
               <label className="flex items-center gap-2 text-xs text-slate-700 font-semibold hover:text-slate-900 cursor-pointer py-1">
                 <input
@@ -1013,21 +949,21 @@ export default function ProductsGrid({
                               <div className="space-y-1">
                                 <div className="flex items-baseline gap-1.5 flex-wrap">
                                   <span className="text-sm sm:text-base font-black text-slate-900">
-                                    £{volumeTotal.toFixed(2)}
+                                    ₹{volumeTotal.toFixed(2)}
                                   </span>
                                   {hasVolumeDiscount && (
                                     <span className="text-[10.5px] font-bold text-slate-400 line-through">
-                                      £{standardTotal.toFixed(2)}
+                                      ₹{standardTotal.toFixed(2)}
                                     </span>
                                   )}
                                   <span className="text-[10px] text-slate-500 font-medium">
-                                    {localQty > 1 ? `(£${effectiveUnitPrice} each)` : 'each'}
+                                    {localQty > 1 ? `(₹${effectiveUnitPrice} each)` : 'each'}
                                   </span>
                                 </div>
 
                                 {hasVolumeDiscount && (
                                   <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 font-extrabold text-[9px] py-0.5 px-2 rounded-md">
-                                    <span>Volume Savings Applied! (Saved £{(standardTotal - volumeTotal).toFixed(2)})</span>
+                                    <span>Volume Savings Applied! (Saved ₹{(standardTotal - volumeTotal).toFixed(2)})</span>
                                   </div>
                                 )}
                               </div>
@@ -1095,55 +1031,6 @@ export default function ProductsGrid({
                 })}
               </div>
             )}
-
-            {/* Banner: Build Your Box & Save */}
-            <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden shadow-xs">
-              <div className="absolute right-0 top-0 opacity-15 pointer-events-none blur-2xl bg-amber-500 h-64 w-64 rounded-full" />
-              
-              <div className="space-y-3 z-10 text-center md:text-left">
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <span className="p-1.5 rounded-xl bg-amber-550 text-slate-950 font-black text-[9px] uppercase tracking-wider leading-none">
-                    ⭐ EXCLUSIVE PACKS
-                  </span>
-                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white leading-none">
-                    Build Your Box & Save
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-400 font-medium">
-                  Add any 8 cans to your subscription box and save up to 20%
-                </p>
-                
-                {/* Tickmarks checklist */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1.5 pt-1 text-[10px] text-slate-300 font-bold">
-                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-amber-500 shrink-0" /> Mix any brands</span>
-                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-amber-500 shrink-0" /> Change anytime</span>
-                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-amber-500 shrink-0" /> Skip or pause</span>
-                  <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-amber-500 shrink-0" /> Free delivery on Pro & Ultimate</span>
-                </div>
-              </div>
-
-              {/* Graphic + Build Button */}
-              <div className="flex items-center gap-4 z-10">
-                <div className="hidden sm:flex items-center -space-x-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-850 border border-slate-700 shadow-lg flex items-center justify-center text-[8px] font-black transform -rotate-12">ZYN</div>
-                  <div className="w-10 h-10 rounded-full bg-indigo-950 border border-indigo-700 shadow-xl flex items-center justify-center text-[8px] font-black transform rotate-12">VELO</div>
-                  <div className="w-10 h-10 rounded-full bg-emerald-950 border border-emerald-700 shadow-lg flex items-center justify-center text-[8px] font-black transform -rotate-6">77</div>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    try {
-                      window.history.pushState({}, '', '/subscribe');
-                    } catch (e) {}
-                    window.dispatchEvent(new Event('popstate'));
-                  }}
-                  className="bg-amber-550 hover:bg-amber-600 text-slate-950 font-black text-xs py-2.5 px-6 rounded-xl flex items-center gap-1 shadow-sm transition-all cursor-pointer whitespace-nowrap"
-                >
-                  <span>Build Your Box</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
 
             {/* Bottom Section: Recently Viewed & Matchmaker Strength Quiz */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4">
@@ -1373,7 +1260,7 @@ export default function ProductsGrid({
                         {quizResult.title}
                       </h4>
                       <p className="text-[10px] text-slate-400 mt-1">
-                        Price: £{quizResult.price.toFixed(2)}
+                        Price: ₹{quizResult.price.toFixed(2)}
                       </p>
                     </div>
 

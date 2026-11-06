@@ -74,10 +74,10 @@ export default function ShippingPolicy({ onNavigate }: ShippingPolicyProps) {
             </div>
 
             <div className="border border-indigo-200 rounded-2xl p-4 bg-gradient-to-tr from-indigo-500/5 to-indigo-650/5 border-dashed space-y-2 hover:border-indigo-400 transition-colors shadow-xs">
-              <span className="text-[10px] uppercase font-black tracking-widest text-white bg-indigo-600 px-2 py-0.5 rounded-md inline-block">ROYAL MAIL TRACKED</span>
-              <h4 className="text-base font-black text-slate-800 leading-none">Royal Mail Tracked 24 / 48</h4>
+              <span className="text-[10px] uppercase font-black tracking-widest text-white bg-indigo-600 px-2 py-0.5 rounded-md inline-block">EXPRESS TRACKED</span>
+              <h4 className="text-base font-black text-slate-800 leading-none">Express Tracked Delivery</h4>
               <p className="text-2xl font-black text-slate-900 leading-none">1–3 <span className="text-xs font-semibold text-slate-450 uppercase tracking-wider">Business Days</span></p>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">Official Royal Mail Tracked service with end-to-end tracking and SMS/Email delivery updates.</p>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">Tracked courier delivery with end-to-end tracking and SMS/email updates.</p>
             </div>
           </div>
           <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 flex gap-2.5 text-amber-900">
@@ -105,7 +105,7 @@ export default function ShippingPolicy({ onNavigate }: ShippingPolicyProps) {
             </li>
             <li className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 bg-indigo-505 rounded-full" />
-              <span>The selected shipping carrier tier (Royal Mail Tracked 24/48)</span>
+              <span>The selected delivery option</span>
             </li>
             <li className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 bg-indigo-505 rounded-full" />

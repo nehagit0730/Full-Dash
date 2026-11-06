@@ -91,7 +91,7 @@ interface AppliedRewardLinesProps {
 }
 
 /**
- * The £0 lines a reward adds to the order — chosen free cans with their brand
+ * The ₹0 lines a reward adds to the order — chosen free cans with their brand
  * and flavour, and gift artwork such as the mystery box. Rendered in the cart,
  * at checkout and on the confirmed order so the customer can always see the
  * reward is actually included.
@@ -156,7 +156,7 @@ export function AppliedRewardLines({ discount, onEditSelection, compact = false 
               )}
             </div>
 
-            <span className="text-[10px] font-black uppercase text-emerald-700 shrink-0">£0.00</span>
+            <span className="text-[10px] font-black uppercase text-emerald-700 shrink-0">₹0.00</span>
           </div>
         ))}
       </div>

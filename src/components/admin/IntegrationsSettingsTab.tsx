@@ -376,7 +376,7 @@ function IntegrationCard({
                       <Copy className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1">Register this in the provider dashboard. Webhook processing for this provider is enabled in a later phase.</p>
+                  <p className="text-[11px] text-slate-500 mt-1">Register this in the provider dashboard.</p>
                 </div>
               )}
 

@@ -171,9 +171,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ stats }) => {
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs relative">
           <TrendingUp className="absolute top-5 right-5 text-indigo-600 h-5 w-5" />
           <span className="text-[10px] text-slate-400 font-bold uppercase block tracking-wider">Total Revenue</span>
-          <h3 className="text-2xl font-black text-slate-900 mt-2">£{(Number(stats?.totalSales) || 0).toFixed(2)}</h3>
+          <h3 className="text-2xl font-black text-slate-900 mt-2">₹{(Number(stats?.totalSales) || 0).toFixed(2)}</h3>
           <div className="text-[11px] text-emerald-600 font-bold mt-2">
-            £{(Number(stats?.todaySales) || 0).toFixed(2)} <span className="text-slate-400 font-medium">today</span>
+            ₹{(Number(stats?.todaySales) || 0).toFixed(2)} <span className="text-slate-400 font-medium">today</span>
           </div>
         </div>
 
@@ -218,7 +218,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ stats }) => {
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs relative">
           <HardDrive className="absolute top-5 right-5 text-indigo-600 h-5 w-5" />
           <span className="text-[10px] text-slate-400 font-bold uppercase block tracking-wider">Average Order Value</span>
-          <h3 className="text-2xl font-black text-slate-900 mt-2">£{(Number(stats?.avgOrderValue) || 0).toFixed(2)}</h3>
+          <h3 className="text-2xl font-black text-slate-900 mt-2">₹{(Number(stats?.avgOrderValue) || 0).toFixed(2)}</h3>
           <p className="text-[10px] text-slate-400 mt-1">Across {stats.completedOrders} paid order(s)</p>
         </div>
       </div>

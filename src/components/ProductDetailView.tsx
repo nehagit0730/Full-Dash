@@ -381,19 +381,19 @@ export default function ProductDetailView({
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-150/80 space-y-2">
                     <div className="flex items-baseline gap-3 flex-wrap">
                       <span className="text-2xl font-black text-slate-900">
-                        £{volumeTotal.toFixed(2)}
+                        ₹{volumeTotal.toFixed(2)}
                       </span>
                       {hasVolumeDiscount && (
                         <span className="text-sm font-bold text-slate-400 line-through">
-                          £{standardTotal.toFixed(2)}
+                          ₹{standardTotal.toFixed(2)}
                         </span>
                       )}
                       <span className="text-xs text-slate-500 font-bold">
-                        {quantity > 1 ? `(£${effectiveUnitPrice} each)` : 'each'}
+                        {quantity > 1 ? `(₹${effectiveUnitPrice} each)` : 'each'}
                       </span>
                       {hasVolumeDiscount && (
                         <span className="text-[10px] font-extrabold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 uppercase tracking-wide">
-                          Volume Savings Applied! (Saved £{(standardTotal - volumeTotal).toFixed(2)})
+                          Volume Savings Applied! (Saved ₹{(standardTotal - volumeTotal).toFixed(2)})
                         </span>
                       )}
                     </div>
@@ -401,11 +401,11 @@ export default function ProductDetailView({
                     {/* Volume Tiers Quick Indicator */}
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-200/60 flex-wrap">
                       <span className="text-slate-800 font-extrabold">Volume Pricing:</span>
-                      <span className={`px-1.5 py-0.5 rounded ${quantity === 5 ? 'bg-indigo-600 text-white font-extrabold' : 'bg-slate-100 text-slate-700'}`}>5 = £23.50</span>
+                      <span className={`px-1.5 py-0.5 rounded ${quantity === 5 ? 'bg-indigo-600 text-white font-extrabold' : 'bg-slate-100 text-slate-700'}`}>5 = ₹23.50</span>
                       <span>•</span>
-                      <span className={`px-1.5 py-0.5 rounded ${quantity === 10 ? 'bg-indigo-600 text-white font-extrabold' : 'bg-slate-100 text-slate-700'}`}>10 = £42.00</span>
+                      <span className={`px-1.5 py-0.5 rounded ${quantity === 10 ? 'bg-indigo-600 text-white font-extrabold' : 'bg-slate-100 text-slate-700'}`}>10 = ₹42.00</span>
                       <span>•</span>
-                      <span className={`px-1.5 py-0.5 rounded ${quantity === 20 ? 'bg-indigo-600 text-white font-extrabold' : 'bg-slate-100 text-slate-700'}`}>20 = £77.00</span>
+                      <span className={`px-1.5 py-0.5 rounded ${quantity === 20 ? 'bg-indigo-600 text-white font-extrabold' : 'bg-slate-100 text-slate-700'}`}>20 = ₹77.00</span>
                     </div>
                   </div>
                 );
@@ -546,7 +546,7 @@ export default function ProductDetailView({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-[10px] text-slate-500">
                 <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                   <Truck className="h-4 w-4 text-indigo-600 shrink-0" />
-                  <span className="font-medium">Free UK dispatch over £15</span>
+                  <span className="font-medium">Free UK dispatch over ₹15</span>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                   <Shield className="h-4 w-4 text-indigo-600 shrink-0" />
@@ -591,7 +591,7 @@ export default function ProductDetailView({
                   </div>
                   <div className="space-y-1 mt-2">
                     <h4 className="text-[11px] font-black text-slate-800 truncate">{rel.title}</h4>
-                    <p className="text-slate-900 font-extrabold text-[11px]">£{rel.price.toFixed(2)}</p>
+                    <p className="text-slate-900 font-extrabold text-[11px]">₹{rel.price.toFixed(2)}</p>
                   </div>
                 </div>
               ))}

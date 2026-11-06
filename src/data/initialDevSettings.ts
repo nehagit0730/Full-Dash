@@ -77,7 +77,7 @@ export const DEFAULT_DEV_SETTINGS: DevSettings = {
       key: 'shipping_banner_html',
       description: 'Top notification strip advertising UK 24H tracked delivery',
       code: `<div class="bg-slate-900 text-amber-400 text-[11px] font-extrabold py-1.5 px-4 text-center tracking-wider uppercase flex items-center justify-center gap-2">
-  <span>⚡ FREE UK TRACKED 24 SHIPPING ON ORDERS OVER £30</span>
+  <span>⚡ FREE UK TRACKED 24 SHIPPING ON ORDERS OVER ₹30</span>
   <span class="text-slate-400">• DISPATCHED SAME DAY BEFORE 3PM</span>
 </div>`,
       enabled: true,

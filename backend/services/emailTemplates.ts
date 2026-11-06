@@ -157,7 +157,7 @@ function renderOrderItemsTable(data: EmailTemplateData): string {
 
   const itemsHtml = data.items.map(item => {
     const lineTotal = (item.price || 0) * (item.quantity || 1);
-    // Loyalty reward lines ship at £0. Showing "£0.00" next to a can reads as a
+    // Loyalty reward lines ship at ₹0. Showing "₹0.00" next to a can reads as a
     // pricing error, so they are labelled as the gift they are.
     const isReward = Boolean((item as any).isRewardItem);
     const detailBits = [`Qty: ${item.quantity || 1}`];
@@ -171,7 +171,7 @@ function renderOrderItemsTable(data: EmailTemplateData): string {
         <div style="font-size: 11px; color: #64748b; font-weight: normal;">${detailBits.join(' · ')}</div>
       </td>
       <td style="width: 40%; text-align: right; font-weight: 700; color: ${isReward ? '#166534' : '#0f172a'};">
-        ${isReward || lineTotal === 0 ? 'FREE' : `£${lineTotal.toFixed(2)}`}
+        ${isReward || lineTotal === 0 ? 'FREE' : `₹${lineTotal.toFixed(2)}`}
       </td>
     </tr>
   `;
@@ -199,21 +199,21 @@ function renderOrderItemsTable(data: EmailTemplateData): string {
     <div style="background-color: #f8fafc; border-radius: 8px; padding: 12px 16px; margin-top: 12px;">
       <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: #64748b;">
         <span>Subtotal</span>
-        <span style="font-weight: 600; color: #334155;">£${subtotal.toFixed(2)}</span>
+        <span style="font-weight: 600; color: #334155;">₹${subtotal.toFixed(2)}</span>
       </div>
       <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: #64748b;">
-        <span>Royal Mail Delivery</span>
-        <span style="font-weight: 600; color: #334155;">${delivery === 0 ? 'FREE' : `£${delivery.toFixed(2)}`}</span>
+        <span>Delivery</span>
+        <span style="font-weight: 600; color: #334155;">${delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
       </div>
       ${data.discountAmount ? `
       <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: #166534;">
         <span>Discount</span>
-        <span style="font-weight: 700;">-£${data.discountAmount.toFixed(2)}</span>
+        <span style="font-weight: 700;">-₹${data.discountAmount.toFixed(2)}</span>
       </div>
       ` : ''}
       <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #0f172a; border-top: 1px solid #e2e8f0; pt: 8px; margin-top: 8px;">
         <span>Total Paid</span>
-        <span style="color: ${BRAND_PRIMARY};">£${total.toFixed(2)} GBP</span>
+        <span style="color: ${BRAND_PRIMARY};">₹${total.toFixed(2)} INR</span>
       </div>
     </div>
   `;
@@ -249,7 +249,7 @@ export function renderOrderConfirmationTemplate(data: EmailTemplateData): string
         ${data.destination || 'United Kingdom'}
       </p>
       <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">
-        Method: ${data.deliveryMethod || 'Royal Mail Tracked 24/48'}
+        Method: ${data.deliveryMethod || 'Standard Delivery'}
       </p>
     </div>
 
@@ -292,11 +292,10 @@ export function renderOrderProcessingTemplate(data: EmailTemplateData): string {
 export function renderOrderShippedTemplate(data: EmailTemplateData): string {
   const name = data.customerName || 'Valued Customer';
   const orderId = data.orderId || 'PS10001';
-  // Only shown when Royal Mail actually issued a number. Non-tracked services
-  // (the Online Postage range: 1st/2nd Class and Signed For) never do, and a
-  // placeholder here reached the customer as a real tracking number.
+  // Only shown when the courier actually issued a number; a placeholder here
+  // would reach the customer as a real tracking number.
   const tracking = data.trackingNumber || '';
-  const carrier = data.carrier || 'Royal Mail';
+  const carrier = data.carrier || 'our courier';
 
   const trackingBlock = tracking
     ? `
@@ -325,7 +324,7 @@ export function renderOrderShippedTemplate(data: EmailTemplateData): string {
   const trackButton = tracking
     ? `
     <div style="text-align: center; margin-top: 24px;">
-      <a href="https://www.royalmail.com/track-your-item#/${tracking}" class="btn">Track Package</a>
+      <a href="${data.siteUrl || '#'}/pages/account/orders" class="btn">Track Package</a>
     </div>`
     : '';
 
@@ -384,78 +383,6 @@ export function renderDeliveredTemplate(data: EmailTemplateData): string {
   ` + renderBaseFooter();
 }
 
-/**
- * Subscription price change notice.
- *
- * Sent when the price of a plan someone is already subscribed to changes. It has
- * to state the old price, the new price and the date the new one first applies,
- * because that is what makes it a notice rather than a surprise on a statement —
- * and it must read correctly for a decrease as well as an increase.
- */
-export function renderSubscriptionPriceChangeTemplate(data: EmailTemplateData): string {
-  const name = data.customerName || 'Valued Customer';
-  const plan = data.planName || 'your plan';
-  const previous = Number(data.previousAmount) || 0;
-  const next = Number(data.newAmount) || 0;
-  const isIncrease = next > previous;
-  const every = data.billingInterval ? ` (${data.billingInterval})` : '';
-
-  const effective = (() => {
-    const d = data.effectiveFrom ? new Date(data.effectiveFrom) : null;
-    if (!d || isNaN(d.getTime())) return 'your next renewal';
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  })();
-
-  const headline = isIncrease
-    ? `The price of ${plan} is going up`
-    : `Good news — ${plan} is getting cheaper`;
-
-  return renderBaseHeader('Your subscription price is changing', headline, data) + `
-    <div class="card">
-      <p style="font-size: 14px; color: #0f172a; font-weight: 700; margin: 0 0 12px 0;">
-        Hi ${name},
-      </p>
-      <p style="font-size: 13px; color: #475569; margin: 0 0 16px 0;">
-        We're letting you know that the price of your subscription is changing.
-        You don't need to do anything — your deliveries continue as normal.
-      </p>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0 0 16px 0;">
-        <tr>
-          <td style="padding: 8px 0; font-size: 13px; color: #64748b;">Your plan</td>
-          <td style="padding: 8px 0; font-size: 13px; color: #0f172a; font-weight: 800; text-align: right;">${plan}${every}</td>
-        </tr>
-        <tr>
-          <td style="padding: 8px 0; font-size: 13px; color: #64748b; border-top: 1px solid #e2e8f0;">Current price</td>
-          <td style="padding: 8px 0; font-size: 13px; color: #64748b; font-weight: 700; text-align: right; border-top: 1px solid #e2e8f0; text-decoration: line-through;">£${previous.toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td style="padding: 8px 0; font-size: 13px; color: #0f172a; font-weight: 800; border-top: 1px solid #e2e8f0;">New price</td>
-          <td style="padding: 8px 0; font-size: 16px; color: ${isIncrease ? '#b91c1c' : '#15803d'}; font-weight: 900; text-align: right; border-top: 1px solid #e2e8f0;">£${next.toFixed(2)}</td>
-        </tr>
-      </table>
-
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-        <p style="font-size: 13px; color: #0f172a; margin: 0; font-weight: 700;">
-          From ${effective}, your next recurring payment will be £${next.toFixed(2)}.
-        </p>
-        <p style="font-size: 12px; color: #64748b; margin: 6px 0 0 0;">
-          Any delivery before that date is charged at your current price of £${previous.toFixed(2)}.
-        </p>
-      </div>
-    </div>
-
-    <p style="font-size: 13px; color: #475569; text-align: center;">
-      Happy with the change? There's nothing to do. If you'd rather adjust or cancel your plan,
-      you can do that any time from your account before ${effective}.
-    </p>
-
-    <div style="text-align: center; margin-top: 20px;">
-      <a href="${data.siteUrl || '#'}/pages/account/subscriptions" class="btn">Manage My Subscription</a>
-    </div>
-  ` + renderBaseFooter();
-}
-
 // 6. Cancelled Template
 export function renderOrderCancelledTemplate(data: EmailTemplateData): string {
   const name = data.customerName || 'Valued Customer';
@@ -487,7 +414,7 @@ export function renderOrderRefundedTemplate(data: EmailTemplateData): string {
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
           <span style="font-size: 12px; color: #166534; font-weight: 700;">REFUND AMOUNT</span>
-          <div style="font-size: 20px; font-weight: 900; color: #14532d;">£${refundAmount.toFixed(2)} GBP</div>
+          <div style="font-size: 20px; font-weight: 900; color: #14532d;">₹${refundAmount.toFixed(2)} INR</div>
         </div>
         <div>
           <span class="badge badge-success">Refunded</span>
@@ -591,7 +518,7 @@ export function renderWelcomeTemplate(data: EmailTemplateData): string {
   const name = data.customerName || 'Friend';
   const code = data.discountCode || 'WELCOME10';
 
-  return renderBaseHeader(`Welcome to ${BRAND_NAME}!`, `Your laboratory pouch subscription begins here`, data) + `
+  return renderBaseHeader(`Welcome to ${BRAND_NAME}!`, `Your account is ready`, data) + `
     <div class="card" style="background-color: #f8fafc; text-align: center; padding: 24px;">
       <p style="font-size: 14px; color: #1e293b; font-weight: 600; margin: 0 0 12px 0;">
         Welcome to the UK's premier nicotine canister compounding standard.
@@ -617,7 +544,7 @@ export function renderAdminNewOrderTemplate(data: EmailTemplateData): string {
   const name = data.customerName || 'Customer';
   const total = data.total !== undefined ? data.total : 0;
 
-  return renderBaseHeader(`🚨 New Order #${orderId}`, `Storefront Sale Alert: £${total.toFixed(2)} GBP`, data) + `
+  return renderBaseHeader(`🚨 New Order #${orderId}`, `Storefront Sale Alert: ₹${total.toFixed(2)} INR`, data) + `
     <div class="card" style="background-color: #f0fdf4; border-color: #bbf7d0;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
@@ -626,7 +553,7 @@ export function renderAdminNewOrderTemplate(data: EmailTemplateData): string {
           <div style="font-size: 12px; color: #15803d;">${data.customerEmail || 'No email'}</div>
         </div>
         <div>
-          <span class="badge badge-success">£${total.toFixed(2)}</span>
+          <span class="badge badge-success">₹${total.toFixed(2)}</span>
         </div>
       </div>
     </div>

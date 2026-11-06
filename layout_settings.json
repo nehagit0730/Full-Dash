@@ -17,12 +17,6 @@
       "type": "tab"
     },
     {
-      "id": "2",
-      "label": "Subscribe",
-      "tab": "frontend-subscribe",
-      "type": "tab"
-    },
-    {
       "id": "3",
       "label": "Shop Now",
       "tab": "frontend-shop",

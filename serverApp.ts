@@ -20,16 +20,14 @@ import customersRouter from "./backend/routes/customers";
 import discountsRouter from "./backend/routes/discounts";
 import customPagesRouter from "./backend/routes/customPages";
 import blogsRouter from "./backend/routes/blogs";
-import worldpayRouter from "./backend/routes/worldpay";
-import subscriptionsRouter from "./backend/routes/subscriptions";
 import structureRouter from "./backend/routes/structure";
 import emailRouter from "./backend/routes/email";
 import klaviyoRouter from "./backend/routes/klaviyo";
-import royalMailRouter from "./backend/routes/royalMail";
 import contactMessagesRouter from "./backend/routes/contactMessages";
 import agecheckedRouter, { handleCallback as handleAgeCheckedCallback } from "./backend/routes/agechecked";
 import authRouter, { handleGoogleOAuthCallback } from "./backend/routes/auth";
 import integrationsRouter from "./backend/routes/integrations";
+import paymentsRouter from "./backend/routes/payments";
 
 import mediaRouter from "./backend/routes/media";
 import { uploadToCloudinary, isCloudinaryConfigured } from "./backend/services/cloudinary";
@@ -56,13 +54,8 @@ export async function createExpressApp() {
     }
     express.json({
       limit: "1000mb",
-      // Worldpay posts its webhooks under versioned vendor media types such as
-      // application/vnd.worldpay.webhooks-v1.hal+json, not application/json.
-      // express.json() matches only application/json by default, so it skipped
-      // those bodies and left req.body as {} — the handler logged 15 receipts
-      // with a null eventType and an empty rawBody, which is indistinguishable
-      // from Worldpay sending nothing. Any +json structured-syntax suffix is
-      // parsed here for that reason.
+      // Any +json structured-syntax suffix is parsed too. The raw bytes are kept
+      // because webhook signatures (Razorpay) are computed over the exact body.
       type: ['application/json', 'application/*+json'],
       verify: (req: any, _res, buf) => {
         req.rawBody = buf;
@@ -682,14 +675,10 @@ export async function createExpressApp() {
   app.use("/api/discounts", discountsRouter);
   app.use("/api/custompages", customPagesRouter);
   app.use("/api/blogs", blogsRouter);
-  app.use("/api/worldpay/subscriptions", subscriptionsRouter);
-  app.use("/api/subscriptions", subscriptionsRouter);
-  app.use("/api/worldpay", worldpayRouter);
+  app.use("/api/payments", paymentsRouter);
   app.use("/api/folder-structure", requireAdmin, structureRouter);
   app.use("/api/email", emailRouter);
   app.use("/api/klaviyo", klaviyoRouter);
-  app.use("/api/royalmail", royalMailRouter);
-  app.use("/api/royal-mail", royalMailRouter);
   // Support exact AgeChecked callback endpoints (/api/agechecked, /api/agechecked/callback)
   app.all(["/api/agechecked", "/api/agechecked/", "/api/agechecked/callback", "/api/agechecked/callback/"], (req, res, next) => {
     // If it's a subroute like /api/agechecked/init, let agecheckedRouter handle it
@@ -699,10 +688,6 @@ export async function createExpressApp() {
     next();
   });
   app.use("/api/agechecked", agecheckedRouter);
-  app.post("/api/create-order", (req, res, next) => {
-    req.url = "/create-order";
-    return royalMailRouter(req, res, next);
-  });
   app.use("/api/integrations", integrationsRouter);
   app.use("/api/contact-messages", contactMessagesRouter);
   app.use("/api/auth", authRouter);
@@ -772,14 +757,6 @@ export async function createExpressApp() {
         }
       });
     });
-  }
-
-  // Initialize background subscription recurring renewal worker
-  try {
-    const { startSubscriptionRenewalWorker } = await import("./backend/services/subscriptionCron");
-    startSubscriptionRenewalWorker(5 * 60 * 1000);
-  } catch (workerErr) {
-    console.warn("[Subscription Cron] Failed to initialize subscription worker:", workerErr);
   }
 
   return app;

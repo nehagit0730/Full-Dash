@@ -1034,7 +1034,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                           {prod.vendor || 'POUCH'}
                                         </span>
                                         <h4 className="font-bold text-[10px] text-slate-800 truncate block">{prod.title}</h4>
-                                        <div className="text-[10px] font-black text-slate-900">£{prod.price.toFixed(2)}</div>
+                                        <div className="text-[10px] font-black text-slate-900">₹{prod.price.toFixed(2)}</div>
                                       </div>
                                     ))}
                                   </div>
@@ -1121,7 +1121,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                             : (sec.settings.faqItems && sec.settings.faqItems.length > 0) ? sec.settings.faqItems 
                                             : null;
                               const faqs = rawFaqs || [
-                                { question: 'How long does shipping take?', answer: 'Orders placed before 3 PM ship same day via Royal Mail Tracked Delivery.' },
+                                { question: 'How long does shipping take?', answer: 'Orders placed before 3 PM ship the same day with tracked delivery.' },
                                 { question: 'Are all products tobacco-free?', answer: 'Yes, 100% tobacco-free white nicotine pouches.' }
                               ];
 
@@ -1164,27 +1164,6 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                               </div>
                             )}
 
-                            {/* 14. PLANS */}
-                            {sec.type === 'Plans' && (
-                              <div className="space-y-3 py-3 text-center">
-                                <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                  {sec.settings.title || 'SUBSCRIPTION PLANS'}
-                                </h3>
-                                <div className="grid grid-cols-2 gap-3 pt-2 max-w-md mx-auto">
-                                  <div className="bg-white border rounded-xl p-3 text-center space-y-1">
-                                    <span className="text-[8px] font-extrabold uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Standard</span>
-                                    <div className="text-xs font-black text-slate-900">3 Canisters / Mo</div>
-                                    <div className="text-indigo-600 font-bold text-[10px]">£11.99 / mo</div>
-                                  </div>
-                                  <div className="bg-indigo-900 text-white border border-indigo-700 rounded-xl p-3 text-center space-y-1 shadow-md">
-                                    <span className="text-[8px] font-extrabold uppercase bg-amber-400 text-indigo-950 px-2 py-0.5 rounded">Pro Saver</span>
-                                    <div className="text-xs font-black text-white">10 Canisters / Mo</div>
-                                    <div className="text-amber-400 font-bold text-[10px]">£34.99 / mo</div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
                             {/* 15. ICON WITH TEXT / TRUST BADGES */}
                             {(sec.type === 'Icon with text' || sec.type === 'Trust badges') && (
                               <div className="space-y-3 py-3 text-center">
@@ -1193,7 +1172,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                                   {[
-                                    { title: 'Royal Mail Tracked 24', sub: 'Fast Tracked UK Delivery' },
+                                    { title: 'Tracked Delivery', sub: 'Fast tracked delivery across India' },
                                     { title: '100% Authentic', sub: 'Direct Swedish Imports' },
                                     { title: 'Lab Tested', sub: 'Purity & Quality Guaranteed' },
                                     { title: 'Discreet Package', sub: 'No Brand Outer Logos' }
@@ -1352,7 +1331,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                             value={currentlyEditingSection.settings.buttonLink || ''}
                             onChange={(e) => handleUpdateSectionSettings('buttonLink', e.target.value)}
                             className="w-full text-xs p-1.5 border rounded-lg bg-white font-mono text-[10px]"
-                            placeholder="frontend-shop, /subscribe, etc."
+                            placeholder="frontend-shop, /about, etc."
                           />
                         </div>
                       </div>
@@ -1375,7 +1354,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                             value={currentlyEditingSection.settings.buttonLink2 || ''}
                             onChange={(e) => handleUpdateSectionSettings('buttonLink2', e.target.value)}
                             className="w-full text-xs p-1.5 border rounded-lg bg-white font-mono text-[10px]"
-                            placeholder="frontend-subscribe, /about, etc."
+                            placeholder="frontend-shop, /about, etc."
                           />
                         </div>
                       </div>
@@ -1617,7 +1596,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                     value={faq.linkUrl || ''}
                                     onChange={(e) => handleUpdateFaq(fIdx, 'linkUrl', e.target.value)}
                                     className="w-full text-xs p-1.5 border rounded bg-slate-50 font-mono text-[10px]"
-                                    placeholder="e.g. frontend-subscribe or https://..."
+                                    placeholder="e.g. frontend-shop or https://..."
                                   />
                                 </div>
                               </div>
@@ -1871,7 +1850,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                     value={step.linkUrl || ''}
                                     onChange={(e) => handleUpdateStep(sIdx, 'linkUrl', e.target.value)}
                                     className="w-full text-xs p-1.5 border rounded bg-slate-50 font-mono text-[10px]"
-                                    placeholder="frontend-subscribe or https://..."
+                                    placeholder="frontend-shop or https://..."
                                   />
                                 </div>
                               </div>
@@ -2004,179 +1983,6 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                       );
                     })()}
 
-                    {/* SUBSCRIPTION PLANS BLOCK MANAGER */}
-                    {currentlyEditingSection.type === 'Plans' && (() => {
-                      const plans = (currentlyEditingSection.settings.planItems as any[]) || [];
-
-                      const handleUpdatePlan = (idx: number, field: string, val: any) => {
-                        const updated = plans.map((p, i) => i === idx ? { ...p, [field]: val } : p);
-                        handleUpdateSectionSettings('planItems', updated);
-                      };
-
-                      const handleAddPlan = () => {
-                        const updated = [
-                          ...plans,
-                          {
-                            slug: `plan-${plans.length + 1}`,
-                            name: `PLAN TIER ${plans.length + 1}`,
-                            subtitle: 'Custom subscription option',
-                            price: 29.99,
-                            limit: 6,
-                            saveAmountText: 'Save £5.00/month',
-                            imageUrl: '',
-                            features: ['6 cans included', 'Change flavours anytime', 'Pause or cancel anytime'],
-                            isPopular: false
-                          }
-                        ];
-                        handleUpdateSectionSettings('planItems', updated);
-                      };
-
-                      const handleRemovePlan = (idx: number) => {
-                        const updated = plans.filter((_, i) => i !== idx);
-                        handleUpdateSectionSettings('planItems', updated);
-                      };
-
-                      const handleMovePlan = (fromIdx: number, toIdx: number) => {
-                        if (toIdx < 0 || toIdx >= plans.length) return;
-                        const updated = [...plans];
-                        const [moved] = updated.splice(fromIdx, 1);
-                        updated.splice(toIdx, 0, moved);
-                        handleUpdateSectionSettings('planItems', updated);
-                      };
-
-                      return (
-                        <div className="space-y-3 bg-slate-50/90 p-3 rounded-xl border border-slate-250">
-                          <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                            <label className="block text-[10px] font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                              <span>💎 Plan Cards ({plans.length})</span>
-                            </label>
-                            <button
-                              type="button"
-                              onClick={handleAddPlan}
-                              className="text-[9px] font-black bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md flex items-center gap-1 shadow-2xs cursor-pointer transition-colors"
-                            >
-                              <Plus className="h-3 w-3" /> Add Plan
-                            </button>
-                          </div>
-
-                          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-                            {plans.map((plan, pIdx) => (
-                              <div key={pIdx} className="bg-white p-3 rounded-xl border border-slate-250 shadow-2xs space-y-2">
-                                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-                                  <span className="font-extrabold text-[9px] text-indigo-700 font-mono">Plan #{pIdx + 1}</span>
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleMovePlan(pIdx, pIdx - 1)}
-                                      disabled={pIdx === 0}
-                                      className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-1"
-                                    >
-                                      <MoveUp className="h-3 w-3" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleMovePlan(pIdx, pIdx + 1)}
-                                      disabled={pIdx === plans.length - 1}
-                                      className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-1"
-                                    >
-                                      <MoveDown className="h-3 w-3" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemovePlan(pIdx)}
-                                      className="text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 cursor-pointer"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Plan Name</label>
-                                    <input
-                                      type="text"
-                                      value={plan.name || ''}
-                                      onChange={(e) => handleUpdatePlan(pIdx, 'name', e.target.value)}
-                                      className="w-full text-xs p-1.5 border rounded bg-slate-50 font-bold"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Price (£)</label>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={plan.price || 0}
-                                      onChange={(e) => handleUpdatePlan(pIdx, 'price', parseFloat(e.target.value) || 0)}
-                                      className="w-full text-xs p-1.5 border rounded bg-slate-50 font-mono"
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Subtitle / Tagline</label>
-                                  <input
-                                    type="text"
-                                    value={plan.subtitle || ''}
-                                    onChange={(e) => handleUpdatePlan(pIdx, 'subtitle', e.target.value)}
-                                    className="w-full text-xs p-1.5 border rounded bg-slate-50"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Savings Badge Text</label>
-                                  <input
-                                    type="text"
-                                    value={plan.saveAmountText || ''}
-                                    onChange={(e) => handleUpdatePlan(pIdx, 'saveAmountText', e.target.value)}
-                                    className="w-full text-xs p-1.5 border rounded bg-slate-50"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Plan Image</label>
-                                  <ImageUploadInput
-                                    value={plan.imageUrl || ''}
-                                    onChange={(url) => handleUpdatePlan(pIdx, 'imageUrl', url)}
-                                    placeholder="Upload custom plan image..."
-                                  />
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Button Label</label>
-                                    <input
-                                      type="text"
-                                      value={plan.buttonText || ''}
-                                      onChange={(e) => handleUpdatePlan(pIdx, 'buttonText', e.target.value)}
-                                      className="w-full text-xs p-1.5 border rounded bg-slate-50"
-                                      placeholder="SELECT PLAN"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-[8.5px] font-bold text-slate-500 uppercase mb-0.5">Link Target URL</label>
-                                    <input
-                                      type="text"
-                                      value={plan.buttonLink || ''}
-                                      onChange={(e) => handleUpdatePlan(pIdx, 'buttonLink', e.target.value)}
-                                      className="w-full text-xs p-1.5 border rounded bg-slate-50 font-mono text-[10px]"
-                                      placeholder={`/pages/subscribe/${plan.slug}`}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 pt-1">
-                                  <input
-                                    type="checkbox"
-                                    id={`popular-${pIdx}`}
-                                    checked={!!plan.isPopular}
-                                    onChange={(e) => handleUpdatePlan(pIdx, 'isPopular', e.target.checked)}
-                                    className="accent-indigo-600 rounded cursor-pointer"
-                                  />
-                                  <label htmlFor={`popular-${pIdx}`} className="text-[10px] font-bold text-slate-700 cursor-pointer">
-                                    Mark as "Best Seller" Highlight
-                                  </label>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
 
                     {/* BRAND LIST & BRANDS WE OFFER MANAGER */}
                     {(currentlyEditingSection.type === 'Brand list' || currentlyEditingSection.type === 'Brands we offer') && (() => {

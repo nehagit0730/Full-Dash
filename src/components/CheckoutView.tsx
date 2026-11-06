@@ -7,7 +7,6 @@ import {
   Truck, ShoppingCart, UserCheck, Check, X, Loader2,
   Clock, ExternalLink, Repeat, User
 } from 'lucide-react';
-import SubscriptionIcon from './SubscriptionIcon';
 import AgeGate, { AgeGateHandle } from './AgeGate';
 import { calculateDiscountAmount, calculateVolumePrice } from '../utils';
 import {
@@ -25,16 +24,37 @@ import { saveRewardSelection } from '../utils/rewardSelectionStore';
 import FreeCanPicker from './FreeCanPicker';
 import { RewardChoicePicker, AppliedRewardLines } from './RewardSelection';
 import { trackStartedCheckout, trackOrderCompleted, trackCheckoutFailed } from '../utils/klaviyo';
-import { getPlanImage, getPlanSlug } from '../utils/planImages';
-import { parseSubscriptionProducts, formatSubscriptionItemDisplay } from '../utils/subscriptionParser';
 import {
-  UK_COUNTRY_CODE,
-  UK_COUNTRY_NAME,
-  isValidUkPostcode,
-  normalizeUkPhone,
-  normalizeUkPostcode,
-  validateUkDelivery
-} from '../utils/ukValidation';
+  INDIA_COUNTRY_NAME,
+  INDIA_STATES,
+  normalizeIndianPhone,
+  normalizePincode,
+  validateIndiaAddress
+} from '../utils/indiaValidation';
+
+/** Razorpay Checkout is loaded on demand from Razorpay's own CDN (Razorpay requires this; it cannot be bundled). */
+function loadRazorpayScript(): Promise<boolean> {
+  if (typeof window === 'undefined') return Promise.resolve(false);
+  if ((window as any).Razorpay) return Promise.resolve(true);
+  return new Promise(resolve => {
+    const existing = document.querySelector('script[data-razorpay-checkout]') as HTMLScriptElement | null;
+    const script = existing || document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.setAttribute('data-razorpay-checkout', 'true');
+    script.onload = () => resolve(Boolean((window as any).Razorpay));
+    script.onerror = () => resolve(false);
+    if (!existing) document.body.appendChild(script);
+  });
+}
+
+function newCheckoutKey(): string {
+  try {
+    return crypto.randomUUID().replace(/-/g, '');
+  } catch {
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  }
+}
 
 function hasCurrentAgeApproval(): boolean {
   if (typeof window === 'undefined') return false;
@@ -71,7 +91,7 @@ interface CheckoutViewProps {
   products?: Product[];
   /**
    * Needed to price product- and collection-scoped discounts. Without them this
-   * page valued such a code at £0 while the cart drawer valued it correctly, so
+   * page valued such a code at ₹0 while the cart drawer valued it correctly, so
    * the discount shrank when the shopper moved to checkout.
    */
   collections?: any[];
@@ -105,22 +125,23 @@ export default function CheckoutView({
   const [addressLine, setAddressLine] = useState(
     loggedInCustomer?.addresses && loggedInCustomer.addresses[0] ? loggedInCustomer.addresses[0] : ''
   );
-  const [city, setCity] = useState('London');
-  const [postcode, setPostcode] = useState('EC1A 1BB');
-  // The store ships within the UK only, so the country is fixed rather than
-  // chosen: an address anywhere else cannot be posted on this Royal Mail
-  // contract, and taking the order would only mean cancelling it later.
-  const country = UK_COUNTRY_NAME;
-  // Required. Royal Mail puts it on the label and the courier uses it for
-  // delivery problems, so an order without one cannot be dispatched cleanly.
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [postcode, setPostcode] = useState('');
+  // The store delivers within India; the country is fixed.
+  const country = INDIA_COUNTRY_NAME;
+  // Required: the courier uses it for delivery updates.
   const [phone, setPhone] = useState(loggedInCustomer?.phone || '');
+  // One key per checkout attempt, so a double click or a retry after a network
+  // error returns the same payment instead of starting a second one.
+  const [checkoutKey, setCheckoutKey] = useState<string>(() => newCheckoutKey());
 
   // Payment state
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccessData, setPaymentSuccessData] = useState<any | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [worldpayRedirectUrl, setWorldpayRedirectUrl] = useState<string | null>(null);
 
   // Polling for payment status
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -128,6 +149,18 @@ export default function CheckoutView({
 
   // AgeChecked Gate State & Ref
   const ageGateRef = React.useRef<AgeGateHandle>(null);
+  // null = still asking the server. Age verification is only applied when the
+  // store has it switched on in Settings → Age Verification.
+  const [ageCheckEnabled, setAgeCheckEnabled] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/agechecked/config')
+      .then(r => (r.ok ? r.json() : null))
+      .then(cfg => { if (!cancelled) setAgeCheckEnabled(cfg ? Boolean(cfg.enabled) : true); })
+      // If the setting cannot be read, fail closed: ask for verification.
+      .catch(() => { if (!cancelled) setAgeCheckEnabled(true); });
+    return () => { cancelled = true; };
+  }, []);
   const [isAgeApproved, setIsAgeApproved] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const stored = window.localStorage.getItem('agechecked-approved');
@@ -479,84 +512,78 @@ export default function CheckoutView({
     }
   };
 
-  // Poll for payment status after redirect
-  const pollPaymentStatus = (orderId: string) => {
-    let attempts = 0;
-    const maxAttempts = 30; // 30 attempts * 3 seconds = 90 seconds max
+  /** Shows the confirmation for an order the server has recorded. */
+  const showConfirmedOrder = (confirmedOrderId: string, order: any, quote: any) => {
+    const paid = {
+      orderId: confirmedOrderId,
+      customerName: fullName.trim(),
+      customerEmail: email.trim(),
+      address: buildDestinationString(),
+      total: Number(order?.total ?? quote?.total ?? 0),
+      discountApplied: currentDiscount,
+      items: (order?.items || quote?.orderItems || []).map((i: any) => ({ productId: i.productId || '', productTitle: i.productTitle, price: i.price, quantity: i.quantity, image: i.image })),
+      gatewayTxId: '',
+      gatewayAuthCode: '',
+      cardBrand: order?.paymentMethod || 'Online payment',
+      storeCreditApplied: Number(quote?.storeCreditApplied || 0),
+      paymentMethod: order?.paymentMethod || (quote?.amountDue === 0 ? 'Store Credit' : 'Online payment')
+    };
+    trackOrderCompleted({
+      orderId: confirmedOrderId,
+      customerName: paid.customerName,
+      customerEmail: paid.customerEmail,
+      destination: paid.address,
+      total: paid.total,
+      items: paid.items
+    });
+    onCompleteCheckout(paid);
+    setPaymentSuccessData(paid);
+    setIsProcessingPayment(false);
+    setCheckoutKey(newCheckoutKey());
+  };
 
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
+  /**
+   * Asks the server whether the payment has been confirmed. The server checks
+   * with Razorpay itself, so this also recovers a payment whose browser
+   * callback was lost (closed tab, dropped connection).
+   */
+  const pollPaymentStatus = (pollOrderId: string, quote: any) => {
+    let attempts = 0;
+    const maxAttempts = 40; // about two minutes
+    if (pollingInterval) clearInterval(pollingInterval);
 
     const interval = setInterval(async () => {
       attempts++;
-      
       try {
-        const response = await fetch(`/api/worldpay/status?orderId=${orderId}`);
+        const response = await fetch(`/api/payments/status?orderId=${encodeURIComponent(pollOrderId)}`);
         const data = await safeParseJson(response);
-
-        if (data.paid === true) {
-          // Payment confirmed!
+        if (data.status === 'paid' && data.order) {
           clearInterval(interval);
           setPollingInterval(null);
-          
-          // Fetch full order details
-          const orderResponse = await fetch(`/api/worldpay/order/${orderId}`);
-          const orderData = await safeParseJson(orderResponse);
-          
-          trackOrderCompleted({
-            orderId: orderId,
-            customerName: orderData.customerName || fullName,
-            customerEmail: orderData.customerEmail || email,
-            destination: orderData.destination || buildDestinationString(),
-            total: orderData.total || finalTotalToPay,
-            items: orderData.items || cartItems
-          });
-
-          setPaymentSuccessData({
-            orderId: orderId,
-            total: orderData.total || 0,
-            gatewayTxId: orderData.worldpayTxId || orderData.gatewayTxId,
-            gatewayAuthCode: orderData.worldpayAuthCode || orderData.gatewayAuthCode,
-            cardBrand: orderData.cardBrand || 'Card',
-            paymentMethod: orderData.paymentMethod || 'Card'
-          });
-          
-          setIsProcessingPayment(false);
+          showConfirmedOrder(pollOrderId, data.order, quote);
           return;
         }
-
-        if (data.status === 'Failed') {
+        if (data.status === 'failed' || data.status === 'amount_mismatch') {
           clearInterval(interval);
           setPollingInterval(null);
           setIsProcessingPayment(false);
-          setPaymentError('Payment was declined. Please try again.');
+          setPaymentError(data.message || 'The payment was not completed. You have not been charged.');
           return;
-        }
-
-        if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          setPollingInterval(null);
-          setIsProcessingPayment(false);
-          setPaymentError('Payment is taking longer than expected. Please check your email for confirmation.');
         }
       } catch (error) {
-        console.error('[Checkout] Polling error:', error);
-        if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          setPollingInterval(null);
-          setIsProcessingPayment(false);
-        }
+        console.error('[Checkout] Status check failed:', error);
       }
-    }, 3000); // Poll every 3 seconds
-
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setPollingInterval(null);
+        setIsProcessingPayment(false);
+        setPaymentError(`We have not received confirmation for order ${pollOrderId} yet. If you were charged, your order will be confirmed by email automatically. Please do not pay again.`);
+      }
+    }, 3000);
     setPollingInterval(interval);
   };
 
   const getItemTotal = (item: CartItem) => {
-    if (item.productId && (item.productId.startsWith('sub-pack-') || item.productId.includes('sub-pack') || item.isSubscription)) {
-      return item.price * item.quantity;
-    }
     return calculateVolumePrice(item.price, item.quantity);
   };
 
@@ -576,47 +603,33 @@ export default function CheckoutView({
   const storeCreditApplied = applyStoreCredit ? Math.min(storeCreditAvailable, finalTotal) : 0;
   const finalTotalToPay = Math.max(0, finalTotal - storeCreditApplied);
 
-  // The saved address a returning shopper is prefilled with is itself a joined
-  // "line, town, postcode, country" string. Appending the town, postcode and
-  // country to it again produced destinations such as
-  // "Daari, London, EC1A 1BB, United Kingdom, London, EC1A 1BB, United Kingdom",
-  // so each part is only added when the line does not already carry it.
-  const buildDestinationString = () => {
-    const line = addressLine.trim();
-    const lineLower = line.toLowerCase();
-    const parts = [line];
-    for (const part of [city, postcode, country]) {
-      const value = String(part || '').trim();
-      if (!value) continue;
-      if (lineLower.includes(value.toLowerCase())) continue;
-      parts.push(value);
-    }
-    return parts.filter(Boolean).join(', ');
-  };
-
-  // The address as separate fields. Royal Mail needs the town and postcode on
-  // their own, and reading them back out of a joined string is guesswork.
   const buildShippingAddress = () => ({
     fullName: fullName.trim(),
-    addressLine1: addressLine.trim(),
+    address1: addressLine.trim(),
+    address2: addressLine2.trim(),
     city: city.trim(),
-    postcode: normalizeUkPostcode(postcode),
-    countryCode: UK_COUNTRY_CODE,
-    country: UK_COUNTRY_NAME,
-    email: email.trim(),
-    // Royal Mail prints this on the label and uses it for delivery problems.
-    phone: normalizeUkPhone(phone) || phone.trim()
+    state: stateName,
+    pincode: normalizePincode(postcode) || postcode.trim(),
+    country: INDIA_COUNTRY_NAME,
+    phone: normalizeIndianPhone(phone) || phone.trim()
   });
 
-  const ukDeliveryCheck = validateUkDelivery({ phone, postcode, country });
-  const isPhoneValid = normalizeUkPhone(phone).length > 0;
-  const isPostcodeValid = isValidUkPostcode(postcode);
+  const buildDestinationString = () => {
+    const a = buildShippingAddress();
+    return [a.address1, a.address2, a.city, [a.state, a.pincode].filter(Boolean).join(' '), a.country].filter(Boolean).join(', ');
+  };
 
-  // Process live payment with Worldpay HPP
+  const addressCheck = validateIndiaAddress(buildShippingAddress());
+  const isPhoneValid = normalizeIndianPhone(phone).length > 0;
+  const isPostcodeValid = normalizePincode(postcode).length > 0;
+
   const executePaymentProcess = async () => {
-    // Validate shipping info
-    if (!fullName || !email || !addressLine || !city.trim()) {
-      setPaymentError('Please fill in your shipping and contact information.');
+    if (!fullName.trim() || !email.trim()) {
+      setPaymentError('Please enter your name and email address.');
+      return;
+    }
+    if (!addressCheck.valid) {
+      setPaymentError(addressCheck.errors[0]);
       return;
     }
 
@@ -626,251 +639,147 @@ export default function CheckoutView({
       setPaymentError(
         currentDiscount.rewardKind === 'choice'
           ? 'Please choose which reward you would like before paying.'
-          : `Please choose your free can${outstandingCans !== 1 ? 's' : ''} before paying.`
+          : `Please choose your free item${outstandingCans !== 1 ? 's' : ''} before paying.`
       );
       openPickerFor(currentDiscount);
       return;
     }
 
-    // UK-only delivery, and a phone number Royal Mail can use. Checked here as
-    // well as on the server so the shopper is told before payment starts rather
-    // than after the gateway has taken the money.
-    if (!ukDeliveryCheck.valid) {
-      setPaymentError(ukDeliveryCheck.errors[0]);
+    // Age verification, when enabled. The gate component only exists when
+    // AgeChecked is switched on in Settings → Age Verification.
+    if (ageCheckEnabled === null) {
+      setPaymentError('Checkout is still loading. Please try again in a moment.');
       return;
     }
-
-    // Check if age is verified
-    let currentAgeVerified = isAgeApproved;
-    if (typeof window !== 'undefined') {
-      if (hasCurrentAgeApproval()) {
-        currentAgeVerified = true;
-        setIsAgeApproved(true);
-      }
+    let currentAgeVerified = !ageCheckEnabled || isAgeApproved || hasCurrentAgeApproval();
+    if (!currentAgeVerified && !ageGateRef.current) {
+      setPaymentError('Age verification is loading. Please try again in a moment.');
+      return;
     }
-
-    // Enforce the AgeChecked gate for live payments. There is no bypass: the
-    // "pay without AgeChecked" button that used to sit beside the pay button
-    // took real money for age-restricted goods with no 18+ check at all.
-    if (!currentAgeVerified) {
+    if (!currentAgeVerified && ageGateRef.current) {
       setPaymentError(null);
-      if (ageGateRef.current) {
-        const approved = await ageGateRef.current.openPortal();
-        if (!approved) {
-          setPaymentError('Age verification (18+) is required to complete payment.');
-          return;
-        }
-        currentAgeVerified = true;
-        setIsAgeApproved(true);
-      } else {
-        setPaymentError('Age verification system is initializing. Please try again.');
+      const approved = await ageGateRef.current.openPortal();
+      if (!approved) {
+        setPaymentError('Age verification is required to complete this purchase.');
         return;
       }
-    }
-
-    // Handle zero-cost orders (store credit covers everything)
-    if (finalTotalToPay === 0) {
-      setIsProcessing(true);
-      setPaymentError(null);
-      
-      try {
-        const generatedOrderId = `PS${Math.floor(Math.random() * 90000 + 10000)}`;
-        
-        // Create order with store credit
-        const orderData = {
-          orderId: generatedOrderId,
-          customerName: fullName,
-          customerEmail: email,
-          customerPhone: normalizeUkPhone(phone) || phone.trim(),
-          address: buildDestinationString(),
-          shippingAddress: buildShippingAddress(),
-          total: 0,
-          subtotal: Number(subtotalAfterDiscount.toFixed(2)),
-          shippingCost: Number(deliveryCost.toFixed(2)),
-          deliveryCost: Number(deliveryCost.toFixed(2)),
-          deliveryMethod: 'Royal Mail Tracked 24/48',
-          discountApplied: currentDiscount,
-          discountAmount: Number(discountValue.toFixed(2)),
-          items: buildOrderItems(cartItems, currentDiscount),
-          gatewayTxId: `CREDIT-${Date.now()}`,
-          gatewayAuthCode: 'CREDIT-AUTH',
-          cardBrand: 'Store Credit',
-          storeCreditApplied: storeCreditApplied,
-          paymentMethod: 'Store Credit'
-        };
-
-        // Call API to create order
-        const response = await fetch('/api/orders/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderData)
-        });
-
-        if (response.ok) {
-          trackOrderCompleted({
-            orderId: orderData.orderId,
-            customerName: orderData.customerName,
-            customerEmail: orderData.customerEmail,
-            destination: orderData.address,
-            total: orderData.total,
-            items: orderData.items
-          });
-          onCompleteCheckout(orderData);
-          setPaymentSuccessData(orderData);
-        } else {
-          const failure = await response.json().catch(() => ({} as any));
-          throw new Error(failure?.error || 'Failed to create order');
-        }
-      } catch (error: any) {
-        setPaymentError(error.message || 'Failed to process order');
-      } finally {
-        setIsProcessing(false);
-      }
-      return;
+      currentAgeVerified = true;
+      setIsAgeApproved(true);
     }
 
     setIsProcessing(true);
     setPaymentError(null);
 
-    const generatedOrderId = `PS${Math.floor(Math.random() * 90000 + 10000)}`;
-    setOrderId(generatedOrderId);
-
-    // Track Started Checkout in Klaviyo. The full cart is passed — not just the
-    // first line — so the abandoned-cart email can show what was left behind,
-    // and the email is passed so Klaviyo identifies the profile. Without the
-    // identify a guest's checkout attaches to no profile and the flow has
-    // nobody to email.
     try {
-      if (cartItems.length > 0) {
-        trackStartedCheckout({
-          items: cartItems,
-          total: finalTotalToPay,
-          customerEmail: email.trim(),
-          customerName: fullName.trim(),
-          checkoutId: generatedOrderId,
-          recurring: hasSubscription
-        });
-      }
+      trackStartedCheckout({
+        items: cartItems,
+        total: finalTotalToPay,
+        customerEmail: email.trim(),
+        customerName: fullName.trim(),
+        checkoutId: checkoutKey,
+        recurring: false
+      });
     } catch (_e) {}
 
     try {
-      addLog('REQUEST', {
-        endpoint: '/api/worldpay/session',
-        method: 'POST',
-        orderId: generatedOrderId,
-        amount: finalTotalToPay.toFixed(2),
-        mode: 'live'
-      });
-
-      const pendingOrderObj = {
-        orderId: generatedOrderId,
-        amount: finalTotalToPay.toFixed(2),
-        total: finalTotalToPay,
-        subtotal: Number(subtotalAfterDiscount.toFixed(2)),
-        shippingCost: Number(deliveryCost.toFixed(2)),
-        deliveryCost: Number(deliveryCost.toFixed(2)),
-        deliveryMethod: 'Royal Mail Tracked 24/48',
-        customerName: fullName,
-        customerEmail: email,
-        customerPhone: normalizeUkPhone(phone) || phone.trim(),
-        destination: buildDestinationString(),
-        shippingAddress: buildShippingAddress(),
-        items: buildOrderItems(cartItems, currentDiscount),
-        discountApplied: currentDiscount,
-        discountAmount: Number(discountValue.toFixed(2)),
-        storeCreditApplied: storeCreditApplied
-      };
-      localStorage.setItem(`ps_pending_order_${generatedOrderId}`, JSON.stringify(pendingOrderObj));
-
-      // Initialize Worldpay HPP session for live payment
-      const sessionRes = await fetch('/api/worldpay/session', {
+      // The browser says only WHAT is being bought. Prices, discount, delivery
+      // and store credit are all calculated again on the server.
+      const res = await fetch('/api/payments/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderId: generatedOrderId,
-          amount: finalTotalToPay.toFixed(2),
-          total: finalTotalToPay,
-          subtotal: Number(subtotalAfterDiscount.toFixed(2)),
-          shippingCost: Number(deliveryCost.toFixed(2)),
-          deliveryCost: Number(deliveryCost.toFixed(2)),
-          deliveryMethod: 'Royal Mail Tracked 24/48',
-          customerName: fullName,
-          customerEmail: email,
-          customerPhone: normalizeUkPhone(phone) || phone.trim(),
-          destination: buildDestinationString(),
+          idempotencyKey: checkoutKey,
+          customerName: fullName.trim(),
+          customerEmail: email.trim(),
           shippingAddress: buildShippingAddress(),
-          items: pendingOrderObj.items,
-          discountApplied: currentDiscount,
-          discountAmount: Number(discountValue.toFixed(2)),
-          storeCreditApplied: storeCreditApplied
+          items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
+          discountCode: currentDiscount?.title || null,
+          discountId: currentDiscount?.id || null,
+          rewardChoiceId: currentDiscount?.rewardChoiceId || null,
+          freeCanSelections: (currentDiscount?.freeCanSelections || []).map(sel => ({ productId: sel.productId, variantId: sel.variantId })),
+          useStoreCredit: storeCreditApplied > 0
         })
       });
+      const data = await safeParseJson(res);
+      addLog(res.ok ? 'RESPONSE' : 'ERROR', { status: res.status, requiresPayment: data.requiresPayment, orderId: data.orderId, error: data.error });
+      if (!res.ok) throw new Error(data.error || 'Could not start checkout.');
 
-      const sessionData = await safeParseJson(sessionRes);
-      addLog('RESPONSE', sessionData);
+      setOrderId(data.orderId);
 
-      setIsProcessing(false);
-
-      if (sessionRes.ok && sessionData.redirectUrl) {
-        // Redirect to Worldpay Live HPP
-        const url = sessionData.redirectUrl;
-        setWorldpayRedirectUrl(url);
-        setIsProcessingPayment(false);
-        
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-          const isIframe = window.self !== window.top;
-          if (isIframe) {
-            try {
-              window.open(url, '_blank', 'noopener,noreferrer');
-            } catch (_e) {
-              window.location.href = url;
-            }
-          } else {
-            window.location.href = url;
-          }
-          return;
-        } else {
-          window.location.href = url;
-          return;
-        }
+      if (!data.requiresPayment) {
+        // Fully covered by store credit or a discount; the server has recorded the order.
+        showConfirmedOrder(data.orderId, data.order, data.quote);
+        return;
       }
 
-      // Handle error if payment gateway is not configured or session fails
-      const errMsg = sessionData.message || sessionData.error || 'Worldpay Live Payment Gateway is currently unavailable. Please verify API credentials.';
-      setPaymentError(errMsg);
-      setIsProcessingPayment(false);
+      if (Math.abs(Number(data.quote?.amountDue || 0) - finalTotalToPay) > 0.009) {
+        setPaymentError(`Your total has been updated to ₹${Number(data.quote.amountDue).toFixed(2)} after our server checked current prices. Press Pay again to continue.`);
+        setIsProcessing(false);
+        return;
+      }
 
-      try {
-        const firstItem = cartItems[0];
-        if (firstItem) {
-          trackCheckoutFailed({
-            id: firstItem.productId,
-            name: firstItem.productTitle,
-            price: finalTotalToPay,
-            currency: 'GBP',
-            recurring: Boolean(cartItems.some(i => i.isSubscription || i.productId?.startsWith('sub-pack-'))),
-          }, errMsg);
-        }
-      } catch (_e) {}
-      
+      const loaded = await loadRazorpayScript();
+      if (!loaded) throw new Error('The payment window could not be loaded. Check your connection and try again.');
+
+      const quote = data.quote;
+      const rzp = new (window as any).Razorpay({
+        key: data.keyId,
+        order_id: data.razorpayOrderId,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'Ecommerce Store',
+        description: `Order ${data.orderId}`,
+        prefill: data.prefill,
+        notes: { orderId: data.orderId },
+        handler: async (response: any) => {
+          // Razorpay reports success; the server confirms it before anything is recorded.
+          setIsProcessingPayment(true);
+          try {
+            const verify = await fetch('/api/payments/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(response)
+            });
+            const v = await safeParseJson(verify);
+            if (v.status === 'paid' && v.order) {
+              showConfirmedOrder(data.orderId, v.order, quote);
+              return;
+            }
+            if (v.status === 'failed') {
+              setIsProcessingPayment(false);
+              setPaymentError(v.message || v.error || 'The payment could not be verified.');
+              return;
+            }
+          } catch (verifyErr) {
+            console.warn('[Checkout] Verification call failed; falling back to status checks.', verifyErr);
+          }
+          pollPaymentStatus(data.orderId, quote);
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+            // The shopper may have approved a UPI payment on their phone before closing.
+            setIsProcessingPayment(true);
+            pollPaymentStatus(data.orderId, quote);
+          }
+        },
+        theme: { color: '#0f172a' }
+      });
+      rzp.on('payment.failed', (resp: any) => {
+        setPaymentError(resp?.error?.description || 'The payment failed. You can try again.');
+      });
+      setIsProcessing(false);
+      rzp.open();
     } catch (error: any) {
       console.error('[Checkout] Error:', error);
-      addLog('ERROR', { message: error.message });
       setIsProcessing(false);
       setIsProcessingPayment(false);
-      const errMsg = error.message || 'Failed to process payment';
+      const errMsg = error.message || 'Failed to start payment';
       setPaymentError(errMsg);
-
       try {
         const firstItem = cartItems[0];
         if (firstItem) {
-          trackCheckoutFailed({
-            id: firstItem.productId,
-            name: firstItem.productTitle,
-            price: finalTotalToPay,
-            currency: 'GBP',
-            recurring: Boolean(cartItems.some(i => i.isSubscription || i.productId?.startsWith('sub-pack-'))),
-          }, errMsg);
+          trackCheckoutFailed({ id: firstItem.productId, name: firstItem.productTitle, price: finalTotalToPay, currency: 'INR', recurring: false }, errMsg);
         }
       } catch (_e) {}
     }
@@ -891,28 +800,14 @@ export default function CheckoutView({
           </div>
           
           <div className="space-y-2">
-            <h2 className="text-2xl font-black text-slate-950">Processing Worldpay Payment</h2>
+            <h2 className="text-2xl font-black text-slate-950">Confirming your payment</h2>
             <p className="text-slate-500 text-sm">
-              Please complete your payment on the Worldpay secure portal.
+              We are confirming your payment with the payment provider. Please do not pay again.
             </p>
             <p className="text-slate-400 text-xs">
               Order #{orderId} • This page will update automatically once payment is confirmed.
             </p>
           </div>
-
-          {worldpayRedirectUrl && (
-            <div className="py-2">
-              <a
-                href={worldpayRedirectUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs px-6 py-3.5 rounded-xl uppercase tracking-wider shadow-md transition-all cursor-pointer"
-              >
-                <span>Open Worldpay Payment Page</span>
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
-          )}
 
           <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -923,7 +818,7 @@ export default function CheckoutView({
             <button
               onClick={() => {
                 if (orderId) {
-                  pollPaymentStatus(orderId);
+                  pollPaymentStatus(orderId, null);
                 }
               }}
               className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline cursor-pointer"
@@ -971,16 +866,12 @@ export default function CheckoutView({
               <span className="font-mono font-bold text-slate-800 uppercase">{paymentSuccessData.orderId}</span>
             </div>
             <div className="flex justify-between border-b border-slate-200 pb-3 text-xs">
-              <span className="text-slate-400 font-bold">Transaction ID:</span>
-              <span className="font-mono font-bold text-slate-800">{paymentSuccessData.gatewayTxId}</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-200 pb-3 text-xs">
               <span className="text-slate-400 font-bold">Payment Method:</span>
               <span className="font-semibold text-slate-800">{paymentSuccessData.paymentMethod || paymentSuccessData.cardBrand}</span>
             </div>
             <div className="flex justify-between pt-1 text-sm font-black">
               <span className="text-slate-800 uppercase">Total Paid:</span>
-              <span className="text-slate-950">£{paymentSuccessData.total?.toFixed(2) || '0.00'} GBP</span>
+              <span className="text-slate-950">₹{Number(paymentSuccessData.total || 0).toFixed(2)}</span>
             </div>
           </div>
 
@@ -996,44 +887,6 @@ export default function CheckoutView({
               className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-3.5 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-colors cursor-pointer"
             >
               View Orders
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Subscription account check
-  const hasSubscription = cartItems.some(item => 
-    item.productId && (item.productId.startsWith('sub-pack') || item.productId.includes('sub-pack'))
-  );
-
-  if (hasSubscription && !loggedInCustomer) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-sm space-y-6 flex flex-col items-center">
-          <div className="p-4 bg-red-50 text-red-600 rounded-full w-16 h-16 flex items-center justify-center">
-            <Lock className="h-8 w-8" />
-          </div>
-          <div className="space-y-3">
-            <h2 className="text-xl font-black text-[#071d37] uppercase tracking-wider">Account Required</h2>
-            <p className="text-slate-500 text-xs leading-relaxed max-w-md mx-auto">
-              Your cart contains a subscription item. Please create an account or sign in to complete your purchase.
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md pt-2">
-            <button
-              onClick={() => onNavigate('frontend-account')}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all cursor-pointer"
-            >
-              Sign In / Create Account
-            </button>
-            <button
-              onClick={() => onNavigate('frontend-shop')}
-              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest py-3.5 px-6 rounded-xl transition-all cursor-pointer border border-slate-200"
-            >
-              Continue Shopping
             </button>
           </div>
         </div>
@@ -1105,7 +958,7 @@ export default function CheckoutView({
                 required
                 inputMode="tel"
                 autoComplete="tel"
-                placeholder="07700 900123"
+                placeholder="98765 43210"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className={`w-full text-xs p-3 border bg-slate-50/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold ${
@@ -1114,8 +967,8 @@ export default function CheckoutView({
               />
               <p className={`text-[10px] font-semibold ${phone.trim() && !isPhoneValid ? 'text-red-600' : 'text-slate-400'}`}>
                 {phone.trim() && !isPhoneValid
-                  ? 'Enter a valid UK phone number, for example 07700 900123.'
-                  : 'Required. Used by Royal Mail for delivery updates and any problem with your parcel.'}
+                  ? 'Enter a valid 10-digit Indian mobile number.'
+                  : 'Required. Used by the courier for delivery updates.'}
               </p>
             </div>
 
@@ -1124,9 +977,17 @@ export default function CheckoutView({
               <input
                 type="text"
                 required
-                placeholder="Street address"
+                placeholder="House / flat number, street"
                 value={addressLine}
                 onChange={(e) => setAddressLine(e.target.value)}
+                className="w-full text-xs p-3 border border-slate-250 bg-slate-50/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold"
+              />
+              <input
+                type="text"
+                placeholder="Area / landmark (optional)"
+                value={addressLine2}
+                onChange={(e) => setAddressLine2(e.target.value)}
+                aria-label="Address line 2"
                 className="w-full text-xs p-3 border border-slate-250 bg-slate-50/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold"
               />
             </div>
@@ -1144,45 +1005,43 @@ export default function CheckoutView({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Postcode</label>
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">State</label>
+                <select
+                  required
+                  value={stateName}
+                  onChange={(e) => setStateName(e.target.value)}
+                  className="w-full text-xs p-3 border border-slate-250 bg-slate-50/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold"
+                >
+                  <option value="">Select state</option>
+                  {INDIA_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">PIN code</label>
                 <input
                   type="text"
                   required
-                  placeholder="SW1A 1AA"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="110001"
                   value={postcode}
-                  onChange={(e) => setPostcode(e.target.value)}
-                  className={`w-full text-xs p-3 border bg-slate-50/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold uppercase ${
+                  onChange={(e) => setPostcode(e.target.value.replace(/\D/g, ''))}
+                  className={`w-full text-xs p-3 border bg-slate-50/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold ${
                     postcode.trim() && !isPostcodeValid ? 'border-red-300' : 'border-slate-250'
                   }`}
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Country</label>
-                {/*
-                  Fixed, not selectable. The store's Royal Mail contract only
-                  carries UK services, so an overseas address cannot be shipped
-                  at all — offering the choice would only produce orders that
-                  have to be refunded.
-                */}
-                <div className="w-full text-xs p-3 border border-slate-250 bg-slate-100 rounded-xl font-bold text-slate-700 flex items-center justify-between">
-                  <span>{UK_COUNTRY_NAME}</span>
-                  <Lock className="h-3.5 w-3.5 text-slate-400" />
-                </div>
-              </div>
             </div>
 
             {postcode.trim() && !isPostcodeValid && (
-              <p className="text-[10px] font-bold text-red-600">
-                Please enter a valid UK postcode (for example SW1A 1AA). We deliver to UK addresses only.
-              </p>
+              <p className="text-[10px] font-bold text-red-600">Please enter a valid 6-digit PIN code.</p>
             )}
 
             <div className="flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
               <Truck className="h-4 w-4 text-slate-500 shrink-0 mt-px" />
               <p className="text-[10.5px] text-slate-500 font-semibold leading-relaxed">
-                <span className="font-black text-slate-700">UK delivery only.</span> We ship to United Kingdom
-                addresses exclusively and cannot accept international orders.
+                <span className="font-black text-slate-700">We deliver across India.</span> International orders are not accepted.
               </p>
             </div>
 
@@ -1191,9 +1050,9 @@ export default function CheckoutView({
               <div className="border border-slate-800 bg-slate-50 ring-1 ring-slate-800 rounded-xl p-3.5 flex items-center justify-between">
                 <div className="text-left">
                   <span className="font-extrabold text-xs block text-slate-800 flex items-center gap-1.5">
-                    <Truck className="h-4 w-4 text-red-600" /> Royal Mail Tracked
+                    <Truck className="h-4 w-4 text-red-600" /> Standard Delivery
                   </span>
-                  <span className="text-[10px] text-slate-500">Royal Mail 24/48 Tracked Delivery</span>
+                  <span className="text-[10px] text-slate-500">Tracking number sent by email on dispatch</span>
                   {isRewardFreeDelivery && (
                     <span className="text-[10px] text-emerald-700 font-black block pt-0.5">
                       Waived by your Free Delivery reward
@@ -1201,7 +1060,7 @@ export default function CheckoutView({
                   )}
                 </div>
                 <span className={isFreeShipping ? "font-black text-xs text-emerald-600" : "font-black text-xs text-slate-800"}>
-                  {isFreeShipping ? 'FREE' : `£${deliveryCost.toFixed(2)}`}
+                  {isFreeShipping ? 'FREE' : `₹${deliveryCost.toFixed(2)}`}
                 </span>
               </div>
             </div>
@@ -1221,21 +1080,22 @@ export default function CheckoutView({
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-850">Worldpay Secure Live Payment</h4>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-850">Secure payment by Razorpay</h4>
                   <p className="text-[11px] text-slate-500 leading-relaxed max-w-md mx-auto">
-                    All transactions are securely routed through the official Worldpay Access Hosted Payment Gateway with 256-bit bank-grade encryption.
+                    Pay with UPI, cards, netbanking or wallets in Razorpay's secure window. Your card details never touch this website.
                   </p>
                 </div>
                 <div className="flex justify-center gap-6 text-[10px] text-slate-400 font-extrabold uppercase">
                   <span>✓ 256-bit SSL</span>
-                  <span>✓ 3D Secure 2.0</span>
-                  <span>✓ PCI-DSS Level 1</span>
+                  <span>✓ UPI</span>
+                  <span>✓ Cards &amp; Netbanking</span>
                 </div>
               </div>
 
               {/* Payment Buttons */}
               <div className="space-y-4">
                 {/* AgeChecked Gate Integration */}
+                {ageCheckEnabled && (
                 <div className="mb-4">
                   <AgeGate
                     ref={ageGateRef}
@@ -1249,11 +1109,12 @@ export default function CheckoutView({
                       name: fullName,
                       email: email,
                       postcode: postcode,
-                      countrycode: country === 'United Kingdom' ? 'GB' : 'GB',
+                      countrycode: 'IN',
                       reference: orderId || `order-${Date.now()}`
                     }}
                   />
                 </div>
+                )}
 
                 {paymentError && (
                   <div className="flex gap-2 items-center bg-red-50 border border-red-150 p-3.5 rounded-xl text-xs font-bold text-red-650">
@@ -1277,29 +1138,26 @@ export default function CheckoutView({
                     ) : (
                       <>
                         <Lock className="h-4 w-4 text-emerald-400" />
-                        <span>Complete Order with Store Credit (£0.00)</span>
+                        <span>Complete Order with Store Credit (₹0.00)</span>
                       </>
                     )}
                   </button>
                 ) : (
                   <div className="space-y-3.5">
-                    {/* Worldpay Live Payment Action */}
+                    {/* Razorpay payment action */}
                     <div className="p-5 border-2 border-slate-900 bg-white rounded-2xl space-y-4 shadow-sm">
                       <div className="flex justify-between items-center text-xs font-black text-slate-900 uppercase">
                         <span className="flex items-center gap-2">
-                          <Lock className="h-4 w-4 text-emerald-600" /> Pay with Worldpay
+                          <Lock className="h-4 w-4 text-emerald-600" /> Pay online
                         </span>
                         <div className="flex items-center gap-1.5">
-                          {hasSubscription && (
-                            <span className="bg-indigo-100 text-indigo-900 text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">SUBSCRIPTION</span>
-                          )}
                           <span className="bg-emerald-100 text-emerald-800 text-[9.5px] px-2.5 py-0.5 rounded-full font-mono font-extrabold flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> LIVE
                           </span>
                         </div>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-relaxed">
-                        You will be securely redirected to the official Worldpay Access Hosted Payment Page to authorize your payment.
+                        Razorpay's secure payment window opens on this page. Pay by UPI (app or QR), card, netbanking or wallet.
                       </p>
                       <button
                         type="button"
@@ -1310,19 +1168,12 @@ export default function CheckoutView({
                         {isProcessing ? (
                           <>
                             <RefreshCw className="h-4 w-4 animate-spin text-white" />
-                            <span>Connecting to Worldpay Live...</span>
+                            <span>Starting secure payment...</span>
                           </>
                         ) : (
                           <>
                             <CreditCard className="h-4 w-4 text-emerald-400" />
-                            {hasSubscription ? (
-                              <span className="flex items-center gap-2 font-black text-amber-300">
-                                <Repeat className="h-4 w-4 text-amber-400 shrink-0" />
-                                Pay & Start Recurring Subscription (£{finalTotalToPay.toFixed(2)})
-                              </span>
-                            ) : (
-                              <span>Pay with Worldpay (£{finalTotalToPay.toFixed(2)})</span>
-                            )}
+                            <span>Pay ₹{finalTotalToPay.toFixed(2)}</span>
                           </>
                         )}
                       </button>
@@ -1343,72 +1194,21 @@ export default function CheckoutView({
 
             {/* Product items */}
             <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-2">
-              {cartItems.map((item, idx) => {
-                const isSubPack = Boolean(
-                  item.isSubscription ||
-                  (item.productId && (item.productId.startsWith('sub-pack-') || item.productId.includes('sub-pack'))) ||
-                  item.vendor === 'Subscription Pack' ||
-                  (item.productTitle && item.productTitle.toLowerCase().includes('subscription') && item.productTitle.toLowerCase().includes('plan'))
-                );
-
-                const subProducts = isSubPack ? parseSubscriptionProducts(null, item) : [];
-                const planSlug = getPlanSlug(item.subscriptionPlan || item.productTitle);
-                const planImg = getPlanImage(item.subscriptionPlan || item.productTitle, item.image);
-                const displayPlanName = item.subscriptionPlan || (
-                  planSlug === 'ultimate' ? 'ULTIMATE Plan' :
-                  planSlug === 'pro' ? 'PRO Plan' :
-                  planSlug === 'core' ? 'CORE Plan' : 'LITE Plan'
-                );
-
-                return (
-                  <div key={idx} className="py-3 flex items-start gap-3.5 text-xs">
-                    {isSubPack ? (
-                      <div className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs">
-                        <img
-                          src={planImg}
-                          alt={displayPlanName}
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute top-0.5 left-0.5 bg-slate-900/90 text-white text-[7.5px] font-black px-1 rounded uppercase">
-                          {planSlug}
-                        </div>
-                      </div>
-                    ) : (
-                      <img
-                        src={item.image}
-                        alt={item.productTitle}
-                        className="w-12 h-12 object-cover rounded-lg bg-slate-50 border border-slate-100 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-extrabold text-slate-800 text-[11px] leading-tight">
-                        {isSubPack ? displayPlanName : item.productTitle}
-                      </h4>
-                      {isSubPack && item.subscriptionFrequency && (
-                        <p className="text-[9.5px] font-bold text-indigo-600 mt-0.5">
-                          {item.subscriptionFrequency} {item.frequencyDiscount ? `[${item.frequencyDiscount} OFF]` : ''}
-                        </p>
-                      )}
-                      {isSubPack && subProducts.length > 0 && (
-                        <div className="mt-1.5 space-y-0.5">
-                          {subProducts.map((p, pIdx) => (
-                            <p key={pIdx} className="text-[10px] text-slate-600 leading-tight">
-                              • {p.brand ? <span className="font-bold text-slate-900">{p.brand} — </span> : null}
-                              <span className="font-medium text-slate-800">{p.name}</span>
-                              {p.variant && p.variant !== 'Standard' ? <span className="text-indigo-600"> — {p.variant}</span> : null}
-                              <span className="text-slate-400 font-bold"> (Qty:{p.quantity || 1})</span>
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                      <p className="text-slate-400 text-[10px] font-bold mt-1">Qty: {item.quantity} × £{item.price.toFixed(2)}</p>
-                    </div>
-                    <span className="font-black text-slate-800 text-[11px] shrink-0">£{getItemTotal(item).toFixed(2)}</span>
+              {cartItems.map((item, idx) => (
+                <div key={idx} className="py-3 flex items-start gap-3.5 text-xs">
+                  <img
+                    src={item.image}
+                    alt={item.productTitle}
+                    className="w-12 h-12 object-cover rounded-lg bg-slate-50 border border-slate-100 shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-extrabold text-slate-800 text-[11px] leading-tight">{item.productTitle}</h4>
+                    <p className="text-slate-400 text-[10px] font-bold mt-1">Qty: {item.quantity} × ₹{item.price.toFixed(2)}</p>
                   </div>
-                );
-              })}
+                  <span className="font-black text-slate-800 text-[11px] shrink-0">₹{getItemTotal(item).toFixed(2)}</span>
+                </div>
+              ))}
             </div>
 
             {/* Store Credit */}
@@ -1424,13 +1224,13 @@ export default function CheckoutView({
                       className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4.5 w-4.5 cursor-pointer"
                     />
                     <label htmlFor="apply-store-credit-checkout" className="font-extrabold text-[#071d37] cursor-pointer select-none">
-                      Apply Store Credit (£{loggedInCustomer.storeCredit.toFixed(2)} Available)
+                      Apply Store Credit (₹{loggedInCustomer.storeCredit.toFixed(2)} Available)
                     </label>
                   </div>
                 </div>
                 {applyStoreCredit && (
                   <p className="text-[10.5px] text-emerald-700 mt-2 font-medium leading-relaxed">
-                    Applying £{Math.min(loggedInCustomer.storeCredit, finalTotal).toFixed(2)} Store Credit deduction.
+                    Applying ₹{Math.min(loggedInCustomer.storeCredit, finalTotal).toFixed(2)} Store Credit deduction.
                   </p>
                 )}
               </div>
@@ -1497,7 +1297,7 @@ export default function CheckoutView({
             <div className="space-y-2 border-t border-slate-100 pt-3 text-xs leading-normal font-semibold">
               <div className="flex justify-between text-slate-500">
                 <span>Subtotal</span>
-                <span className="text-slate-800">£{rawSubtotal.toFixed(2)}</span>
+                <span className="text-slate-800">₹{rawSubtotal.toFixed(2)}</span>
               </div>
 
               {currentDiscount && discountValue > 0 && (
@@ -1505,25 +1305,25 @@ export default function CheckoutView({
                   <span className="flex items-center gap-1">
                     <Check className="h-3 w-3" /> Discount
                   </span>
-                  <span className="font-extrabold">-£{discountValue.toFixed(2)}</span>
+                  <span className="font-extrabold">-₹{discountValue.toFixed(2)}</span>
                 </div>
               )}
 
               <div className="flex justify-between text-slate-500">
                 <span>Delivery</span>
-                <span>{deliveryCost === 0 ? 'FREE' : `£${deliveryCost.toFixed(2)}`}</span>
+                <span>{deliveryCost === 0 ? 'FREE' : `₹${deliveryCost.toFixed(2)}`}</span>
               </div>
 
               {applyStoreCredit && storeCreditApplied > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>Store Credit</span>
-                  <span>-£{storeCreditApplied.toFixed(2)}</span>
+                  <span>-₹{storeCreditApplied.toFixed(2)}</span>
                 </div>
               )}
 
               <div className="flex justify-between text-slate-900 font-extrabold text-sm pt-2 border-t border-slate-150">
                 <span>Total</span>
-                <span className="text-base text-indigo-700 font-black">£{finalTotalToPay.toFixed(2)}</span>
+                <span className="text-base text-indigo-700 font-black">₹{finalTotalToPay.toFixed(2)}</span>
               </div>
             </div>
 

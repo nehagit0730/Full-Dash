@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { CartItem, Discount, Customer } from '../types';
 import { X, Trash2, Plus, Minus, Ticket, Check, ShieldCheck, ShoppingBag, Sparkles, Package, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import SubscriptionIcon from './SubscriptionIcon';
 import { calculateDiscountAmount, calculateVolumePrice } from '../utils';
 import {
   resolveDiscountCode,
@@ -18,8 +17,6 @@ import { hydrateRewardSelection } from '../utils/rewardLines';
 import { saveRewardSelection } from '../utils/rewardSelectionStore';
 import FreeCanPicker from './FreeCanPicker';
 import { RewardChoicePicker, AppliedRewardLines } from './RewardSelection';
-import { getPlanImage, getPlanSlug } from '../utils/planImages';
-import { parseSubscriptionProducts, formatSubscriptionItemDisplay } from '../utils/subscriptionParser';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -56,9 +53,6 @@ export default function CartDrawer({
   const [isChoicePickerOpen, setIsChoicePickerOpen] = useState(false);
 
   const getItemTotal = (item: CartItem) => {
-    if (item.productId && (item.productId.startsWith('sub-pack-') || item.productId.includes('sub-pack') || item.isSubscription)) {
-      return item.price * item.quantity;
-    }
     return calculateVolumePrice(item.price, item.quantity);
   };
 
@@ -209,91 +203,22 @@ export default function CartDrawer({
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {cartItems.map((item, index) => {
-                      const isSubPack = Boolean(
-                        item.isSubscription ||
-                        (item.productId && (item.productId.startsWith('sub-pack-') || item.productId.includes('sub-pack'))) ||
-                        item.vendor === 'Subscription Pack' ||
-                        (item.productTitle && item.productTitle.toLowerCase().includes('subscription') && item.productTitle.toLowerCase().includes('plan'))
-                      );
-
-                      const subProducts = isSubPack ? parseSubscriptionProducts(null, item) : [];
-                      const planSlug = getPlanSlug(item.subscriptionPlan || item.productTitle);
-                      const planImg = getPlanImage(item.subscriptionPlan || item.productTitle, item.image);
-                      const displayPlanName = item.subscriptionPlan || (
-                        planSlug === 'ultimate' ? 'ULTIMATE Plan' :
-                        planSlug === 'pro' ? 'PRO Plan' :
-                        planSlug === 'core' ? 'CORE Plan' : 'LITE Plan'
-                      );
-
                       return (
                         <div key={`${item.productId}-${index}`} className="py-4 flex gap-3 text-xs items-start justify-between">
-                          {isSubPack ? (
-                            <div className="relative shrink-0 w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs">
-                              <img
-                                src={planImg}
-                                alt={displayPlanName}
-                                className="w-full h-full object-cover"
-                                referrerPolicy="no-referrer"
-                              />
-                              <div className="absolute top-1 left-1 bg-slate-900/90 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                {planSlug}
-                              </div>
-                            </div>
-                          ) : (
-                            <img
-                              src={item.image}
-                              alt={item.productTitle}
-                              className="w-16 h-16 object-cover rounded-xl bg-slate-50 border border-slate-150 shrink-0 shadow-2xs"
-                              referrerPolicy="no-referrer"
-                            />
-                          )}
-
+                          <img
+                            src={item.image}
+                            alt={item.productTitle}
+                            className="w-16 h-16 object-cover rounded-xl bg-slate-50 border border-slate-150 shrink-0 shadow-2xs"
+                            referrerPolicy="no-referrer"
+                          />
                           <div className="flex-1 min-w-0 pr-2">
                             <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider block">
-                              {isSubPack ? 'Subscription Pack' : item.vendor}
+                              {item.vendor}
                             </span>
-                            
                             <h4 className="font-extrabold text-slate-900 leading-tight text-xs mt-0.5">
-                              {isSubPack ? displayPlanName : item.productTitle}
+                              {item.productTitle}
                             </h4>
-
-                            {isSubPack && item.subscriptionFrequency && (
-                              <div className="mt-1 flex items-center gap-1.5">
-                                <span className="text-[9.5px] font-extrabold bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-0.5 rounded-md break-words">
-                                  {item.subscriptionFrequency} {item.frequencyDiscount ? `[${item.frequencyDiscount} OFF]` : ''}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Detailed selected products list for subscription packs */}
-                            {isSubPack && subProducts.length > 0 && (
-                              <div className="mt-2.5 bg-slate-50 border border-slate-200/90 rounded-xl p-2.5 space-y-1.5 text-left">
-                                <div className="flex items-center justify-between text-[9.5px] font-black text-slate-700 uppercase tracking-wide">
-                                  <span className="flex items-center gap-1">
-                                    <Package className="w-3 h-3 text-indigo-600" />
-                                    Selected Pack Items ({subProducts.reduce((sum, p) => sum + (p.quantity || 1), 0)} Cans):
-                                  </span>
-                                </div>
-                                <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-                                  {subProducts.map((p, pIdx) => (
-                                    <div key={pIdx} className="text-[10.5px] text-slate-800 font-semibold bg-white border border-slate-200/70 px-2 py-1 rounded-md flex justify-between items-center shadow-3xs">
-                                      <span className="truncate pr-1 text-slate-700">
-                                        {p.brand && <strong className="text-slate-950 font-extrabold">{p.brand} — </strong>}
-                                        <span className="font-bold text-slate-800">{p.name}</span>
-                                        {p.variant && p.variant !== 'Standard' && (
-                                          <span className="text-indigo-600 font-semibold"> — {p.variant}</span>
-                                        )}
-                                      </span>
-                                      <span className="text-[9px] font-black text-indigo-800 bg-indigo-50 border border-indigo-150 px-1.5 py-0.5 rounded-sm shrink-0">
-                                        Qty:{p.quantity || 1}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <p className="text-slate-600 font-bold mt-1.5 text-xs">£{item.price.toFixed(2)} each</p>
+                            <p className="text-slate-600 font-bold mt-1.5 text-xs">₹{item.price.toFixed(2)} each</p>
 
                             {/* Quantity Controls */}
                             <div className="flex items-center gap-2 mt-2">
@@ -316,7 +241,7 @@ export default function CartDrawer({
                           </div>
 
                           <div className="flex flex-col items-end gap-3 shrink-0">
-                            <span className="font-black text-slate-900 text-xs">£{getItemTotal(item).toFixed(2)}</span>
+                            <span className="font-black text-slate-900 text-xs">₹{getItemTotal(item).toFixed(2)}</span>
                             <button
                               onClick={() => onRemoveItem(item.productId)}
                               className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer transition-colors"
@@ -390,7 +315,7 @@ export default function CartDrawer({
                   <div className="space-y-2 border-t border-slate-200 pt-3 text-xs leading-normal">
                     <div className="flex justify-between gap-2 text-slate-500">
                       <span className="truncate">Subtotal items</span>
-                      <span className="font-bold text-slate-800 shrink-0">£{subtotal.toFixed(2)}</span>
+                      <span className="font-bold text-slate-800 shrink-0">₹{subtotal.toFixed(2)}</span>
                     </div>
 
                     {appliedDiscount && discountValue > 0 && (
@@ -402,20 +327,20 @@ export default function CartDrawer({
                           <Ticket className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate">Discount ({appliedDiscount.title})</span>
                         </span>
-                        <span className="font-extrabold shrink-0">-£{discountValue.toFixed(2)}</span>
+                        <span className="font-extrabold shrink-0">-₹{discountValue.toFixed(2)}</span>
                       </div>
                     )}
 
                     {totalBeforeShipping < FREE_SHIPPING_THRESHOLD && shippingFee > 0 && (
                       <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2 text-[11px] text-indigo-700 text-center font-bold">
-                        🚚 Add <span className="font-extrabold">£{(FREE_SHIPPING_THRESHOLD - totalBeforeShipping).toFixed(2)}</span> more to qualify for <span className="underline">FREE Delivery</span>!
+                        🚚 Add <span className="font-extrabold">₹{(FREE_SHIPPING_THRESHOLD - totalBeforeShipping).toFixed(2)}</span> more to qualify for <span className="underline">FREE Delivery</span>!
                       </div>
                     )}
 
                     <div className="flex justify-between gap-2 text-slate-500">
                       <span className="truncate">Delivery fee</span>
                       <span className={shippingFee === 0 ? "text-emerald-600 font-extrabold shrink-0" : "font-extrabold text-slate-800 shrink-0"}>
-                        {shippingFee === 0 ? 'FREE' : `£${shippingFee.toFixed(2)}`}
+                        {shippingFee === 0 ? 'FREE' : `₹${shippingFee.toFixed(2)}`}
                       </span>
                     </div>
 
@@ -424,7 +349,7 @@ export default function CartDrawer({
                         <span className="truncate">Total amount</span>
                         <Sparkles className="h-3 w-3 text-indigo-500 shrink-0" />
                       </span>
-                      <span className="text-base text-slate-950 shrink-0">£{total.toFixed(2)}</span>
+                      <span className="text-base text-slate-950 shrink-0">₹{total.toFixed(2)}</span>
                     </div>
                   </div>
 

@@ -718,7 +718,7 @@ export async function trackPurchaseCompleted(order: any) {
     IsRenewal: isRenewal,
     OrderType: isSubscriptionOrder ? (isRenewal ? 'Subscription Renewal' : 'Subscription') : 'One-off',
     Destination: order.destination || order.address || 'United Kingdom',
-    DeliveryMethod: order.deliveryMethod || 'Royal Mail Tracked 24/48',
+    DeliveryMethod: order.deliveryMethod || 'Standard Delivery',
     DiscountApplied: order.discountApplied || null,
     StoreCreditApplied: order.storeCreditApplied || 0,
     ShippingAddress: {
@@ -765,56 +765,6 @@ export async function trackPurchaseCompleted(order: any) {
   return placedOrderRes;
 }
 
-/**
- * Fires when a subscription is created, so a "Subscription confirmation" flow has
- * something to trigger on. Nothing used to be sent here at all: the client had a
- * trackSubscriptionStarted helper that was never called from anywhere, so the
- * metric did not exist in Klaviyo.
- *
- * Point the flow at the "Started Subscription" metric.
- */
-export async function trackSubscriptionStarted(subscription: any, order?: any) {
-  const settings = await getKlaviyoSettings();
-  if (settings.trackEvents && settings.trackEvents.purchase === false) return;
-
-  const email = String(
-    subscription?.customerEmail || order?.customerEmail || 'customer@pouch-supply.com'
-  ).toLowerCase().trim();
-
-  const nameParts = String(subscription?.customerName || order?.customerName || '').trim().split(/\s+/);
-  const firstName = nameParts[0] || 'Valued';
-  const lastName = nameParts.slice(1).join(' ') || 'Customer';
-
-  const subId = String(subscription?.id || subscription?.subscriptionId || '');
-  const amount = typeof subscription?.amount === 'number'
-    ? subscription.amount
-    : parseFloat(subscription?.amount) || 0;
-
-  // Consent so the flow is allowed to send. Harmless when no list is configured;
-  // it simply logs that consent could not be recorded.
-  await syncKlaviyoProfileWithConsent(email, firstName, lastName);
-
-  return trackKlaviyoEvent('Started Subscription', email, {
-    // One event per subscription, so a retried webhook cannot duplicate it.
-    ...(subId ? { $event_id: `sub_started_${subId}` } : {}),
-    $value: amount,
-    SubscriptionID: subId,
-    PlanName: subscription?.planName || subscription?.planId || 'Subscription Plan',
-    PlanId: subscription?.planId || null,
-    BillingInterval: subscription?.billingInterval || 'bi-weekly',
-    NextBillingDate: subscription?.nextBillingDate || null,
-    ItemPrice: subscription?.itemPrice ?? null,
-    ShippingCost: subscription?.shippingCost ?? null,
-    Currency: subscription?.currency || 'GBP',
-    FirstOrderId: order?.id || order?.orderId || null,
-    IsSubscription: true,
-    Categories: ['Nicotine Pouches', 'Subscription']
-  }, {
-    first_name: firstName,
-    last_name: lastName
-  });
-}
-
 export async function trackOrderRefunded(order: any, refundAmount?: number) {
   const settings = await getKlaviyoSettings();
   if (!settings.trackEvents.refunded) return;
@@ -841,9 +791,9 @@ export async function trackOrderShipped(order: any, trackingNumber?: string, car
   return trackKlaviyoEvent('Order Shipped', email, {
     $event_id: String(order.id || order.orderId),
     OrderId: String(order.id || order.orderId),
-    Carrier: carrier || order.carrier || 'Royal Mail',
+    Carrier: carrier || order.carrier || 'Courier',
     TrackingNumber: trackingNumber || order.trackingNumber || order.trackingId,
-    TrackingUrl: `https://www.royalmail.com/track-your-item#/tracking-results/${trackingNumber || order.trackingNumber || order.trackingId}`,
+    TrackingUrl: `${(process.env.APP_URL || '').replace(/\/+$/, '')}/pages/account/orders`,
     Destination: order.destination || order.address
   });
 }

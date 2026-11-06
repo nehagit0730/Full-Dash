@@ -119,7 +119,7 @@ export default function FreeCanPicker({
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   {rewardLabel ? `${rewardLabel} — ` : ''}
-                  Pick any {count === 1 ? 'can' : `${count} cans`} from the range. Added to your order at £0.00.
+                  Pick any {count === 1 ? 'can' : `${count} cans`} from the range. Added to your order at ₹0.00.
                 </p>
               </div>
               <button
@@ -226,7 +226,7 @@ export default function FreeCanPicker({
 
                           <div className="flex items-center justify-between gap-2 pt-0.5">
                             <span className="text-[10px] font-bold text-slate-400">
-                              <s>£{can.price.toFixed(2)}</s>{' '}
+                              <s>₹{can.price.toFixed(2)}</s>{' '}
                               <span className="text-emerald-700 font-black">FREE</span>
                             </span>
 

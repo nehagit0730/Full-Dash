@@ -885,21 +885,21 @@ export default function CollectionDetailView({
                               <div className="space-y-1">
                                 <div className="flex items-baseline gap-1.5 flex-wrap">
                                   <span className="text-sm sm:text-base font-black text-slate-900">
-                                    £{volumeTotal.toFixed(2)}
+                                    ₹{volumeTotal.toFixed(2)}
                                   </span>
                                   {hasVolumeDiscount && (
                                     <span className="text-[10.5px] font-bold text-slate-400 line-through">
-                                      £{standardTotal.toFixed(2)}
+                                      ₹{standardTotal.toFixed(2)}
                                     </span>
                                   )}
                                   <span className="text-[10px] text-slate-500 font-medium">
-                                    {localQty > 1 ? `(£${effectiveUnitPrice} each)` : 'each'}
+                                    {localQty > 1 ? `(₹${effectiveUnitPrice} each)` : 'each'}
                                   </span>
                                 </div>
 
                                 {hasVolumeDiscount && (
                                   <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 font-extrabold text-[9px] py-0.5 px-2 rounded-md">
-                                    <span>Volume Savings Applied! (Saved £{(standardTotal - volumeTotal).toFixed(2)})</span>
+                                    <span>Volume Savings Applied! (Saved ₹{(standardTotal - volumeTotal).toFixed(2)})</span>
                                   </div>
                                 )}
                               </div>
@@ -909,11 +909,11 @@ export default function CollectionDetailView({
                           {/* Volume Tiers Quick Indicator */}
                           <div className="flex items-center gap-1 text-[8.5px] font-bold text-slate-500 bg-slate-50 p-1.5 rounded-lg border border-slate-150">
                             <span className="text-slate-700 font-extrabold shrink-0">Bundles:</span>
-                            <span className={`px-1 rounded ${localQty === 5 ? 'bg-indigo-600 text-white font-extrabold' : 'text-slate-600'}`}>5=£23.50</span>
+                            <span className={`px-1 rounded ${localQty === 5 ? 'bg-indigo-600 text-white font-extrabold' : 'text-slate-600'}`}>5=₹23.50</span>
                             <span>•</span>
-                            <span className={`px-1 rounded ${localQty === 10 ? 'bg-indigo-600 text-white font-extrabold' : 'text-slate-600'}`}>10=£42.00</span>
+                            <span className={`px-1 rounded ${localQty === 10 ? 'bg-indigo-600 text-white font-extrabold' : 'text-slate-600'}`}>10=₹42.00</span>
                             <span>•</span>
-                            <span className={`px-1 rounded ${localQty === 20 ? 'bg-indigo-600 text-white font-extrabold' : 'text-slate-600'}`}>20=£77.00</span>
+                            <span className={`px-1 rounded ${localQty === 20 ? 'bg-indigo-600 text-white font-extrabold' : 'text-slate-600'}`}>20=₹77.00</span>
                           </div>
 
                         </div>

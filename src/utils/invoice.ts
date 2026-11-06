@@ -33,7 +33,7 @@ export const DEFAULT_INVOICE_BRAND: InvoiceBrand = {
   addressLines: ['United Kingdom']
 };
 
-const money = (value: number) => `£${(Number(value) || 0).toFixed(2)}`;
+const money = (value: number) => `₹${(Number(value) || 0).toFixed(2)}`;
 
 /** Escapes any store/customer supplied text before it enters the invoice markup. */
 const esc = (value: unknown): string =>
@@ -86,7 +86,7 @@ export function buildInvoiceHtml(
   const catalog = options.products || [];
   const totals = buildInvoiceTotals(order);
   const invoiceNo = getInvoiceNumber(order);
-  const tracking = order.trackingNumber || order.trackingId || order.data?.royalMail?.trackingNumber || '';
+  const tracking = order.trackingNumber || order.trackingId || '';
   // The plan this order was bought as, resolved the same way the admin and the
   // account page resolve it. The raw stored planName can name another tier on
   // orders the old plan sync rewrote, and an invoice must describe the sale.
@@ -271,7 +271,7 @@ export function buildInvoiceHtml(
 
     <div class="foot">
       Thank you for choosing ${esc(String(brand.legalName || brand.name).replace(/\.$/, ''))}.<br />
-      This invoice was generated on ${esc(new Date().toLocaleString('en-GB'))} and is valid without signature.
+      This invoice was generated on ${esc(new Date().toLocaleString('en-IN'))} and is valid without signature.
     </div>
 
     <div class="no-print">

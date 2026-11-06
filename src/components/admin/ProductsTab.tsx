@@ -264,7 +264,7 @@ export const ProductsTab: React.FC<ProductsTabProps> = ({
                             {prod.inventory} units {prod.inventory <= 15 ? '⚠️ low' : ''}
                           </span>
                         </td>
-                        <td className="p-4 text-right font-extrabold text-slate-900">£{(Number(prod.price) || 0).toFixed(2)}</td>
+                        <td className="p-4 text-right font-extrabold text-slate-900">₹{(Number(prod.price) || 0).toFixed(2)}</td>
                         <td className="p-4 text-center text-xs whitespace-nowrap">
                           <div className="flex items-center justify-center gap-2">
                             {/* Edit Product Action */}

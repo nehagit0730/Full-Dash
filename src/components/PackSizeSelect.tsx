@@ -49,12 +49,12 @@ export const PackSizeSelect: React.FC<PackSizeSelectProps> = ({
     >
       {!isPackSize && (
         <option value="custom">
-          {quantity} {quantity === 1 ? 'can' : 'cans'} — £{calculateVolumePrice(unitPrice, quantity).toFixed(2)}
+          {quantity} {quantity === 1 ? 'can' : 'cans'} — ₹{calculateVolumePrice(unitPrice, quantity).toFixed(2)}
         </option>
       )}
       {PACK_SIZES.map((size) => (
         <option key={size} value={size}>
-          Pack of {size} — £{calculateVolumePrice(unitPrice, size).toFixed(2)}
+          Pack of {size} — ₹{calculateVolumePrice(unitPrice, size).toFixed(2)}
         </option>
       ))}
     </select>

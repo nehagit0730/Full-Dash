@@ -27,6 +27,11 @@ const router = Router();
 router.get("/", requireAdmin, async (req: AdminRequest, res: Response) => {
   try {
     const resource = typeof req.query.resource === "string" ? req.query.resource : undefined;
+    // There is no scheduled job any more (Vercel Hobby allows only daily crons, and
+    // they were removed). Items past their 30 days are purged whenever an admin
+    // opens the bin, so nothing expired is ever shown or restorable. A failed
+    // sweep must not stop the bin from loading.
+    await purgeExpired().catch((e: any) => console.warn("[Recycle Bin] Expiry sweep on open failed:", e?.message || e));
     const items = await listRecycleBin(resource);
     const counts = await recycleBinCounts();
     res.json({ items, counts, retentionDays: RETENTION_DAYS, resources: RECYCLABLE_RESOURCES });
@@ -137,7 +142,7 @@ const handlePurge = async (_req: AdminRequest, res: Response) => {
   }
 };
 
-// The cron secret or an admin token, matching the other scheduled endpoints.
+// Manual trigger (admin token, or CRON_SECRET for an external scheduler if one is ever added).
 import { requireCronOrAdmin } from "../middleware/requireAdmin";
 router.get("/purge-expired", requireCronOrAdmin, handlePurge);
 router.post("/purge-expired", requireCronOrAdmin, handlePurge);

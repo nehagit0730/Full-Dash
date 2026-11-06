@@ -16,7 +16,6 @@ import CollectionEditor from './CollectionEditor';
 import ProductEditor from './ProductEditor';
 import BlogContentEditor from './BlogContentEditor';
 import DiscountEditor from './DiscountEditor';
-import PlansCanOverlay from './PlansCanOverlay';
 import { Crown, Flame, Cloud } from 'lucide-react';
 import AnalyticsTab from './admin/AnalyticsTab';
 import FilesTab from './admin/FilesTab';
@@ -32,7 +31,6 @@ import DevelopmentTab from './admin/DevelopmentTab';
 import { DiagnosticsTab } from './admin/DiagnosticsTab';
 import RecycleBinTab from './admin/RecycleBinTab';
 import { EmailSettingsTab } from './admin/EmailSettingsTab';
-import { RoyalMailSettingsCard } from './admin/RoyalMailSettingsCard';
 import IntegrationsSettingsTab from './admin/IntegrationsSettingsTab';
 import { Activity } from 'lucide-react';
 
@@ -56,7 +54,6 @@ export const AVAILABLE_SECTION_TEMPLATES = [
   { type: 'Brands we offer', label: 'Brands we offer', desc: 'Infinite running marquee of brand logo images with live upload option', icon: 'Layers' },
   { type: 'How it works', label: 'How it works', desc: 'Dynamic timeline workflow steps with custom images & layouts', icon: 'Compass' },
   { type: 'Trust badges', label: 'Trust Badges', desc: 'Elegant horizontal grid displaying core store guarantees like authenticity and premium quality', icon: 'Award' },
-  { type: 'Plans', label: 'Subscription Plans', desc: 'Display the customizable 4-tier subscription plans grid', icon: 'LayoutGrid' },
   { type: 'Clearance Sale', label: 'Clearance Sale', desc: 'Display selected clearance products with layouts like shop now grid', icon: 'Flame' },
   { type: 'Contact Form', label: 'Contact Form', desc: 'Interactive customer inquiry form with name, email, subject, message, and Resend email connection', icon: 'Mail' }
 ] as const;
@@ -300,7 +297,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
               <span className="text-[6px] font-black tracking-wider text-slate-400">LITE</span>
               <div className="my-0.5 text-center">
                 <span className="block text-[8px] font-black text-slate-800 leading-tight">5 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">£27.99</span>
+                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹27.99</span>
                 <span className="text-[5px] text-slate-400 block -mt-0.5">per month</span>
               </div>
             </div>
@@ -310,7 +307,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
               <span className="text-[6px] font-black tracking-wider text-slate-450">CORE</span>
               <div className="my-0.5 text-center">
                 <span className="block text-[8px] font-black text-slate-800 leading-tight">8 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">£35.99</span>
+                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹35.99</span>
                 <span className="text-[5px] text-slate-400 block -mt-0.5">per month</span>
               </div>
             </div>
@@ -323,7 +320,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
               <span className="text-[6px] font-black tracking-wider text-white mt-1">PRO</span>
               <div className="my-0.5 text-center">
                 <span className="block text-[8px] font-black text-white leading-tight">10 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">£40.99</span>
+                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹40.99</span>
                 <span className="text-[5px] text-slate-350 block -mt-0.5">per month</span>
               </div>
             </div>
@@ -333,7 +330,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
               <span className="text-[6px] font-black tracking-wider text-slate-450">ULTIMATE</span>
               <div className="my-0.5 text-center">
                 <span className="block text-[8px] font-black text-slate-800 leading-tight">12 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">£46.99</span>
+                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹46.99</span>
                 <span className="text-[5px] text-slate-400 block -mt-0.5">per month</span>
               </div>
             </div>
@@ -499,14 +496,14 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
         {/* Reassurance Objections Grid */}
         <div className="max-w-6xl mx-auto pt-2">
           <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-[0_10px_30px_rgba(147,197,253,0.03)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 divide-y sm:divide-y-0 lg:divide-y-0 lg:divide-x divide-slate-100">
-            {/* CANCEL ANYTIME */}
+            {/* EASY RETURNS */}
             <div className="flex items-center gap-3 py-2 justify-center lg:justify-start">
               <div className="shrink-0 p-2 rounded-lg bg-slate-50 flex items-center justify-center text-slate-800">
                 <ShieldCheck className="h-5 w-5 text-slate-800" />
               </div>
               <div className="text-left">
                 <h4 className="text-[9px] font-black tracking-wider text-slate-900 uppercase">
-                  CANCEL ANYTIME
+                  EASY RETURNS
                 </h4>
                 <p className="text-[9px] text-slate-400 font-bold leading-none">
                   No ties, no fuss.
@@ -568,7 +565,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
             type="button"
             className="px-6 py-3 bg-[#D4AF37] text-white font-extrabold uppercase tracking-[0.2em] text-[10px] rounded-lg shadow-md cursor-pointer flex items-center gap-1.5"
           >
-            Start your subscription
+            Shop now
             <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
           </button>
         </div>
@@ -577,7 +574,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
   );
 }
 
-type SidebarTab = 'analytics' | 'orders' | 'collections' | 'products' | 'pages' | 'blogs' | 'files' | 'customers' | 'discounts' | 'shipping' | 'email' | 'layout' | 'development' | 'diagnostics' | 'recycle-bin' | 'payments' | 'delivery' | 'age-verification' | 'integrations';
+type SidebarTab = 'analytics' | 'orders' | 'collections' | 'products' | 'pages' | 'blogs' | 'files' | 'customers' | 'discounts' | 'email' | 'layout' | 'development' | 'diagnostics' | 'recycle-bin' | 'payments' | 'delivery' | 'age-verification' | 'integrations';
 
 export default function AdminDashboard({
   products: parentProducts,
@@ -616,7 +613,6 @@ export default function AdminDashboard({
     files: 'files',
     customers: 'customers',
     discounts: 'discounts',
-    shipping: 'shipping',
     email: 'email',
     layout: 'layout',
     development: 'development',
@@ -641,10 +637,7 @@ export default function AdminDashboard({
     media: 'files',
     customers: 'customers',
     discounts: 'discounts',
-    shipping: 'shipping',
-    'royal-mail': 'shipping',
-    royalmail: 'shipping',
-    postage: 'shipping',
+    shipping: 'delivery',
     email: 'email',
     'email-settings': 'email',
     klaviyo: 'email',
@@ -950,7 +943,6 @@ export default function AdminDashboard({
       cloudinaryApiSecret: '',
       menuItems: [
         { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },
-        { id: '2', label: 'Subscribe', tab: 'frontend-subscribe', type: 'tab' },
         { id: '3', label: 'Shop Now', tab: 'frontend-shop', type: 'tab' },
         { id: '4', label: 'All Brands', tab: 'frontend-brands', type: 'tab' },
         { id: '5', label: 'About', tab: 'about', type: 'tab' },
@@ -1558,7 +1550,7 @@ export default function AdminDashboard({
 
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [trackingNumberInput, setTrackingNumberInput] = useState('');
-  const [carrierInput, setCarrierInput] = useState('Royal Mail');
+  const [carrierInput, setCarrierInput] = useState('');
   const [timelineComment, setTimelineComment] = useState('');
   const [timelineComments, setTimelineComments] = useState<Record<string, {text: string, date: string}[]>>({});
 
@@ -1650,7 +1642,7 @@ export default function AdminDashboard({
 
   const [customerQuery, setCustomerQuery] = useState('');
   const [showAddCustomer, setShowAddCustomer] = useState(false);
-  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', email: '', location: '', subscriptionStatus: 'Subscribed' as any });
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', email: '', location: '', subscriptionStatus: 'Not subscribed' as any });
 
   const [discountQuery, setDiscountQuery] = useState('');
   const [showAddDiscount, setShowAddDiscount] = useState(false);
@@ -2637,14 +2629,14 @@ export default function AdminDashboard({
              : sectionType === 'Featured collection' ? 'Featured Collection Highlights'
              : sectionType === 'Collection list' ? 'Explore Brand Collections'
              : sectionType === 'Images gallery' ? 'Laboratory & Dispatch Facility Gallery'
-             : sectionType === 'Marquee text' ? 'DELIVERY // CANCEL ANYTIME // LOYALTY SCHEME // NEVER RUN OUT // DELIVERED ON YOUR SCHEDULE // SAVE VS. SHOP PRICES // DISCREET DELIVERY'
+             : sectionType === 'Marquee text' ? 'FAST DELIVERY // EASY RETURNS // LOYALTY REWARDS // SECURE CHECKOUT // UPI & CARDS ACCEPTED'
              : sectionType === 'Marquee images' ? 'Fresh Stock Dispatch Reel'
              : sectionType === 'Logo list' ? 'Official Lab Partner Register'
              : sectionType === 'FAQs' ? 'Frequently Answered Questions'
              : sectionType === 'Blog post' ? 'Latest From Our Journal'
              : sectionType === 'Brand list' ? 'Shop Premium Brands'
              : sectionType === 'Brands we offer' ? 'Brands we offer'
-             : sectionType === 'Icon with text' ? 'Why subscribe to Pouch Supply?'
+             : sectionType === 'Icon with text' ? 'Why shop with us?'
              : sectionType === 'Video banner' ? 'Watch Our Laboratory Showcase'
              : sectionType === 'Clearance Sale' ? 'Clearance Sale Event'
              : `Custom ${sectionType}`,
@@ -2652,7 +2644,7 @@ export default function AdminDashboard({
                  : sectionType === 'Text column with image' ? 'Every single canister batch is vacuum-sealed inside high-density polymer tubes guaranteeing pristine flavor locks.'
                  : sectionType === 'Featured collection' ? 'Sourced cleanly from European chemical compounding centers with direct-to-door courier dispatch.'
                  : sectionType === 'Collection list' ? 'Select from your favorite pouch strengths, cooling impacts, or specific lab series.'
-                 : sectionType === 'FAQs' ? 'Find quick validations regarding shipping rules, subscriptions, and formulation safety standards.'
+                 : sectionType === 'FAQs' ? 'Quick answers about delivery, returns and payments.'
                  : sectionType === 'Blog post' ? 'Scientific reports, dosage guides, and news bulletins straight from Scandinavia.'
                  : sectionType === 'Brand list' ? 'Check our collection of premium, laboratory-certified brand canisters.'
                  : sectionType === 'Brands we offer' ? 'Explore our curated roster of premium nicotine pouches and global compounding series.'
@@ -2711,7 +2703,7 @@ export default function AdminDashboard({
           { iconName: 'Package', title: 'Never run out', description: 'Auto-refill and easy reordering.', linkUrl: 'frontend-shop' }
         ] : undefined,
         stepItems: sectionType === 'How it works' ? [
-          { number: '1', title: 'Choose your plan', description: 'Select one of our flexible subscription plans', imageUrl: PLACEHOLDER_IMAGE },
+          { number: '1', title: 'Choose your products', description: 'Browse the catalogue and add what you like to your cart', imageUrl: PLACEHOLDER_IMAGE },
           { number: '2', title: 'Choose your pouches', description: 'Mix and match your favourite brands, flavours and strengths. (these can be changed at anytime)', imageUrl: PLACEHOLDER_IMAGE },
           { number: '3', title: 'We handle the rest', description: 'Delivered automatically to your door hassle free weekly, Bi-weekly or monthly', imageUrl: PLACEHOLDER_IMAGE }
         ] : undefined,
@@ -2722,64 +2714,16 @@ export default function AdminDashboard({
           { iconType: 'tag', title: 'MEMBER PRICING', description: 'Better prices, always.' }
         ] : undefined,
         faqItems: sectionType === 'FAQs' ? [
-          { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time Royal Mail tracking codes emailed instantly upon dispatch.', question: 'Is delivery fully tracked?', answer: 'Yes, all orders over shipping thresholds generate functional, real-time Royal Mail tracking codes emailed instantly upon dispatch.' },
+          { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.', question: 'Is delivery fully tracked?', answer: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.' },
           { q: 'Are these pouches tobacco-free?', a: 'Formulated completely on plant fiber with medical pure crystalline extract.', question: 'Are these pouches tobacco-free?', answer: 'Formulated completely on plant fiber with medical pure crystalline extract.' },
-          { q: 'How long do subscriptions repeat?', a: 'Your tailored canister bundles renew automatically at your specific interval. Pause or cancel anytime for free.', question: 'How long do subscriptions repeat?', answer: 'Your tailored canister bundles renew automatically at your specific interval. Pause or cancel anytime for free.' }
+          { q: 'Can I return an item?', a: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.', question: 'Can I return an item?', answer: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.' }
         ] : undefined,
         faqs: sectionType === 'FAQs' ? [
-          { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time Royal Mail tracking codes emailed instantly upon dispatch.', question: 'Is delivery fully tracked?', answer: 'Yes, all orders over shipping thresholds generate functional, real-time Royal Mail tracking codes emailed instantly upon dispatch.' },
+          { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.', question: 'Is delivery fully tracked?', answer: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.' },
           { q: 'Are these pouches tobacco-free?', a: 'Formulated completely on plant fiber with medical pure crystalline extract.', question: 'Are these pouches tobacco-free?', answer: 'Formulated completely on plant fiber with medical pure crystalline extract.' },
-          { q: 'How long do subscriptions repeat?', a: 'Your tailored canister bundles renew automatically at your specific interval. Pause or cancel anytime for free.', question: 'How long do subscriptions repeat?', answer: 'Your tailored canister bundles renew automatically at your specific interval. Pause or cancel anytime for free.' }
+          { q: 'Can I return an item?', a: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.', question: 'Can I return an item?', answer: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.' }
         ] : undefined,
-        alertBadgeText: sectionType === 'Plans' ? 'Most customers save up to £55/month' : undefined,
-        promoBannerText: sectionType === 'Plans' ? '★ FIRST 50 CUSTOMERS - Get 10% OFF YOUR FIRST ORDER >' : undefined,
-        planItems: sectionType === 'Plans' ? [
-          {
-            slug: 'lite',
-            name: 'LITE',
-            subtitle: 'Best for getting started',
-            price: 27.99,
-            limit: 6,
-            saveAmountText: 'Save £5.00/month',
-            imageUrl: '',
-            features: ['6 premium cans', 'Flexible delivery', 'Change flavours anytime', 'Skip or pause anytime'],
-            isPopular: false
-          },
-          {
-            slug: 'core',
-            name: 'CORE',
-            subtitle: 'Most flexible',
-            price: 35.99,
-            limit: 8,
-            saveAmountText: 'Save £10.00/month',
-            imageUrl: '',
-            features: ['8 premium cans', 'Lower price per can', 'Change or swap brands', 'Skip or pause anytime'],
-            isPopular: false
-          },
-          {
-            slug: 'pro',
-            name: 'PRO',
-            subtitle: 'Best value',
-            price: 40.99,
-            limit: 10,
-            saveAmountText: 'Save £14.00/month',
-            imageUrl: '',
-            features: ['10 premium cans', 'FREE delivery 📦', 'Best price per can', 'Loyalty rewards boost', 'Skip or pause anytime'],
-            isPopular: true
-          },
-          {
-            slug: 'ultimate',
-            name: 'ULTIMATE',
-            subtitle: 'Maximum savings',
-            price: 46.99,
-            limit: 12,
-            saveAmountText: 'Save £19.00/month',
-            imageUrl: '',
-            features: ['12 premium cans', 'FREE delivery 📦', 'Lowest price per can', '£3.80 for any extra can', 'Skip or pause anytime'],
-            extraText: '£3.80 FOR ANY ADDITIONAL CAN',
-            isPopular: false
-          }
-        ] : undefined
+
       }
     };
 
@@ -2883,7 +2827,7 @@ export default function AdminDashboard({
         return {
           ...p,
           ...updates,
-          updatedAt: new Date().toLocaleDateString('en-GB', {
+          updatedAt: new Date().toLocaleDateString('en-IN', {
             day: 'numeric', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
           })
@@ -3133,7 +3077,7 @@ export default function AdminDashboard({
 
     onUpdateCustomers([cust, ...customers]);
     setShowAddCustomer(false);
-    setNewCustomerForm({ name: '', email: '', location: '', subscriptionStatus: 'Subscribed' });
+    setNewCustomerForm({ name: '', email: '', location: '', subscriptionStatus: 'Not subscribed' });
   };
 
   // Create discount code
@@ -3349,7 +3293,6 @@ export default function AdminDashboard({
                 { id: 'discounts', label: 'Discounts', icon: Percent },
                 { id: 'payments', label: 'Payments', icon: Percent },
                 { id: 'delivery', label: 'Shipping & Delivery', icon: Truck },
-                { id: 'shipping', label: 'Royal Mail Shipping', icon: Truck },
                 { id: 'age-verification', label: 'Age Verification', icon: Activity },
                 { id: 'integrations', label: 'Integrations', icon: Settings },
                 { id: 'email', label: 'Email & Marketing', icon: Mail },
@@ -3508,7 +3451,7 @@ export default function AdminDashboard({
 
               <div className="bg-white border border-slate-250 px-4 py-2.5 rounded-xl shadow-xs">
                 <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Gross Sales</span>
-                <span className="font-extrabold text-slate-950 text-sm">£{stats.totalSales.toFixed(2)}</span>
+                <span className="font-extrabold text-slate-950 text-sm">₹{stats.totalSales.toFixed(2)}</span>
               </div>
               <div className="bg-white border border-slate-250 px-4 py-2.5 rounded-xl shadow-xs">
                 <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Unfulfilled</span>
@@ -3763,7 +3706,7 @@ export default function AdminDashboard({
             showConfirmDeleteModal={(title, message, onConfirm) => {
               if (confirm(`${title}\n\n${message}`)) onConfirm();
             }}
-            onNavigateToShipping={() => setActiveTab('shipping')}
+            onNavigateToShipping={() => setActiveTab('delivery')}
           />
         )}
 
@@ -3949,10 +3892,6 @@ export default function AdminDashboard({
           />
         )}
 
-        {/* 10. ROYAL MAIL SHIPPING & CLICK & DROP API SETTINGS BLOCK */}
-        {activeTab === 'shipping' && (
-          <RoyalMailSettingsCard />
-        )}
 
         {/* Settings: Payments / Shipping & Delivery / Age Verification / Integrations */}
         {(activeTab === 'payments' || activeTab === 'delivery' || activeTab === 'age-verification' || activeTab === 'integrations') && (

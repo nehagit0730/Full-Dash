@@ -657,7 +657,7 @@ export default function CustomerDrawer({
                         </div>
                         <div className="bg-slate-800/40 p-2 rounded-lg">
                           <span className="text-[8px] uppercase tracking-wide text-slate-400 block font-bold">Total Spent</span>
-                          <span className="text-[10px] font-extrabold text-emerald-400 block mt-0.5">£{(Number((loggedInCustomer as any).totalSpent ?? loggedInCustomer.amountSpent ?? 0)).toFixed(2)}</span>
+                          <span className="text-[10px] font-extrabold text-emerald-400 block mt-0.5">₹{(Number((loggedInCustomer as any).totalSpent ?? loggedInCustomer.amountSpent ?? 0)).toFixed(2)}</span>
                         </div>
                       </div>
 
@@ -730,8 +730,7 @@ export default function CustomerDrawer({
                                 (Array.isArray(order.items) && order.items.some((i: any) => 
                                   i && (
                                     i.isSubscription || 
-                                    i.vendor === 'Subscription Pack' || 
-                                    (i.productTitle && (i.productTitle.toLowerCase().includes('subscription') || i.productTitle.toLowerCase().includes('plan') || i.productTitle.toLowerCase().includes('pack')))
+                                    String(i.productId || '').startsWith('sub-pack')
                                   )
                                 ))
                               );
@@ -775,7 +774,7 @@ export default function CustomerDrawer({
                                     </div>
 
                                     <div className="text-right space-y-1">
-                                      <div className="text-xs font-black text-slate-900">£{(Number(order.total || 0)).toFixed(2)}</div>
+                                      <div className="text-xs font-black text-slate-900">₹{(Number(order.total || 0)).toFixed(2)}</div>
                                       <button
                                         onClick={() => toggleOrderExpand(order.id)}
                                         className="text-[9.5px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest flex items-center gap-0.5 cursor-pointer ml-auto"
@@ -894,10 +893,10 @@ export default function CustomerDrawer({
                                                       )}
                                                       <div className="min-w-0">
                                                         <p className="font-bold text-slate-800">{item.productTitle}</p>
-                                                        <p className="text-slate-400 text-[9.5px] font-mono whitespace-nowrap">Qty: {item.quantity} × £{(Number(item.price || 0)).toFixed(2)}</p>
+                                                        <p className="text-slate-400 text-[9.5px] font-mono whitespace-nowrap">Qty: {item.quantity} × ₹{(Number(item.price || 0)).toFixed(2)}</p>
                                                       </div>
                                                     </div>
-                                                    <span className="font-bold text-slate-900 shrink-0 select-none">£{(Number((item.price || 0) * (item.quantity || 1))).toFixed(2)}</span>
+                                                    <span className="font-bold text-slate-900 shrink-0 select-none">₹{(Number((item.price || 0) * (item.quantity || 1))).toFixed(2)}</span>
                                                   </div>
                                                 );
                                               })}
@@ -1031,7 +1030,7 @@ export default function CustomerDrawer({
                                       <div className="min-w-0">
                                         <p className="text-[9.5px] text-slate-400 uppercase font-black tracking-wider leading-none">{prod.vendor}</p>
                                         <p className="font-bold text-slate-800 text-[11px] truncate mt-0.5 leading-tight" title={displayTitle}>{displayTitle}</p>
-                                        <p className="text-xs text-indigo-700 font-extrabold mt-0.5">£{(Number(prod.price || 0)).toFixed(2)}</p>
+                                        <p className="text-xs text-indigo-700 font-extrabold mt-0.5">₹{(Number(prod.price || 0)).toFixed(2)}</p>
                                       </div>
                                     </div>
 

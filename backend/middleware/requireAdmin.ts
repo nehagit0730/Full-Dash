@@ -127,7 +127,7 @@ export function requireAdmin(req: AdminRequest, res: Response, next: NextFunctio
 /**
  * Gate for scheduled jobs.
  *
- * The Vercel crons charge cards, reconcile payments and sync Royal Mail, and
+ * Scheduled-job endpoints (currently the recycle-bin purge) were
  * were reachable by anyone over GET. Vercel sends `Authorization: Bearer
  * $CRON_SECRET` when CRON_SECRET is set in the project, so the same header
  * serves both; an admin token is also accepted so these can still be run by hand
