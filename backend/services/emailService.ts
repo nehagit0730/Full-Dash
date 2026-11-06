@@ -77,14 +77,14 @@ export interface EmailLogEntry {
 }
 
 export function formatFromHeader(fromName: string, fromEmail: string): string {
-  const cleanName = (fromName || 'Pouch Supply Co.').replace(/["'<>]/g, '').trim();
-  const cleanEmail = (fromEmail || 'scottkivlinpouch@gmail.com').replace(/[<>]/g, '').trim();
+  const cleanName = (fromName || 'Ecommerce Store').replace(/["'<>]/g, '').trim();
+  const cleanEmail = (fromEmail || '').replace(/[<>]/g, '').trim();
   return `"${cleanName}" <${cleanEmail}>`;
 }
 
 export function formatResendFromEmail(rawFrom?: string): string {
   if (!rawFrom || typeof rawFrom !== 'string' || !rawFrom.trim()) {
-    return 'Pouch Supply Co. <onboarding@resend.dev>';
+    return 'Ecommerce Store <onboarding@resend.dev>';
   }
 
   const cleaned = rawFrom.trim().replace(/^["']|["']$/g, '');
@@ -99,7 +99,7 @@ export function formatResendFromEmail(rawFrom?: string): string {
   }
 
   if (cleaned.includes('@') && !cleaned.includes(' ') && !cleaned.includes('<') && !cleaned.includes('>')) {
-    return `Pouch Supply Co. <${cleaned}>`;
+    return `Ecommerce Store <${cleaned}>`;
   }
 
   const parts = cleaned.split(/\s+/);
@@ -110,36 +110,36 @@ export function formatResendFromEmail(rawFrom?: string): string {
     return name ? `${name} <${email}>` : email;
   }
 
-  return 'Pouch Supply Co. <onboarding@resend.dev>';
+  return 'Ecommerce Store <onboarding@resend.dev>';
 }
 
 const DEFAULT_SETTINGS: EmailSettings = {
   enabled: true,
   provider: (process.env.EMAIL_PROVIDER as EmailProvider) || (process.env.RESEND_API_KEY ? 'resend' : 'resend'),
-  gmailUser: process.env.GMAIL_USER || 'scottkivlinpouch@gmail.com',
+  gmailUser: process.env.GMAIL_USER || '',
   gmailAppPassword: process.env.GMAIL_APP_PASSWORD || '',
   smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
   smtpPort: Number(process.env.SMTP_PORT) || 465,
   smtpSecure: process.env.SMTP_SECURE !== 'false',
-  smtpUser: process.env.SMTP_USER || process.env.GMAIL_USER || 'scottkivlinpouch@gmail.com',
+  smtpUser: process.env.SMTP_USER || process.env.GMAIL_USER || '',
   smtpPassword: process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '',
   resendApiKey: process.env.RESEND_API_KEY || '',
-  fromName: 'Pouch Supply Co.',
-  fromEmail: process.env.RESEND_FROM_EMAIL || 'orders@pouch-supply.com',
-  adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || process.env.GMAIL_USER || 'scottkivlinpouch@gmail.com',
+  fromName: 'Ecommerce Store',
+  fromEmail: process.env.RESEND_FROM_EMAIL || 'orders@example.com',
+  adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL || process.env.GMAIL_USER || '',
   templates: {
-    order_confirmation: { enabled: true, subject: 'Order Confirmation - Pouch Supply Co.' },
-    order_processing: { enabled: true, subject: 'Order Processing - Pouch Supply Co.' },
-    order_shipped: { enabled: true, subject: 'Order Dispatched & Tracking Info - Pouch Supply Co.' },
-    out_for_delivery: { enabled: true, subject: 'Out for Delivery Today - Pouch Supply Co.' },
-    order_delivered: { enabled: true, subject: 'Order Delivered - Pouch Supply Co.' },
-    order_cancelled: { enabled: true, subject: 'Order Cancellation Notice - Pouch Supply Co.' },
-    order_refunded: { enabled: true, subject: 'Refund Confirmation - Pouch Supply Co.' },
-    order_exchanged: { enabled: true, subject: 'Product Exchange Confirmation - Pouch Supply Co.' },
-    password_reset: { enabled: true, subject: 'Reset Your Password - Pouch Supply Co.' },
-    email_verification: { enabled: true, subject: 'Verify Your Email Address - Pouch Supply Co.' },
-    welcome_email: { enabled: true, subject: 'Welcome to Pouch Supply Co. - 10% Off Inside!' },
-    admin_new_order: { enabled: true, subject: '🚨 [NEW ORDER] Order Received - Pouch Supply Co.' }
+    order_confirmation: { enabled: true, subject: 'Order Confirmation - Ecommerce Store' },
+    order_processing: { enabled: true, subject: 'Order Processing - Ecommerce Store' },
+    order_shipped: { enabled: true, subject: 'Order Dispatched & Tracking Info - Ecommerce Store' },
+    out_for_delivery: { enabled: true, subject: 'Out for Delivery Today - Ecommerce Store' },
+    order_delivered: { enabled: true, subject: 'Order Delivered - Ecommerce Store' },
+    order_cancelled: { enabled: true, subject: 'Order Cancellation Notice - Ecommerce Store' },
+    order_refunded: { enabled: true, subject: 'Refund Confirmation - Ecommerce Store' },
+    order_exchanged: { enabled: true, subject: 'Product Exchange Confirmation - Ecommerce Store' },
+    password_reset: { enabled: true, subject: 'Reset Your Password - Ecommerce Store' },
+    email_verification: { enabled: true, subject: 'Verify Your Email Address - Ecommerce Store' },
+    welcome_email: { enabled: true, subject: 'Welcome to Ecommerce Store - 10% Off Inside!' },
+    admin_new_order: { enabled: true, subject: '🚨 [NEW ORDER] Order Received - Ecommerce Store' }
   }
 };
 
@@ -364,7 +364,7 @@ export async function sendEmail(
   }
 
   // 3. Determine subject
-  const subject = customSubject || templateConfig?.subject || `Notification from Pouch Supply Co.`;
+  const subject = customSubject || templateConfig?.subject || `Notification from Ecommerce Store`;
 
   // 4. Hydrate header logo
   if (!data.headerLogoImage && !data.logoUrl) {
@@ -416,15 +416,15 @@ export async function sendEmail(
       html = renderAdminNewOrderTemplate(data);
       break;
     default:
-      html = `<p>Notification from Pouch Supply Co.</p>`;
+      html = `<p>Notification from Ecommerce Store</p>`;
   }
 
   const effectiveProvider = settings.provider || 'gmail';
-  const gmailUser = (settings.gmailUser || process.env.GMAIL_USER || 'scottkivlinpouch@gmail.com').trim();
+  const gmailUser = (settings.gmailUser || process.env.GMAIL_USER || '').trim();
   const gmailPass = (settings.gmailAppPassword || process.env.GMAIL_APP_PASSWORD || '').trim().replace(/\s+/g, '');
   const resendKey = (apiKeyOverride || settings.resendApiKey || process.env.RESEND_API_KEY || '').trim();
-  const fromName = settings.fromName || 'Pouch Supply Co.';
-  const senderEmail = fromEmailOverride || settings.fromEmail || gmailUser || 'scottkivlinpouch@gmail.com';
+  const fromName = settings.fromName || 'Ecommerce Store';
+  const senderEmail = fromEmailOverride || settings.fromEmail || gmailUser || '';
   const fromFormatted = formatFromHeader(fromName, senderEmail);
 
   // ----------------------------------------------------
@@ -598,7 +598,7 @@ export async function sendEmail(
       if (resendResponse.error) {
         const errMsg = resendResponse.error.message || String(resendResponse.error);
         if ((errMsg.includes('domain') || errMsg.includes('not verified') || errMsg.includes('from')) && !fromEmail.includes('onboarding@resend.dev')) {
-          fromEmail = 'Pouch Supply Co. <onboarding@resend.dev>';
+          fromEmail = 'Ecommerce Store <onboarding@resend.dev>';
           resendResponse = await resend.emails.send({
             from: fromEmail,
             to: recipient,
@@ -676,7 +676,7 @@ export async function sendEmail(
 // ----------------------------------------------------
 
 export async function sendOrderConfirmationEmail(orderData: any) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName || 'Valued Customer',
     customerEmail: recipient,
@@ -705,7 +705,7 @@ export async function sendOrderConfirmationEmail(orderData: any) {
 
   // 2. Trigger admin notification
   const settings = await getEmailSettings();
-  const adminEmail = (settings.adminNotificationEmail || settings.gmailUser || 'admin@pouch-supply.com').trim();
+  const adminEmail = (settings.adminNotificationEmail || settings.gmailUser || 'admin@example.com').trim();
   if (adminEmail && adminEmail !== recipient) {
     sendEmail('admin_new_order', adminEmail, data).catch(err => {
       console.warn('[EmailService] Admin order notification warning:', err);
@@ -716,7 +716,7 @@ export async function sendOrderConfirmationEmail(orderData: any) {
 }
 
 export async function sendOrderProcessingEmail(orderData: any) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -729,7 +729,7 @@ export async function sendOrderProcessingEmail(orderData: any) {
 }
 
 export async function sendOrderShippedEmail(orderData: any, trackingNumber?: string, carrier?: string) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -748,7 +748,7 @@ export async function sendOrderShippedEmail(orderData: any, trackingNumber?: str
 }
 
 export async function sendOutForDeliveryEmail(orderData: any) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -760,7 +760,7 @@ export async function sendOutForDeliveryEmail(orderData: any) {
 }
 
 export async function sendDeliveredEmail(orderData: any) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -772,7 +772,7 @@ export async function sendDeliveredEmail(orderData: any) {
 }
 
 export async function sendOrderCancelledEmail(orderData: any, reason?: string) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -783,7 +783,7 @@ export async function sendOrderCancelledEmail(orderData: any, reason?: string) {
 }
 
 export async function sendOrderRefundedEmail(orderData: any, refundAmount?: number, reason?: string) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -796,7 +796,7 @@ export async function sendOrderRefundedEmail(orderData: any, refundAmount?: numb
 }
 
 export async function sendOrderExchangedEmail(orderData: any, exchangeDetails?: string, reason?: string) {
-  const recipient = (orderData.customerEmail || 'customer@pouch-supply.com').trim();
+  const recipient = (orderData.customerEmail || 'customer@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: recipient,
@@ -841,12 +841,12 @@ export async function sendLoginNotificationEmail(email: string, name?: string) {
     customerName: name || 'Valued Customer',
     customerEmail: email
   };
-  return sendEmail('email_verification', email, data, 'Security Alert: New Account Login - Pouch Supply Co.');
+  return sendEmail('email_verification', email, data, 'Security Alert: New Account Login - Ecommerce Store');
 }
 
 export async function sendAdminNewOrderNotification(orderData: any) {
   const settings = await getEmailSettings();
-  const adminEmail = (settings.adminNotificationEmail || settings.gmailUser || 'admin@pouch-supply.com').trim();
+  const adminEmail = (settings.adminNotificationEmail || settings.gmailUser || 'admin@example.com').trim();
   const data: EmailTemplateData = {
     customerName: orderData.customerName,
     customerEmail: orderData.customerEmail,

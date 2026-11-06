@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -37,6 +37,18 @@
   --color-slate-800: #2d3032;
   --color-slate-900: #1a1c1d;
   --color-slate-950: #101112;
+
+  /* Storefront (women's fashion) theme. Used by src/components/storefront/*. */
+  --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-body: 'Jost', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-cream: #faf7f2;
+  --color-sand: #f1ebe3;
+  --color-blush: #f4e4dd;
+  --color-clay: #a65f4b;
+  --color-clay-dark: #8a4a38;
+  --color-ink: #1f1a17;
+  --color-stone: #6f6660;
+  --color-line: #e7dfd6;
 }
 
 html {
@@ -202,3 +214,13 @@ body {
 }
 
 
+
+/* Storefront typography. Scoped to .store so the admin dashboard is unchanged. */
+.store { font-family: var(--font-body); color: var(--color-ink); background-color: var(--color-cream); }
+.store .font-display { font-family: var(--font-display); letter-spacing: 0.01em; }
+.store-scrollbar-none::-webkit-scrollbar { display: none; }
+.store-scrollbar-none { scrollbar-width: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .store-fade-up { animation: storeFadeUp 0.7s ease both; }
+}
+@keyframes storeFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }

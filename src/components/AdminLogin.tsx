@@ -74,7 +74,7 @@ export default function AdminLogin({ onLoginSuccess, onCancel }: AdminLoginProps
                 <input
                   type="email"
                   required
-                  placeholder="you@pouch-supply.com"
+                  placeholder="you@example.com"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading}

@@ -268,7 +268,7 @@ export async function handleGoogleOAuthCallback(req: Request, res: Response) {
           <div class="card">
             <div class="check">✓</div>
             <h2>Signed in as ${customerName}</h2>
-            <p>Authentication complete. Returning to Pouch Supply...</p>
+            <p>Authentication complete. Returning to Ecommerce Store...</p>
           </div>
           <script>
             try {

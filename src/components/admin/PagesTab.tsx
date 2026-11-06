@@ -666,7 +666,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
                   </div>
                   <div className="bg-white border border-slate-250 rounded-lg py-1 px-3 text-center text-slate-600 w-auto max-w-md flex items-center justify-center gap-1 font-mono text-xs shadow-2xs">
-                    <span className="text-slate-400 select-none">pouch-supply.com/pages/</span>
+                    <span className="text-slate-400 select-none">yourstore.com/pages/</span>
                     <input
                       type="text"
                       value={currentlyEditingPage?.slug || ''}
@@ -1168,7 +1168,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                             {(sec.type === 'Icon with text' || sec.type === 'Trust badges') && (
                               <div className="space-y-3 py-3 text-center">
                                 <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                  {sec.settings.title || 'WHY POUCH SUPPLY'}
+                                  {sec.settings.title || 'WHY ECOMMERCE STORE'}
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                                   {[

@@ -810,7 +810,7 @@ async function syncToPrismaModel(resource: string, item: any): Promise<void> {
         }
       });
     } else if (norm === 'customers') {
-      const emailVal = (item.email && item.email.trim()) ? item.email.trim().toLowerCase() : `cust-${id}@pouch-supply.com`;
+      const emailVal = (item.email && item.email.trim()) ? item.email.trim().toLowerCase() : `cust-${id}@yourstore.com`;
       try {
         await prisma.customer.upsert({
           where: { email: emailVal },
@@ -843,7 +843,7 @@ async function syncToPrismaModel(resource: string, item: any): Promise<void> {
         });
       } catch (cErr: any) {
         if (cErr?.code === 'P2002') {
-          const safeEmail = `cust-${id}@pouch-supply.com`;
+          const safeEmail = `cust-${id}@yourstore.com`;
           await prisma.customer.upsert({
             where: { id },
             update: {
@@ -1604,11 +1604,11 @@ export async function fetchLayoutSettings(): Promise<any> {
   if (!settingsData) {
     settingsData = {
       id: "layout_settings",
-      headerLogoText: 'POUCH SUPPLY',
-      headerLogoSubtext: 'Premium Nicotine',
+      headerLogoText: 'ECOMMERCE STORE',
+      headerLogoSubtext: 'Womenswear',
       headerLogoImage: '',
-      footerLogoText: 'POUCH SUPPLY',
-      footerLogoDescription: 'Leading premium directory for tobacco-free nicotine slim white canisters.',
+      footerLogoText: 'ECOMMERCE STORE',
+      footerLogoDescription: 'Contemporary womenswear — dresses, ethnic wear and everyday essentials.',
       footerLogoImage: '',
       menuItems: [
         { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },

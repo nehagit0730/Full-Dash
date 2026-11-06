@@ -24,6 +24,7 @@ import AdminSessionExpiredModal from './components/admin/AdminSessionExpiredModa
 import ComingSoon from './components/ComingSoon';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import FashionHome from './components/storefront/FashionHome';
 import ProductsGrid from './components/ProductsGrid';
 import BrandList from './components/BrandList';
 import CustomerAccount from './components/CustomerAccount';
@@ -45,6 +46,16 @@ import {
   Sparkles, ShieldCheck, Truck, RefreshCw, Star, ArrowRight, Package, ShoppingCart, Check, Heart, User, CheckCircle2, Save, AlertTriangle, Search, Undo, Mail, X
 } from 'lucide-react';
 import OrderWithdrawalModal from './components/OrderWithdrawalModal';
+
+/** Listens for the footer's "Return or cancel an order" link. */
+function WithdrawalOpener({ onOpen }: { onOpen: () => void }) {
+  useEffect(() => {
+    const handler = () => onOpen();
+    window.addEventListener('open-order-withdrawal', handler);
+    return () => window.removeEventListener('open-order-withdrawal', handler);
+  }, [onOpen]);
+  return null;
+}
 import { cleanMediaUrl } from './utils/mediaUtils';
 import { 
   initializeKlaviyo,
@@ -81,30 +92,12 @@ const ALLOWED_BRANDS = [
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=80';
 
-export const mapVendorToAllowedBrand = (vendor: string | undefined): string => {
-  if (!vendor) return '77';
-  const vLower = vendor.trim().toLowerCase();
-  if (vLower === '77 pouches' || vLower === '77pouches' || vLower === '77') return '77';
-  if (vLower === 'clew' || vLower === 'clew white') return 'clew';
-  if (vLower === 'cuba' || vLower === 'cuba power') return 'cuba';
-  if (vLower === 'maggie') return 'maggie';
-  if (vLower === 'nordic spirit' || vLower === 'nordic_spirit' || vLower === 'nordic') return 'nordic spirit';
-  if (vLower === 'xqs') return 'xqs';
-  if (vLower === 'zyn') return 'zyn';
-  if (vLower === 'pablo') return 'pablo';
-  if (vLower === 'killa' || vLower === 'killa siberian') return 'killa';
-  if (vLower === 'fumi') return 'fumi';
-  if (vLower === 'velo' || vLower === 'velo eucalyptus') return 'velo';
-  if (vLower === 'white fox' || vLower === 'whitefox') return 'white fox';
-  if (vLower === 'snu') return 'snu';
-
-  for (const b of ALLOWED_BRANDS) {
-    if (vLower.includes(b.toLowerCase()) || b.toLowerCase().includes(vLower)) {
-      return b;
-    }
-  }
-  return '77';
-};
+/**
+ * The brand shown on a product. It used to be forced into a fixed list of
+ * nicotine-pouch brands (an unknown or empty brand became "77"), which renamed
+ * every other product. It is now kept exactly as entered.
+ */
+export const mapVendorToAllowedBrand = (vendor: string | undefined): string => String(vendor || '').trim();
 
 export default function App() {
   // Helper for safe JSON parsing from LocalStorage
@@ -240,11 +233,11 @@ export default function App() {
 
   const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(() => {
     return safeLoadFromLocalStorage<LayoutSettings>('ps_layout_settings', {
-      headerLogoText: 'Pouch Supply',
-      headerLogoSubtext: 'Premium Nicotine',
+      headerLogoText: 'Ecommerce Store',
+      headerLogoSubtext: 'Womenswear',
       headerLogoImage: '',
-      footerLogoText: 'POUCH SUPPLY',
-      footerLogoDescription: 'Leading premium directory for tobacco-free nicotine slim white canisters. Sourced directly from partners across Sweden, Poland, and Germany.',
+      footerLogoText: 'ECOMMERCE STORE',
+      footerLogoDescription: 'Contemporary womenswear — dresses, ethnic wear and everyday essentials.',
       footerLogoImage: '',
       klaviyoPublicKey: '',
       cloudinaryCloudName: '',
@@ -1732,7 +1725,7 @@ export default function App() {
               <img 
                 src={cleanMediaUrl(layoutSettings.headerLogoImage)} 
                 className="max-h-16 max-w-[220px] object-contain rounded-lg" 
-                alt={layoutSettings?.headerLogoText || 'Pouch Supply'} 
+                alt={layoutSettings?.headerLogoText || 'Ecommerce Store'} 
                 referrerPolicy="no-referrer"
               />
             ) : (
@@ -1742,10 +1735,10 @@ export default function App() {
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="font-extrabold text-[#1a1c1d] tracking-tight text-xl leading-none">
-                    {layoutSettings?.headerLogoText || 'Pouch Supply'}
+                    {layoutSettings?.headerLogoText || 'Ecommerce Store'}
                   </span>
                   <span className="text-[9px] text-[#707579] font-extrabold uppercase tracking-widest mt-1">
-                    {layoutSettings?.headerLogoSubtext || 'Premium Nicotine'}
+                    {layoutSettings?.headerLogoSubtext || 'Womenswear'}
                   </span>
                 </div>
               </div>
@@ -1902,122 +1895,35 @@ export default function App() {
           <>
             {/* FRONTEND VIEW - HOME */}
             {currentTab === 'frontend-home' && (() => {
-              const hp = customPages.find(p => p.isHomepage || p.slug === '' || p.slug === 'home' || p.slug === 'homepage' || p.id === 'homepage' || p.id === 'page-home');
+              // The theme home page is the default. An admin can switch the home
+              // page to one built in the Page Builder (Header & Footer settings).
+              const useBuilderHome = layoutSettings?.homepageSource === 'page-builder';
+              const hp = useBuilderHome
+                ? customPages.find(p => p.isHomepage || p.slug === '' || p.slug === 'home' || p.slug === 'homepage' || p.id === 'homepage' || p.id === 'page-home')
+                : null;
               if (hp) {
                 return (
-                  <PageRenderer 
-                    page={hp} 
+                  <PageRenderer
+                    page={hp}
                     allProducts={products}
                     allCollections={collections}
                     loggedInCustomer={loggedInCustomer}
-                    onAddToCart={handleAddToCart} 
+                    onAddToCart={handleAddToCart}
                     onToggleWishlist={handleToggleWishlist}
                     allBlogs={blogs}
-                    onNavigate={handlePageRendererNavigate} 
+                    onNavigate={handlePageRendererNavigate}
                   />
                 );
               }
               return (
-                <div className="space-y-6 pb-6">
-                  
-                  {/* Hero section */}
-                  <section className="bg-slate-900 text-white min-h-[40vh] flex items-center relative overflow-hidden px-6 lg:px-12 py-8">
-                    <div className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
-                      <div className="space-y-6">
-                        <span className="text-xs bg-indigo-600 text-white font-extrabold py-1 px-3.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 animate-pulse">
-                          <Sparkles className="h-3 w-3" /> OFFICIAL IMPORT RESELLERS
-                        </span>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none text-white">
-                          THE FINEST FLAVOR <br />POUCHES AT SCALE
-                        </h1>
-                        <p className="text-sm text-slate-300 leading-relaxed max-w-md font-sans">
-                          Sourced globally from premium certified laboratories. Settle for nothing but the crispest breath freeze crystal cans delivered straight to your door step.
-                        </p>
-                        
-                        <div className="pt-2 flex flex-wrap gap-4 text-xs font-bold leading-normal">
-                          <button
-                            onClick={() => navigateToTab('frontend-shop')}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 px-8 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-                          >
-                            Shop Now (All Brands) <ArrowRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="hidden md:flex justify-end relative">
-                        <div className="relative h-72 w-72 rounded-full bg-indigo-500/10 flex items-center justify-center p-6 border border-slate-800/80 shadow-2xl animate-spin-slow">
-                          <span className="text-6xl">📦</span>
-                          <div className="absolute inset-0 border-2 border-dashed border-indigo-500/20 rounded-full" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Aesthetic Background design */}
-                    <div className="absolute inset-0 bg-radial-gradient from-indigo-950/20 to-transparent pointer-events-none" />
-                  </section>
-
-                  {/* Popular Brands Row */}
-                  <section className="max-w-7xl mx-auto px-6">
-                    <div className="text-center mb-8">
-                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Our Premium Partner directory</h3>
-                    </div>
-                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-75">
-                      {['77', 'clew', 'cuba', 'maggie', 'nordic spirit', 'xqs', 'zyn', 'pablo', 'killa', 'fumi', 'velo', 'white fox', 'snu'].map((bLabel, index) => (
-                        <span 
-                          key={index} 
-                          onClick={() => {
-                            navigateToTab('frontend-brands');
-                          }}
-                          className="text-sm font-black tracking-widest text-slate-500 hover:text-indigo-600 cursor-pointer capitalize transition-colors border-b border-transparent hover:border-indigo-650 pb-1"
-                        >
-                          {bLabel}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-
-
-
-                  {/* Top Seller canisters */}
-                  <section className="max-w-7xl mx-auto px-6">
-                    <div className="flex justify-between items-end mb-8">
-                      <div>
-                        <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider">curated picks</h4>
-                        <h2 className="text-2xl font-black text-slate-900 mt-1">BEST SELLING CANISTERS TODAY</h2>
-                      </div>
-                      <button
-                        onClick={() => navigateToTab('frontend-shop')}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-extrabold cursor-pointer"
-                      >
-                        Browse full catalog →
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                      {products.slice(0, 4).map((prod, pIdx) => (
-                        <div 
-                          key={`app-prod-${prod.id}-${pIdx}`} 
-                          onClick={() => {
-                            navigateToTab('frontend-shop');
-                          }}
-                          className="bg-white border hover:border-slate-350 p-4 rounded-xl space-y-3 cursor-pointer group hover:shadow-xs transition-shadow"
-                        >
-                          <div className="h-44 rounded-lg bg-white overflow-hidden relative flex items-center justify-center p-2">
-                            <img src={prod.image} className="w-full h-full object-contain transition-transform group-hover:scale-105" alt="" referrerPolicy="no-referrer" />
-                            <span className="absolute top-2.5 left-2.5 bg-slate-900 text-white text-[9px] font-bold uppercase py-0.5 px-2 rounded-full">
-                              {prod.vendor}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-center">
-                            <h4 className="text-xs font-bold text-slate-800 truncate">{prod.title}</h4>
-                            <p className="text-slate-900 font-black text-xs">₹{prod.price.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                </div>
+                <FashionHome
+                  products={products}
+                  collections={collections}
+                  customer={loggedInCustomer}
+                  onAddToCart={handleAddToCart}
+                  onToggleWishlist={handleToggleWishlist}
+                  navigate={navigateToTab}
+                />
               );
             })()}
 
@@ -2055,10 +1961,10 @@ export default function App() {
                       <span className="text-[10px] bg-red-100 text-red-700 font-extrabold py-1 px-3 rounded-full uppercase tracking-widest inline-block">
                         Error 404 - Product Not Found
                       </span>
-                      <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Canister Not Found</h1>
+                      <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Product Not Found</h1>
                     </div>
                     <p className="text-slate-500 max-w-sm mx-auto text-xs leading-relaxed">
-                      We couldn't locate the premium nicotine canister you requested. It might have been unlisted, archived, or deleted.
+                      We couldn't find that product. It may have sold out or been removed.
                     </p>
                     <button
                       onClick={() => navigateToTab('frontend-shop')}
@@ -2239,7 +2145,7 @@ export default function App() {
                       <span className="text-[10px] bg-slate-800 text-slate-300 font-extrabold uppercase tracking-widest py-1.5 px-3 rounded-full border border-slate-700">
                         Editorial & Education
                       </span>
-                      <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight">The Pouch Science Journal</h1>
+                      <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight">The Style Journal</h1>
                       <p className="text-slate-400 max-w-lg text-xs sm:text-sm leading-relaxed">
                         Fascinating breakdowns, organic chemistry, clinical guides, and strategic brand reviews compiled by industry clinicians.
                       </p>
@@ -2328,7 +2234,7 @@ export default function App() {
                                 {featuredBlog.author ? featuredBlog.author.charAt(0) : 'A'}
                               </div>
                               <div>
-                                <h5 className="text-[11px] font-black text-slate-800">{featuredBlog.author || 'Pouch Science'}</h5>
+                                <h5 className="text-[11px] font-black text-slate-800">{featuredBlog.author || 'The Style Desk'}</h5>
                                 <p className="text-[9px] text-slate-400">{featuredBlog.readTime || '5 min read'}</p>
                               </div>
                             </div>
@@ -2582,7 +2488,7 @@ export default function App() {
                     {otherArticles.length > 0 && (
                       <div className="mt-14 space-y-6">
                         <div className="border-b pb-3 flex justify-between items-center text-left">
-                          <h3 className="text-xs text-slate-500 font-black uppercase tracking-widest">More From Pouch Journal</h3>
+                          <h3 className="text-xs text-slate-500 font-black uppercase tracking-widest">More From The Journal</h3>
                           <button onClick={() => navigateToTab('blogs')} className="text-[10px] text-slate-800 font-black uppercase hover:underline">View All</button>
                         </div>
 
@@ -2661,7 +2567,7 @@ export default function App() {
                     onClick={() => navigateToTab('frontend-shop')}
                     className="bg-white border hover:bg-slate-50 text-slate-700 font-extrabold py-3 px-6 rounded-xl text-xs uppercase tracking-widest transition-all cursor-pointer"
                   >
-                    Shop Canisters
+                    Shop Now
                   </button>
                 </div>
               </div>
@@ -2799,19 +2705,10 @@ export default function App() {
         <Footer onNavigate={navigateToTab} layoutSettings={layoutSettings} />
       )}
 
-      {/* Floating Order Withdrawal Button (Bottom Left) */}
-      {!isAdminActive && (
-        <div className="fixed bottom-6 left-6 z-40 select-none">
-          <button
-            onClick={() => setIsWithdrawalOpen(true)}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700/60 p-3 px-4 rounded-full text-xs font-black uppercase tracking-wider shadow-lg hover:shadow-xl active:scale-95 hover:scale-105 transition-all cursor-pointer"
-            title="Request Order Withdrawal"
-          >
-            <Undo className="h-4 w-4" />
-            <span>Order Withdrawal</span>
-          </button>
-        </div>
-      )}
+      {/* The return/cancel form is opened from the footer's Help links
+          (an "open-order-withdrawal" event) rather than a floating button that
+          covered page content on mobile. */}
+      <WithdrawalOpener onOpen={() => setIsWithdrawalOpen(true)} />
 
       {/* Order Withdrawal Modal popup */}
       <OrderWithdrawalModal

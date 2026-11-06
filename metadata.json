@@ -1,6 +1,6 @@
 {
-  "name": "Pouch Supply Neon with wordpay",
-  "description": "Replica of Pouch Supply featuring a high-fidelity Shopify-like store frontend, subscription packages, collections search with custom filters, and a complete Shopify style Admin Dashboard with full persistence for products, collections, builder pages, analytics, files, customers, and discounts.",
+  "name": "Ecommerce Store Neon with wordpay",
+  "description": "Replica of Ecommerce Store featuring a high-fidelity Shopify-like store frontend, subscription packages, collections search with custom filters, and a complete Shopify style Admin Dashboard with full persistence for products, collections, builder pages, analytics, files, customers, and discounts.",
   "requestFramePermissions": [
     "camera",
     "microphone"

@@ -174,7 +174,7 @@ export function getRewardLines(discount?: Discount | null): RewardLine[] {
       image: gift.image || '',
       variant: 'Reward gift',
       sku: gift.id,
-      vendor: 'Pouch Supply',
+      vendor: 'Ecommerce Store',
       total: 0,
       isRewardItem: true,
       rewardCode,

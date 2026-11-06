@@ -931,11 +931,11 @@ export default function AdminDashboard({
 
   const [localLayoutSettings, setLocalLayoutSettings] = useState<LayoutSettings>(() => {
     return layoutSettings || {
-      headerLogoText: 'Pouch Supply',
-      headerLogoSubtext: 'Premium Nicotine',
+      headerLogoText: 'Ecommerce Store',
+      headerLogoSubtext: 'Womenswear',
       headerLogoImage: '',
-      footerLogoText: 'POUCH SUPPLY',
-      footerLogoDescription: 'Leading premium directory for tobacco-free nicotine slim white canisters. Sourced directly from partners across Sweden, Poland, and Germany.',
+      footerLogoText: 'ECOMMERCE STORE',
+      footerLogoDescription: 'Contemporary womenswear — dresses, ethnic wear and everyday essentials.',
       footerLogoImage: '',
       klaviyoPublicKey: '',
       cloudinaryCloudName: '',
@@ -1037,7 +1037,7 @@ export default function AdminDashboard({
       }
     }
 
-    if (cName.toLowerCase() === 'pouch' || cName.toLowerCase() === 'pouch supply') {
+    if (cName.toLowerCase() === 'pouch' || cName.toLowerCase() === 'ecommerce store') {
       cName = '';
     }
 
@@ -1560,7 +1560,7 @@ export default function AdminDashboard({
   const [newProductForm, setNewProductForm] = useState<Partial<Product>>({
     title: '', description: '', price: 4.99, compareAtPrice: 5.99,
     inventory: 50, sku: '', category: 'Vitamins & Supplements',
-    vendor: '77', status: 'Active', image: '', weight: 12, tags: []
+    vendor: '', status: 'Active', image: '', weight: 12, tags: []
   });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -1766,7 +1766,7 @@ export default function AdminDashboard({
         inventory: Number(newProductForm.inventory) || 0,
         sku: newProductForm.sku || `SKU-${Math.floor(Math.random() * 10000)}`,
         category: newProductForm.category || 'Vitamins & Supplements',
-        vendor: newProductForm.vendor || '77',
+        vendor: newProductForm.vendor || '',
         status: (newProductForm.status as any) || 'Active',
         image: newProductForm.image || '',
         weight: Number(newProductForm.weight) || 12,
@@ -1780,7 +1780,7 @@ export default function AdminDashboard({
     setNewProductForm({
       title: '', description: '', price: 4.99, compareAtPrice: 5.99,
       inventory: 50, sku: '', category: 'Vitamins & Supplements',
-      vendor: '77', status: 'Active', image: '', weight: 12, tags: []
+      vendor: '', status: 'Active', image: '', weight: 12, tags: []
     });
   };
 
@@ -3274,7 +3274,7 @@ export default function AdminDashboard({
                 <div className="w-4 h-4 border-2 border-white rounded-sm"></div>
               </div>
               <div>
-                <h2 className="text-sm font-bold text-[#1a1c1d]">Pouch Supply</h2>
+                <h2 className="text-sm font-bold text-[#1a1c1d]">Ecommerce Store</h2>
                 <span className="bg-gray-100 text-[9px] px-1.5 py-0.5 rounded border border-gray-200 text-gray-500 uppercase font-bold tracking-tighter">Admin</span>
               </div>
             </div>
@@ -3386,7 +3386,7 @@ export default function AdminDashboard({
         {!selectedBuilderPageId && (
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-250">
             <div>
-              <span className="text-[10px] text-indigo-600 bg-indigo-50 font-black uppercase py-1 px-3 rounded-full border border-indigo-100">Pouch Supply Partner Portal</span>
+              <span className="text-[10px] text-indigo-600 bg-indigo-50 font-black uppercase py-1 px-3 rounded-full border border-indigo-100">Ecommerce Store Partner Portal</span>
               <h1 className="text-2xl font-black text-slate-900 mt-2 capitalize flex items-center gap-2">
                 {activeTab} Management Panel
               </h1>

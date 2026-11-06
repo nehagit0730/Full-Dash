@@ -1071,7 +1071,7 @@ export default function CustomerDrawer({
               {/* Secure Footer Checkout Indicator badge */}
               <div className="p-4 border-t border-slate-150 bg-slate-50/80 text-center flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-bold select-none">
                 <ShieldCheck className="h-3.5 w-3.5 text-indigo-500" />
-                <span>Pouch Supply End-to-End SSL Authenticated Session</span>
+                <span>Ecommerce Store End-to-End SSL Authenticated Session</span>
               </div>
             </motion.div>
           </div>

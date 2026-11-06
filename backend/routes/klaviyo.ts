@@ -97,7 +97,7 @@ const handleVerify = async (req: Request, res: Response) => {
         type: 'event',
         attributes: {
           metric: { data: { type: 'metric', attributes: { name: 'Storefront Verification' } } },
-          profile: { data: { type: 'profile', attributes: { email: 'verification-check@pouch-supply.com' } } },
+          profile: { data: { type: 'profile', attributes: { email: 'verification-check@example.com' } } },
           properties: { verified: true },
           time: new Date().toISOString()
         }
@@ -350,7 +350,7 @@ router.post('/track', async (req: Request, res: Response) => {
           await trackWishlistAdded(customerEmail, data?.item);
           break;
         default:
-          await trackKlaviyoEvent(eventName || eventType, customerEmail || 'guest@pouch-supply.com', eventProperties, customerProperties);
+          await trackKlaviyoEvent(eventName || eventType, customerEmail || 'guest@example.com', eventProperties, customerProperties);
       }
       return res.json({ success: true, tracked: eventType });
     }

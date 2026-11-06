@@ -114,17 +114,17 @@ export default function FreeCanPicker({
                 <div className="flex items-center gap-2">
                   <Gift className="h-4 w-4 text-[#dfa047] shrink-0" />
                   <h2 className="text-sm font-black uppercase tracking-widest truncate">
-                    Choose your free {count === 1 ? 'can' : `${count} cans`}
+                    Choose your free {count === 1 ? 'item' : `${count} items`}
                   </h2>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   {rewardLabel ? `${rewardLabel} — ` : ''}
-                  Pick any {count === 1 ? 'can' : `${count} cans`} from the range. Added to your order at ₹0.00.
+                  Pick any {count === 1 ? 'item' : `${count} items`} from the range. Added to your order at ₹0.00.
                 </p>
               </div>
               <button
                 onClick={onCancel}
-                aria-label="Close free can picker"
+                aria-label="Close free item picker"
                 className="p-1.5 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
               >
                 <X className="h-4.5 w-4.5" />
@@ -179,7 +179,7 @@ export default function FreeCanPicker({
               {visibleCans.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
                   <Package className="h-8 w-8 text-slate-300 mx-auto" />
-                  <p className="text-xs font-bold text-slate-500">No cans match that search.</p>
+                  <p className="text-xs font-bold text-slate-500">No items match that search.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -214,7 +214,7 @@ export default function FreeCanPicker({
 
                         <div className="min-w-0 flex-1 space-y-1">
                           <span className="text-[9px] font-black uppercase tracking-widest text-[#dfa047] block truncate">
-                            {can.vendor || 'Pouch Supply'}
+                            {can.vendor || 'Ecommerce Store'}
                           </span>
                           <p className="text-[11.5px] font-black text-[#071d37] leading-tight truncate">
                             {can.productTitle}
@@ -275,8 +275,8 @@ export default function FreeCanPicker({
             <div className="px-5 sm:px-6 py-4 border-t border-slate-150 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
               <p className="text-[11px] font-bold text-slate-500 text-center sm:text-left">
                 {isComplete
-                  ? 'All set — your free cans are ready.'
-                  : `Choose ${remaining} more can${remaining !== 1 ? 's' : ''} to continue.`}
+                  ? 'All set — your free items are ready.'
+                  : `Choose ${remaining} more item${remaining !== 1 ? 's' : ''} to continue.`}
               </p>
               <div className="flex gap-2 w-full sm:w-auto">
                 <button

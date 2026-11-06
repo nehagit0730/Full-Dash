@@ -63,7 +63,7 @@ async function main() {
     await saveSingleItem('customPages', testPage);
     check('the test page starts out live', await pageExists(), true);
 
-    const moved = await moveToRecycleBin('customPages', SLUG, 'selftest@pouch-supply.com');
+    const moved = await moveToRecycleBin('customPages', SLUG, 'selftest@example.com');
     check('it moves to the bin', moved.ok, true);
     check('and is GONE from Pages, not hidden in it', await pageExists(), false);
 
@@ -72,7 +72,7 @@ async function main() {
     check('it appears in the bin', Boolean(entry), true);
     check('under its own section', entry?.resourceLabel, 'Pages');
     check('labelled by its title', entry?.label, 'Recycle bin self-test');
-    check('with who deleted it', entry?.deletedBy, 'selftest@pouch-supply.com');
+    check('with who deleted it', entry?.deletedBy, 'selftest@example.com');
     check(`and ${RETENTION_DAYS} days left`, entry?.daysLeft, RETENTION_DAYS);
 
     // --------------------------------------------------------------- restore

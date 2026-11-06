@@ -436,7 +436,7 @@ export default function CustomerAccount({
       } else {
         setSupportStatus({
           type: 'error',
-          text: data.error || 'Failed to submit support request. Please try again or reach out to support@pouch-supply.com directly.'
+          text: data.error || 'Failed to submit support request. Please try again or reach out to support@example.com directly.'
         });
       }
     } catch (err: any) {
@@ -958,7 +958,7 @@ export default function CustomerAccount({
           <div className="p-8 lg:p-12 space-y-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-[#071d37] tracking-wider uppercase">Pouch Supply</span>
+                <span className="text-xl font-black text-[#071d37] tracking-wider uppercase">Ecommerce Store</span>
                 <span className="w-1.5 h-1.5 bg-[#dfa047] rounded-full self-end mb-1"></span>
               </div>
               {(authMode === 'login' || authMode === 'signup') ? (
@@ -995,7 +995,7 @@ export default function CustomerAccount({
                 {authMode === 'login' 
                   ? 'Access your personalized subscription portal, track order progress, and unlock free premium rewards.'
                   : authMode === 'signup'
-                  ? 'Join Pouch Supply today to get 15% off subscription boxes and start unlocking direct premium gifts.'
+                  ? 'Join Ecommerce Store today to get 15% off subscription boxes and start unlocking direct premium gifts.'
                   : authMode === 'forgot'
                   ? 'Enter your registered email address and we will send a password reset code & link directly to your inbox via Resend.'
                   : authMode === 'reset'
@@ -1345,7 +1345,7 @@ export default function CustomerAccount({
             {/* Store Brand / Logo */}
             <div className="space-y-1">
               <div className="flex items-center gap-1">
-                <span className="text-2xl font-black text-white tracking-widest uppercase">Pouch Supply</span>
+                <span className="text-2xl font-black text-white tracking-widest uppercase">Ecommerce Store</span>
                 <span className="w-2 h-2 bg-[#dfa047] rounded-full self-end mb-1"></span>
               </div>
               {/* Golden dots under name matching the mockup */}
@@ -1425,7 +1425,7 @@ export default function CustomerAccount({
                   </span>
                 )}
               </div>
-              <p className="text-slate-500 text-xs mt-0.5">Here's what's happening with your Pouch Supply account today.</p>
+              <p className="text-slate-500 text-xs mt-0.5">Here's what's happening with your Ecommerce Store account today.</p>
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <button 
@@ -1775,8 +1775,8 @@ export default function CustomerAccount({
                           onClick={() => {
                             if (navigator.share) {
                               navigator.share({
-                                title: 'Join Pouch Supply',
-                                text: 'Join me on Pouch Supply for the ultimate subscription box experience!',
+                                title: 'Join Ecommerce Store',
+                                text: 'Join me on Ecommerce Store for the ultimate subscription box experience!',
                                 url: custState.referralCode
                               }).catch(() => {});
                             } else {
@@ -2259,7 +2259,7 @@ export default function CustomerAccount({
                     
                     <div className="space-y-2 text-center md:text-left">
                       <span className="text-[10px] font-bold bg-[#dfa047] text-[#071d37] py-1 px-3 rounded-full uppercase tracking-wider inline-block">Loyalty Club</span>
-                      <h2 className="text-2xl font-black uppercase text-white tracking-wide">Pouch Supply VIP Scheme</h2>
+                      <h2 className="text-2xl font-black uppercase text-white tracking-wide">Ecommerce Store VIP Scheme</h2>
                       <p className="text-slate-300 text-xs max-w-lg leading-relaxed">
                         No complex formulas, math points, or expiration clocks. Simply complete shop orders to trigger direct premium gifts, complimentary deliveries, and discount credit codes.
                       </p>
@@ -2399,7 +2399,7 @@ export default function CustomerAccount({
                                         <span className="flex items-center gap-1 bg-slate-50 p-1.5 rounded border border-slate-100">🥫 3 FREE Cans of choice</span>
                                         <span className="flex items-center gap-1 bg-slate-50 p-1.5 rounded border border-slate-100">💷 ₹10.00 Store Credit</span>
                                         <span className="flex items-center gap-1 bg-slate-50 p-1.5 rounded border border-slate-100">🚚 Free Priority Fast Delivery</span>
-                                        <span className="flex items-center gap-1 bg-slate-50 p-1.5 rounded border border-slate-100">🎁 Exclusive Pouch Supply Merch</span>
+                                        <span className="flex items-center gap-1 bg-slate-50 p-1.5 rounded border border-slate-100">🎁 Exclusive Ecommerce Store Merch</span>
                                         <span className="flex items-center gap-1 bg-slate-50 p-1.5 rounded border border-slate-100">🎲 Mystery Custom Reward</span>
                                       </div>
                                     </div>
@@ -2538,7 +2538,7 @@ export default function CustomerAccount({
                       <span className="text-[10px] font-bold bg-[#dfa047] text-[#071d37] py-1 px-3 rounded-full uppercase tracking-wider inline-block">Referrals Hub</span>
                       <h2 className="text-2xl font-black uppercase tracking-wide">Invite Friends, Earn Wallet Credit</h2>
                       <p className="text-slate-300 text-xs max-w-lg leading-relaxed">
-                        Earn cash credit directly into your Pouch Supply wallet! For every friend who registers and triggers a box subscription, we reward you with ₹5.00 in direct credits.
+                        Earn cash credit directly into your Ecommerce Store wallet! For every friend who registers and triggers a box subscription, we reward you with ₹5.00 in direct credits.
                       </p>
                     </div>
 

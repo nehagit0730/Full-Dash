@@ -56,7 +56,7 @@ export function initializeKlaviyo(): void {
 export function buildProductUrl(slugOrId?: string): string {
   const metaEnv = typeof import.meta !== 'undefined' ? (import.meta as any)?.env : undefined;
   // The apex domain 308-redirects to www, so the canonical host carries it.
-  const configured = (metaEnv?.VITE_PUBLIC_SITE_URL || 'https://www.pouchsupply.co.uk').replace(/\/+$/, '');
+  const configured = (metaEnv?.VITE_PUBLIC_SITE_URL || 'https://www.yourstore.com').replace(/\/+$/, '');
   const origin = typeof window !== 'undefined' && window.location?.origin
     ? window.location.origin
     : configured;
@@ -279,7 +279,7 @@ export function trackOrderCompleted(order: {
   product?: { id: string; name: string; price: number; currency: string; recurring?: boolean };
 }): void {
   const orderId = String(order.orderId || order.id || `PS${Math.floor(10000 + Math.random() * 90000)}`);
-  const email = (order.customerEmail || order.email || 'customer@pouch-supply.com').trim().toLowerCase();
+  const email = (order.customerEmail || order.email || 'customer@example.com').trim().toLowerCase();
   const customerName = order.customerName || order.name || 'Valued Customer';
   const totalValue = typeof order.total === 'number' ? order.total : (order.amount ?? order.product?.price ?? 0);
   

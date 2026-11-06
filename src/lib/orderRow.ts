@@ -60,7 +60,7 @@ export function toOrderRow(item: any): Record<string, any> {
     // Required columns get a value even when the caller omitted one, because the
     // table rejects nulls here and losing the order is the worse outcome.
     customerName: item?.customerName || 'Valued Customer',
-    customerEmail: item?.customerEmail || 'customer@pouch-supply.com',
+    customerEmail: item?.customerEmail || 'customer@example.com',
     tags: Array.isArray(item?.tags) ? item.tags : [],
     fulfillmentStatus: item?.fulfillmentStatus || 'Unfulfilled',
     destination: item?.destination || item?.address || 'United Kingdom',

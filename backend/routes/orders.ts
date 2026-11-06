@@ -100,7 +100,7 @@ export async function saveSingleOrder(orderData: any) {
   const formattedOrder = {
     id,
     customerName: orderData.customerName || existingOrder?.customerName || 'Valued Customer',
-    customerEmail: orderData.customerEmail || existingOrder?.customerEmail || 'customer@pouch-supply.com',
+    customerEmail: orderData.customerEmail || existingOrder?.customerEmail || 'customer@example.com',
     tags,
     isSubscription,
     subscriptionDetails,

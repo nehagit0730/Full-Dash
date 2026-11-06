@@ -49,7 +49,7 @@ Status key: **Done** = implemented and tested · **Partial** = implemented, not 
 - `Shipment` table with idempotency, automation rules (prepaid and COD), retries, admin order actions.
 
 ### Phase 5: Branding and rebrand (**Planned**)
-- `store_branding` setting (name, logo, favicon, colours, emails), then replace the 521 hard-coded "Pouch Supply" references, including emails, legal pages and metadata.
+- `store_branding` setting (name, logo, favicon, colours, emails), then replace the 521 hard-coded "Ecommerce Store" references, including emails, legal pages and metadata.
 
 ### Phase 6: Storefront redesign, page builder, admin navigation redesign (**Planned**)
 

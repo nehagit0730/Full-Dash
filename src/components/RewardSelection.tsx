@@ -141,7 +141,7 @@ export function AppliedRewardLines({ discount, onEditSelection, compact = false 
               {line.rewardKind === 'free-cans' ? (
                 <>
                   <span className="text-[8.5px] font-black uppercase tracking-widest text-[#dfa047] block truncate">
-                    {line.vendor || 'Pouch Supply'}
+                    {line.vendor || 'Ecommerce Store'}
                   </span>
                   <p className="text-[11px] font-black text-[#071d37] leading-tight truncate">{line.productTitle}</p>
                   <p className="text-[10px] font-bold text-slate-500 truncate">{line.variant}</p>

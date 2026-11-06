@@ -864,7 +864,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         const emailHtml = `
                           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff; color: #334155;">
                             <div style="background-color: #10b981; padding: 25px 20px; text-align: center;">
-                              <span style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: 2px;">POUCH SUPPLY</span>
+                              <span style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: 2px;">ECOMMERCE STORE</span>
                               <div style="font-size: 9px; font-weight: bold; color: #ecfdf5; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;">WITHDRAWAL APPROVED</div>
                             </div>
                             
@@ -885,7 +885,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                             </div>
                             
                             <div style="background-color: #f8fafc; padding: 15px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 10px; color: #94a3b8;">
-                              Thank you for choosing PouchSupply.
+                              Thank you for choosing Ecommerce Store.
                             </div>
                           </div>
                         `;
@@ -939,7 +939,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({
                         const emailHtml = `
                           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff; color: #334155;">
                             <div style="background-color: #ef4444; padding: 25px 20px; text-align: center;">
-                              <span style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: 2px;">POUCH SUPPLY</span>
+                              <span style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: 2px;">ECOMMERCE STORE</span>
                               <div style="font-size: 9px; font-weight: bold; color: #fee2e2; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;">WITHDRAWAL DECLINED</div>
                             </div>
                             

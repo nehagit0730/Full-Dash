@@ -55,7 +55,7 @@ function getSampleTemplateData(type: EmailTemplateType, customData?: any): Email
 
   const defaultData: EmailTemplateData = {
     customerName: 'Scott Kivlin',
-    customerEmail: 'scottkivlinpouch@gmail.com',
+    customerEmail: '',
     orderId: 'PS89421',
     orderDate: 'Aug 1, 2026 at 10:45 AM',
     items: sampleItems,
@@ -71,12 +71,12 @@ function getSampleTemplateData(type: EmailTemplateType, customData?: any): Email
     refundAmount: 37.93,
     refundReason: 'Customer satisfaction guarantee',
     verificationCode: '749201',
-    verificationLink: 'https://pouch-supply.com/verify?code=749201',
-    resetLink: 'https://pouch-supply.com/reset-password?token=sample_reset_token',
+    verificationLink: 'https://yourstore.com/verify?code=749201',
+    resetLink: 'https://yourstore.com/reset-password?token=sample_reset_token',
     resetToken: 'sample_reset_token',
     discountCode: 'WELCOME10',
-    supportEmail: 'scottkivlinpouch@gmail.com',
-    siteUrl: 'https://pouch-supply.com',
+    supportEmail: '',
+    siteUrl: 'https://yourstore.com',
     planName: 'Monthly Canister Club',
     previousAmount: 24.99,
     newAmount: 27.99,
@@ -369,7 +369,7 @@ router.post('/contact', async (req: Request, res: Response) => {
     }
 
     const settings = await getEmailSettings();
-    const adminEmail = settings.adminNotificationEmail || settings.gmailUser || 'scottkivlinpouch@gmail.com';
+    const adminEmail = settings.adminNotificationEmail || settings.gmailUser || '';
 
     const emailSubject = `📩 Contact Form Submission: ${subject || 'General Inquiry'} from ${name}`;
     const htmlBody = `
@@ -400,7 +400,7 @@ router.post('/contact', async (req: Request, res: Response) => {
           <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Message:</h4>
           <p style="margin: 0; color: #334155; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${message}</p>
         </div>
-        <p style="margin-top: 24px; font-size: 12px; color: #94a3b8; text-align: center;">Sent via Pouch Supply Co. Storefront Contact Form</p>
+        <p style="margin-top: 24px; font-size: 12px; color: #94a3b8; text-align: center;">Sent via Ecommerce Store Storefront Contact Form</p>
       </div>
     `;
 

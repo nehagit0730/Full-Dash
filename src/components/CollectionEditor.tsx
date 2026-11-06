@@ -531,7 +531,7 @@ export default function CollectionEditor({
               {seoPreviewMode === 'Google' ? (
                 /* Search Engine Result Snippet simulation */
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-1 text-left font-serif leading-none select-none max-w-xl">
-                  <span className="text-neutral-400 font-sans text-[10.5px] block truncate font-medium">https://pouchsupply.co.uk/collections/{customSlug || slugify(title || 'untitled')}</span>
+                  <span className="text-neutral-400 font-sans text-[10.5px] block truncate font-medium">https://yourstore.com/collections/{customSlug || slugify(title || 'untitled')}</span>
                   <span className="text-[#1a0dab] font-sans text-sm block hover:underline cursor-pointer font-extrabold leading-tight">
                     {seoTitle || title || 'Untitled Custom Pouch Collection'}
                   </span>
@@ -556,7 +556,7 @@ export default function CollectionEditor({
                     </div>
                   </div>
                   <div className="p-3 bg-[#f2f3f5] space-y-1">
-                    <span className="text-[9px] text-slate-450 uppercase tracking-widest block font-bold font-mono">POUCHSUPPLY.CO.UK</span>
+                    <span className="text-[9px] text-slate-450 uppercase tracking-widest block font-bold font-mono">YOURSTORE.COM</span>
                     <h4 className="font-extrabold text-[12px] text-slate-800 line-clamp-1 uppercase tracking-tight">
                       {seoTitle || title || 'Untitled Custom Pouch Collection'}
                     </h4>

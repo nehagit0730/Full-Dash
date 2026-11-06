@@ -26,10 +26,10 @@ export interface InvoiceBrand {
 }
 
 export const DEFAULT_INVOICE_BRAND: InvoiceBrand = {
-  name: 'POUCH SUPPLY',
-  legalName: 'Pouch Supply UK Ltd.',
-  email: 'support@pouchsupply.co.uk',
-  website: 'www.pouchsupply.co.uk',
+  name: 'ECOMMERCE STORE',
+  legalName: 'Ecommerce Store UK Ltd.',
+  email: 'support@yourstore.com',
+  website: 'www.yourstore.com',
   addressLines: ['United Kingdom']
 };
 

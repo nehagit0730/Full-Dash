@@ -1169,8 +1169,8 @@ function ContactFormSection({ sec }: ContactFormSectionProps) {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Direct Email Desk</p>
-                  <a href="mailto:support@pouch-supply.com" className="text-xs sm:text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">
-                    support@pouch-supply.com
+                  <a href="mailto:support@example.com" className="text-xs sm:text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">
+                    support@example.com
                   </a>
                   <p className="text-[10px] text-slate-400 mt-0.5">Average response time: &lt; 2 hours</p>
                 </div>
