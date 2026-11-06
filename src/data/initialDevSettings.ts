@@ -14,7 +14,7 @@ export const DEFAULT_DEV_SETTINGS: DevSettings = {
   background: #f1f5f8;
 }
 ::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #94a3b7;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
