@@ -70,7 +70,6 @@ const TEMPLATE_OPTIONS = [
   { id: 'order_cancelled', label: 'Order Cancelled', category: 'Transactional' },
   { id: 'order_refunded', label: 'Order Refunded', category: 'Transactional' },
   { id: 'order_exchanged', label: 'Product Exchange', category: 'Transactional' },
-  { id: 'subscription_price_change', label: 'Subscription Price Change', category: 'Transactional' },
   { id: 'password_reset', label: 'Password Reset', category: 'Account' },
   { id: 'email_verification', label: 'Email Verification', category: 'Account' },
   { id: 'welcome_email', label: 'Welcome Email', category: 'Marketing' },
@@ -369,7 +368,7 @@ export function EmailSettingsTab() {
             customerEmail: testKlaviyoEmail,
             total: 39.99,
             destination: 'London, United Kingdom',
-            deliveryMethod: 'Royal Mail Tracked 24',
+            deliveryMethod: 'Standard Delivery',
             items: [
               {
                 id: 'p1',
@@ -1657,7 +1656,7 @@ export function EmailSettingsTab() {
                   </div>
 
                   <div className="text-right text-[11px] text-neutral-400 font-mono flex-shrink-0">
-                    {new Date(log.timestamp).toLocaleString('en-GB')}
+                    {new Date(log.timestamp).toLocaleString('en-IN')}
                   </div>
                 </div>
               ))

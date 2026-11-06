@@ -7,14 +7,36 @@ const DEFAULT_BASE_URL = "https://staging.agechecked.com/api/acapiremote/ac0130"
 const DEFAULT_PORTAL_URL = "https://portal.agechecked.com/portal";
 const SECRET_FIELD_NAMES = ["merchantSecretKey", "merchantKey", "secretKey", "merchantSecret"] as const;
 
+/**
+ * Whether age verification is switched on (Settings → Age Verification).
+ * Until that setting is saved for the first time, a deployment that configured
+ * AgeChecked through the environment keeps it on, as before.
+ */
+export async function isAgeVerificationEnabled(): Promise<boolean> {
+  try {
+    const { getIntegrationView } = await import("../services/integrations/store");
+    const view = await getIntegrationView("agechecked");
+    if (view?.persisted) return Boolean(view.enabled) && view.missingRequired.length === 0;
+  } catch (_e) {}
+  return Boolean(process.env.AGECHECKED_SECRET_KEY);
+}
+
 // GET /api/agechecked/config - Returns client-safe AgeChecked configuration
-router.get("/config", (req: Request, res: Response) => {
-  const portalUrl = process.env.NEXT_PUBLIC_AGECHECKED_PORTAL_URL || process.env.AGECHECKED_PORTAL_URL || DEFAULT_PORTAL_URL;
-  const publicKey = process.env.NEXT_PUBLIC_AGECHECKED_PUBLIC_KEY || process.env.AGECHECKED_PUBLIC_KEY || "";
+router.get("/config", async (req: Request, res: Response) => {
+  const enabled = await isAgeVerificationEnabled();
+  let portalUrl = process.env.NEXT_PUBLIC_AGECHECKED_PORTAL_URL || process.env.AGECHECKED_PORTAL_URL || DEFAULT_PORTAL_URL;
+  let publicKey = process.env.NEXT_PUBLIC_AGECHECKED_PUBLIC_KEY || process.env.AGECHECKED_PUBLIC_KEY || "";
+  try {
+    const { getIntegrationCredentials } = await import("../services/integrations/store");
+    const { values } = await getIntegrationCredentials("agechecked");
+    portalUrl = String(values.portalUrl || portalUrl);
+    publicKey = String(values.publicKey || publicKey);
+  } catch (_e) {}
   res.json({
+    enabled,
     portalUrl,
-    publicKey,
-    configured: Boolean(process.env.AGECHECKED_SECRET_KEY || publicKey)
+    publicKey: enabled ? publicKey : "",
+    configured: enabled
   });
 });
 
@@ -87,7 +109,7 @@ function buildPayloads(secretKey: string, body: Record<string, any>) {
       postcode: body.postcode ?? "",
       countrycode: body.countrycode ?? "GB",
       email: body.email ?? "",
-      reference: body.reference ?? "worldpay-demo",
+      reference: body.reference ?? "checkout",
       withforce: body.withforce ?? "true",
       userfield1: body.userfield1 ?? "",
       userfield2: body.userfield2 ?? "",

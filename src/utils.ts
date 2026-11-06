@@ -36,7 +36,7 @@ const volumeCostPence: number[] = [0];
  * "At least" rather than "exactly" is deliberate, and it is what stops the curve
  * from ever punishing a larger basket. Tiers do not divide into each other, so an
  * exact-fit rule made some quantities cost more than a bigger one — under the old
- * greedy split 19 cans came to £85.46 while 20 came to £77.00. Allowing a
+ * greedy split 19 cans came to ₹85.46 while 20 came to ₹77.00. Allowing a
  * quantity to be covered by the next bundle up means the price can only ever go
  * down as the tier is approached.
  */
@@ -57,8 +57,8 @@ function volumeCostAtBasePrice(qty: number): number {
 /**
  * Total price for `quantity` units of a product, under the volume tiers above.
  *
- * Pack sizes land exactly on their tier — at the £4.99 base, 3 = £14.55,
- * 5 = £23.50, 8 = £35.20, 10 = £42.00, 12 = £49.20, 20 = £77.00 — and every
+ * Pack sizes land exactly on their tier — at the ₹4.99 base, 3 = ₹14.55,
+ * 5 = ₹23.50, 8 = ₹35.20, 10 = ₹42.00, 12 = ₹49.20, 20 = ₹77.00 — and every
  * quantity in between is priced at the cheapest combination of tiers that covers
  * it.
  */
@@ -66,7 +66,7 @@ export function calculateVolumePrice(basePrice: number, quantity: number): numbe
   const qty = Math.floor(quantity);
   if (qty <= 0) return 0;
 
-  // Scale ratio if base price is custom (default base is £4.99)
+  // Scale ratio if base price is custom (default base is ₹4.99)
   const ratio = basePrice > 0 ? basePrice / VOLUME_BASE_UNIT_PRICE : 1;
 
   return Number(((volumeCostAtBasePrice(qty) / 100) * ratio).toFixed(2));

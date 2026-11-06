@@ -104,13 +104,10 @@ export interface Order {
     declinedReason?: string;
   };
   /**
-   * The reference Worldpay booked the payment under — for a recurring order,
-   * `SUB-ORD-<order id>`. This is the field an inbound Worldpay webhook matches
-   * on, and the one the admin dashboard shows against the order.
+   * The payment gateway's reference for this order's payment (for Razorpay,
+   * the payment id), shown against the order in the admin dashboard.
    */
   gatewayTxId?: string;
-  /** Worldpay's own payment id, falling back to the reference when it returns none. */
-  worldpayTxId?: string;
   gatewayAuthCode?: string;
   cardBrand?: string;
   total: number;
@@ -181,9 +178,9 @@ export interface Customer {
 
 /**
  * One can the customer picked for a "FREE can of your choice" reward. Cans are
- * not pushed into the cart — a £0 line would distort the volume-price tiers and
+ * not pushed into the cart — a ₹0 line would distort the volume-price tiers and
  * the minimum-quantity checks on other discounts — so the selection rides along
- * on the discount and is materialised as a £0 order line at submission.
+ * on the discount and is materialised as a ₹0 order line at submission.
  */
 export interface FreeCanSelection {
   productId: string;
@@ -194,10 +191,10 @@ export interface FreeCanSelection {
   image: string;
   sku?: string;
   strength?: string;
-  originalPrice: number; // What the can would have cost, for "was £4.99" display
+  originalPrice: number; // What the can would have cost, for "was ₹4.99" display
 }
 
-/** A non-product gift (mystery box, merchandise) included with the order at £0. */
+/** A non-product gift (mystery box, merchandise) included with the order at ₹0. */
 export interface RewardGift {
   id: string;
   label: string;
@@ -222,7 +219,7 @@ export interface Discount {
   rewardKind?: 'discount' | 'free-cans' | 'free-shipping' | 'gift' | 'choice';
   freeCanCount?: number; // How many cans the customer gets to choose
   freeCanSelections?: FreeCanSelection[]; // What they chose
-  rewardGifts?: RewardGift[]; // Mystery box / merchandise included at £0
+  rewardGifts?: RewardGift[]; // Mystery box / merchandise included at ₹0
   rewardChoiceId?: string; // Which option was taken on a multi-option reward
 
   // Loyalty Reward custom properties

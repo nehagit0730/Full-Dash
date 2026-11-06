@@ -136,7 +136,7 @@ export function trackViewedProduct(product: {
     Price: product.price,
     $value: product.price,
     value: product.price,
-    currency: product.currency || 'GBP',
+    currency: product.currency || 'INR',
     ImageURL: product.image,
     // Browse-abandonment emails render a product block from these; without URL
     // and Categories the block has no link and the flow cannot be segmented.
@@ -228,7 +228,7 @@ export function trackStartedCheckout(data: {
       Items: formattedItems,
       Categories: ['Nicotine Pouches', 'Storefront'],
       IsSubscription: isRecurring,
-      currency: 'GBP'
+      currency: 'INR'
     });
 
     // Also notify backend
@@ -256,7 +256,7 @@ export function trackStartedCheckout(data: {
       ProductName: singleItemData.name,
       $value: singleItemData.price,
       value: singleItemData.price,
-      currency: singleItemData.currency || 'GBP',
+      currency: singleItemData.currency || 'INR',
       recurring: Boolean(singleItemData.recurring),
     });
   }
@@ -327,7 +327,7 @@ export function trackOrderCompleted(order: {
     Items: formattedItems,
     Categories: ['Nicotine Pouches', 'Storefront'],
     Destination: order.destination || order.address || 'United Kingdom',
-    DeliveryMethod: order.deliveryMethod || 'Royal Mail Tracked 24/48',
+    DeliveryMethod: order.deliveryMethod || 'Standard Delivery',
     DiscountApplied: order.discountApplied || null,
     ShippingAddress: {
       first_name: firstName,
@@ -386,7 +386,7 @@ export function trackCheckoutFailed(product: { id: string; name: string; price: 
     ProductID: product.id,
     ProductName: product.name,
     $value: product.price,
-    currency: product.currency || 'GBP',
+    currency: product.currency || 'INR',
     recurring: Boolean(product.recurring),
     ErrorMessage: errorMessage ?? 'unknown',
   });
@@ -394,7 +394,7 @@ export function trackCheckoutFailed(product: { id: string; name: string; price: 
 
 /**
  * "Started Subscription" is sent from the server when the plan is actually
- * persisted (see trackSubscriptionStarted in backend/services/klaviyoService).
+ * persisted.
  * It is not tracked from the browser: the client cannot know the subscription id,
  * and an event from here would both duplicate the server's and fire for
  * checkouts whose plan failed to save.
@@ -444,7 +444,7 @@ export const klaviyoTrackViewedProduct = (product: {
     id: product.id,
     name: product.name || product.title || 'Product',
     price: product.price,
-    currency: 'GBP',
+    currency: 'INR',
     image: product.image,
     slug: product.slug,
     brand: product.vendor,
@@ -462,7 +462,7 @@ export const klaviyoTrackAddedToCart = (product: { id: string; title?: string; n
     value: product.price * quantity,
     Price: product.price,
     ImageURL: product.image,
-    currency: 'GBP',
+    currency: 'INR',
     recurring: Boolean(product.isSubscription),
   });
 };

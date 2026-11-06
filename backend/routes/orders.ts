@@ -11,7 +11,7 @@ import {
 } from "../services/emailService";
 import { trackPurchaseCompleted, trackOrderRefunded, trackOrderShipped } from "../services/klaviyoService";
 import { requireAdmin, requireCustomer, mayActOnCustomer, AdminRequest } from "../middleware/requireAdmin";
-import { UK_COUNTRY_NAME, validateUkDelivery } from "../../src/utils/ukValidation";
+import { validateIndiaAddress } from "../../src/utils/indiaValidation";
 import { checkDiscountUsable } from "../services/discountUsage";
 
 const router = Router();
@@ -20,8 +20,7 @@ const router = Router();
  * Order lifecycle notifications.
  *
  * `saveSingleOrder` is the ONLY place that sends order emails or fires Klaviyo
- * order events. Callers (checkout, the subscription worker, Royal Mail, the
- * admin routes) just persist the order and let the transition decide what to
+ * order events. Callers (checkout, the payment gateway, the admin routes) just persist the order and let the transition decide what to
  * send. Sending from the call sites as well is what previously produced
  * duplicate confirmations and admin notifications.
  *
@@ -91,259 +90,12 @@ export async function saveSingleOrder(orderData: any) {
   } catch (_e) {}
 
   const items = orderData.items || existingOrder?.items || [];
-  const subItem = items.find((i: any) =>
-    i.isSubscription ||
-    i.vendor === 'Subscription Pack' ||
-    (i.productTitle && (i.productTitle.toLowerCase().includes('subscription') || i.productTitle.toLowerCase().includes('pack')))
-  );
 
-  const isSubscription = Boolean(orderData.isSubscription ?? existingOrder?.isSubscription ?? subItem);
-
-  let subscriptionDetails = orderData.subscriptionDetails || existingOrder?.subscriptionDetails || null;
-
-  if (isSubscription && !subscriptionDetails) {
-    let planName = subItem?.subscriptionPlan || (orderData as any).subPlan || (orderData as any).subscriptionPlan || '';
-    const rawPlan = (subItem?.subscriptionPlan || (orderData as any).subPlan || (orderData as any).subscriptionPlan || '').toLowerCase();
-    const title = (subItem?.productTitle || '').toLowerCase();
-    const prodId = (subItem?.productId || '').toLowerCase();
-
-    // The tier comes from the heading of the title the order was sold under —
-    // the part before " - ", "[" or "(" — as a whole word. This used to test
-    // substrings of the full plan string and of the product id ("product-…"
-    // contains "pro"), checking PRO before LITE, and fell back to 'PRO Plan'
-    // when nothing matched. So LITE orders were recorded as PRO.
-    const tierIn = (text: any): string | null => {
-      const heading = String(text || '').toLowerCase().split(/\s+-\s+|\[|\(/)[0];
-      const m = heading.match(/\b(ultimate|core|lite|pro)\b/);
-      return m ? m[1] : null;
-    };
-    const tier = tierIn(subItem?.productTitle) || tierIn(subItem?.subscriptionSummary) || tierIn(rawPlan) || tierIn(prodId);
-    if (tier) {
-      planName = `${tier.toUpperCase()} Plan`;
-    } else if (subItem?.subscriptionPlan) {
-      planName = subItem.subscriptionPlan;
-    } else {
-      // Unknown tier: keep the title the customer bought rather than guessing.
-      planName = subItem?.productTitle || 'Subscription Plan';
-    }
-
-    let frequency = subItem?.subscriptionFrequency || (orderData as any).subscriptionFrequency || '';
-    let frequencyDiscount = subItem?.frequencyDiscount || (orderData as any).frequencyDiscount || '';
-
-    if (!frequency) {
-      if (title.includes('next day') || title.includes('1 day')) {
-        frequency = 'Next Day (Test)';
-      } else if (title.includes('weekly') && !title.includes('bi')) {
-        frequency = 'Weekly';
-      } else if (title.includes('bi-weekly') || title.includes('by weekly') || title.includes('2 week')) {
-        frequency = 'Bi-Weekly';
-      } else if (title.includes('month') || title.includes('one month')) {
-        frequency = 'One Month';
-      } else {
-        frequency = 'Bi-Weekly';
-      }
-    }
-
-    if (!frequencyDiscount) {
-      if (frequency.includes('Next Day')) frequencyDiscount = '10%';
-      else if (frequency === 'Weekly') frequencyDiscount = '5%';
-      else if (frequency === 'One Month') frequencyDiscount = '12%';
-      else frequencyDiscount = '10%';
-    }
-
-    const baseDate = new Date();
-    const nextDate = new Date(baseDate);
-    if (frequency.includes('Next Day')) {
-      nextDate.setDate(baseDate.getDate() + 1);
-    } else if (frequency === 'Weekly') {
-      nextDate.setDate(baseDate.getDate() + 7);
-    } else if (frequency === 'Bi-Weekly') {
-      nextDate.setDate(baseDate.getDate() + 14);
-    } else {
-      nextDate.setDate(baseDate.getDate() + 30);
-    }
-
-    // The customer's actual selection, exactly as the storefront recorded it.
-    // Each entry carries the real product id, the concrete variant id and the
-    // untouched catalogue title, so the order detail view never has to invent or
-    // re-derive a product name.
-    const rawSubItems = subItem?.subscriptionItems || subItem?.selectedProducts || subItem?.items || (orderData as any).subscriptionItems || [];
-
-    // Names earlier builds wrote when they could not identify the product.
-    // They are dropped rather than persisted as if they were real products.
-    const PLACEHOLDER_NAMES = ['product', 'products', 'item', 'unknown', 'n/a', 'sku-001', 'subscription pack'];
-    const isPlaceholderName = (value: any) => {
-      const v = String(value ?? '').trim().toLowerCase();
-      return !v || PLACEHOLDER_NAMES.includes(v);
-    };
-    const cleanVariant = (value: any) => {
-      const v = String(value ?? '').trim();
-      return v.toLowerCase() === 'standard' ? '' : v;
-    };
-    const buildLabel = (brand: string, name: string, variant: string, qty: number) => {
-      const parts: string[] = [];
-      if (brand && !name.toLowerCase().startsWith(brand.toLowerCase())) parts.push(brand);
-      if (name) parts.push(name);
-      if (variant) parts.push(variant);
-      return parts.length > 0 ? `${parts.join(' — ')} (Qty:${qty})` : `(Qty:${qty})`;
-    };
-
-    let subItems: any[] = [];
-
-    if (Array.isArray(rawSubItems) && rawSubItems.length > 0) {
-      subItems = rawSubItems
-        .map((it: any) => {
-          const p = (it && it.product) || it || {};
-          const name = [it?.productTitle, it?.name, it?.title, p?.title, p?.productTitle, p?.name]
-            .map((v: any) => String(v ?? '').trim())
-            .find((v: string) => v && !isPlaceholderName(v)) || '';
-          const productId = String(it?.productId || p?.productId || p?.id || '').trim();
-          const variantId = String(it?.variantId || it?.concreteVariantId || p?.variantId || '').trim();
-
-          // Nothing identifiable in this row — persisting it would only produce a
-          // filler line in the order detail.
-          if (!name && !productId && !variantId) return null;
-
-          const brand = String(it?.brand || it?.vendor || p?.vendor || p?.brand || '').trim();
-          const variant = cleanVariant(
-            it?.variantName || it?.variant || it?.concreteVariantName ||
-            p?.concreteVariantName || p?.variantName || p?.variant
-          );
-          const qty = Number(it?.quantity || p?.quantity || 1) || 1;
-
-          return {
-            productId: productId || undefined,
-            variantId: variantId || undefined,
-            brand: brand || undefined,
-            vendor: brand || undefined,
-            name,
-            productTitle: name,
-            variant,
-            variantName: variant,
-            quantity: qty,
-            image: it?.image || p?.image || '',
-            price: Number(it?.price || p?.price || 0) || undefined,
-            formattedLabel: buildLabel(brand, name, variant, qty)
-          };
-        })
-        .filter((it: any) => it && it.name);
-    }
-
-    // Legacy fallback only: orders placed before the structured selection was
-    // stored describe the box in the plan title. Whatever is recovered here is
-    // flagged so the UI can re-match it against the live catalogue instead of
-    // treating the fragment as a product name.
-    if (subItems.length === 0 && (subItem?.subscriptionSummary || subItem?.productTitle)) {
-      // The summary field, when present, is the untouched plan string; the title
-      // may have had a renewal suffix appended to it.
-      const rawTitle: string = String(subItem.subscriptionSummary || subItem.productTitle)
-        .replace(/\)\s*\((?:recurring renewal|renewal)\)\s*$/i, ')')
-        .trim();
-
-      let itemsSummary = '';
-      const open = rawTitle.indexOf(' - (');
-      if (open > -1) {
-        const start = open + 4;
-        const end = rawTitle.lastIndexOf(')');
-        itemsSummary = end > start ? rawTitle.substring(start, end) : rawTitle.substring(start);
-      } else if (rawTitle.startsWith('(') && rawTitle.endsWith(')')) {
-        itemsSummary = rawTitle.slice(1, -1);
-      }
-
-      if (itemsSummary.trim()) {
-        const parts: string[] = [];
-        let cur = '';
-        let depth = 0;
-        for (const c of itemsSummary) {
-          if (c === '(') depth++;
-          else if (c === ')') depth--;
-          if (c === ',' && depth === 0) {
-            if (cur.trim()) parts.push(cur.trim());
-            cur = '';
-          } else {
-            cur += c;
-          }
-        }
-        if (cur.trim()) parts.push(cur.trim());
-
-        const parsedProducts: any[] = [];
-        parts.forEach(part => {
-          let cleanPart = part.trim();
-          if (!cleanPart) return;
-
-          let qty = 1;
-          const qtyMatch = cleanPart.match(/\(\s*Qty\s*:\s*(\d+)\s*\)/i) || cleanPart.match(/\bx\s*(\d+)\b/i);
-          if (qtyMatch) {
-            qty = parseInt(qtyMatch[1], 10) || 1;
-            cleanPart = cleanPart
-              .replace(/\(\s*Qty\s*:\s*(\d+)\s*\)/i, '')
-              .replace(/\bx\s*(\d+)\b/i, '')
-              .trim();
-          }
-
-          cleanPart = cleanPart.replace(/^[\s)]+/, '').replace(/[\s(]+$/, '').trim();
-          if (!cleanPart || isPlaceholderName(cleanPart)) return;
-
-          let brand = '';
-          let name = cleanPart;
-          let variant = '';
-
-          // Only the em dash the summary was joined with is treated as a
-          // separator; a plain hyphen usually belongs to the product name.
-          if (/\s[—–]\s/.test(cleanPart)) {
-            const segments = cleanPart.split(/\s*[—–]\s*/).map(s => s.trim()).filter(Boolean);
-            if (segments.length >= 3) {
-              brand = segments[0];
-              name = segments[1];
-              variant = segments.slice(2).join(' — ');
-            } else if (segments.length === 2) {
-              name = segments[0];
-              variant = segments[1];
-            }
-          } else {
-            const varMatch = cleanPart.match(/^(.*?)\s*\(([^)]+)\)$/);
-            if (varMatch && varMatch[1] && varMatch[2]) {
-              name = varMatch[1].trim();
-              variant = varMatch[2].trim();
-            }
-          }
-
-          variant = cleanVariant(variant);
-          if (!name) return;
-
-          parsedProducts.push({
-            brand: brand || undefined,
-            vendor: brand || undefined,
-            name,
-            productTitle: name,
-            variant,
-            variantName: variant,
-            quantity: qty,
-            isReconstructed: true,
-            formattedLabel: buildLabel(brand, name, variant, qty)
-          });
-        });
-
-        subItems = parsedProducts;
-      }
-    }
-
-    subscriptionDetails = {
-      planName,
-      frequency,
-      frequencyDiscount,
-      paymentStatus: 'Paid',
-      items: subItems,
-      selectedProducts: subItems,
-      lastPaymentDate: baseDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-      nextPaymentDate: nextDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    };
-  }
-
-  let tags = Array.isArray(orderData.tags) ? orderData.tags : (existingOrder?.tags || ['Storefront', 'Online Order']);
-  if (isSubscription && !tags.some((t: string) => t.toLowerCase().includes('subscription'))) {
-    tags = [...tags, 'Subscription Order'];
-  }
+  // Subscriptions have been removed. Orders bought as subscriptions before that
+  // keep the flags and details they were saved with; nothing new derives them.
+  const isSubscription = Boolean(existingOrder?.isSubscription ?? orderData.isSubscription ?? false);
+  const subscriptionDetails = existingOrder?.subscriptionDetails || orderData.subscriptionDetails || null;
+  const tags = Array.isArray(orderData.tags) ? orderData.tags : (existingOrder?.tags || ["Storefront", "Online Order"]);
 
   const formattedOrder = {
     id,
@@ -354,17 +106,15 @@ export async function saveSingleOrder(orderData: any) {
     subscriptionDetails,
     fulfillmentStatus: orderData.fulfillmentStatus || existingOrder?.fulfillmentStatus || 'Unfulfilled',
     paymentStatus: orderData.paymentStatus || existingOrder?.paymentStatus || (orderData.total === 0 ? 'Paid' : 'Pending'),
-    worldpayTxId: orderData.worldpayTxId || orderData.gatewayTxId || existingOrder?.worldpayTxId || null,
-    worldpayAuthCode: orderData.worldpayAuthCode || orderData.gatewayAuthCode || existingOrder?.worldpayAuthCode || null,
-    gatewayTxId: orderData.gatewayTxId || orderData.worldpayTxId || existingOrder?.gatewayTxId || null,
-    gatewayAuthCode: orderData.gatewayAuthCode || orderData.worldpayAuthCode || existingOrder?.gatewayAuthCode || null,
+    gatewayTxId: orderData.gatewayTxId || existingOrder?.gatewayTxId || null,
+    gatewayAuthCode: orderData.gatewayAuthCode || existingOrder?.gatewayAuthCode || null,
     cardBrand: orderData.cardBrand || existingOrder?.cardBrand || 'Card',
     total: typeof orderData.total === 'number' ? orderData.total : parseFloat(orderData.total) || existingOrder?.total || 0,
     subtotal: typeof orderData.subtotal === 'number' ? orderData.subtotal : (typeof existingOrder?.subtotal === 'number' ? existingOrder.subtotal : undefined),
     shippingCost: typeof orderData.shippingCost === 'number' ? orderData.shippingCost : (typeof orderData.deliveryCost === 'number' ? orderData.deliveryCost : (typeof existingOrder?.shippingCost === 'number' ? existingOrder.shippingCost : undefined)),
     deliveryCost: typeof orderData.deliveryCost === 'number' ? orderData.deliveryCost : (typeof orderData.shippingCost === 'number' ? orderData.shippingCost : (typeof existingOrder?.deliveryCost === 'number' ? existingOrder.deliveryCost : undefined)),
     storeCreditApplied: typeof orderData.storeCreditApplied === 'number' ? orderData.storeCreditApplied : parseFloat(orderData.storeCreditApplied) || existingOrder?.storeCreditApplied || 0,
-    destination: orderData.destination || orderData.address || existingOrder?.destination || 'United Kingdom',
+    destination: orderData.destination || orderData.address || existingOrder?.destination || 'India',
     // The address as separate fields, kept alongside the joined display string
     // so a shipping label can be produced without parsing it back apart.
     shippingAddress:
@@ -372,7 +122,7 @@ export async function saveSingleOrder(orderData: any) {
       existingOrder?.shippingAddress ||
       null,
     date: orderData.date || existingOrder?.date || (new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
-    deliveryMethod: orderData.deliveryMethod || existingOrder?.deliveryMethod || 'Royal Mail Tracked 24/48',
+    deliveryMethod: orderData.deliveryMethod || existingOrder?.deliveryMethod || 'Standard Delivery',
     subscriptionId: orderData.subscriptionId || existingOrder?.subscriptionId || null,
     // On a subscription renewal, the order the plan was first bought with, so the
     // admin can trace a renewal back to its origin. Kept on the order object
@@ -430,8 +180,8 @@ export async function saveSingleOrder(orderData: any) {
   //
   // This runs BEFORE persisting so the "already sent" marks are written in the
   // same save. A concurrent save for the same order then reads those marks and
-  // sends nothing, which is what makes the flow safe against the Worldpay
-  // callback and verify-payment call racing each other.
+  // sends nothing, which is what makes the flow safe against the payment
+  // webhook and the browser's verify call racing each other.
   // ------------------------------------------------------------------
   const alreadySent: Record<string, string> = formattedOrder.data.notificationsSent || {};
   const pending: Array<{ key: OrderNotificationKey; context: any }> = [];
@@ -575,30 +325,19 @@ router.get("/mine", requireCustomer, async (req: AdminRequest, res: Response) =>
   }
 });
 
-// GET single order by ID.
+// GET single order by ID: the order's own customer, or an admin.
 //
-// Deliberately still anonymous: the post-payment receipt has only the order id
-// from the Worldpay return URL, and a guest checkout has no account to
-// authenticate against. It therefore remains guessable by order id, which is a
-// far smaller exposure than the full list above but not nothing — closing it
-// properly needs a signed order-access token carried in the return URL.
-router.get("/:id", async (req: Request, res: Response) => {
+// This used to be anonymous (for the old payment return page), which made every order
+// (name, address, items) readable by guessing its id. Checkout confirmation now
+// uses /api/payments/status, which returns only non-personal fields.
+router.get("/:id", requireCustomer, async (req: AdminRequest, res: Response) => {
   try {
     const { id } = req.params;
     const orders: any[] = (await fetchResource("orders")) || [];
     const found = orders.find((o: any) => String(o.id) === String(id));
-    if (found) {
+    if (found && mayActOnCustomer(req, found.customerEmail)) {
       return res.json(found);
     }
-    
-    // Fallback to Prisma
-    try {
-      const { prisma } = await import('../../src/lib/prisma');
-      const prismaOrder = await prisma.order.findUnique({ where: { id } });
-      if (prismaOrder) {
-        return res.json(prismaOrder);
-      }
-    } catch (_e) {}
 
     res.status(404).json({ error: "Order not found" });
   } catch (err: any) {
@@ -639,149 +378,37 @@ router.put("/:id", requireAdmin, async (req: Request, res: Response) => {
 });
 
 // POST /create - Create a single order
-router.post("/create", async (req: Request, res: Response) => {
+// Admin-only. Storefront checkout creates orders through /api/payments, which
+// prices the basket on the server; accepting a priced order from the browser
+// here was a way to buy anything for any amount.
+router.post("/create", requireAdmin, async (req: Request, res: Response) => {
   try {
     const orderData = req.body;
     if (!orderData || typeof orderData !== 'object') {
       return res.status(400).json({ error: "Order data object is required" });
     }
 
-    // This endpoint is public: the storefront uses it for orders that need no
-    // card payment (store credit / fully discounted). It used to accept the
-    // whole order from the browser — paymentStatus, totals, and an
-    // `createdByAdmin` flag that skipped every check — and it upserted by id, so
-    // anyone could create a "Paid" order for anything, or overwrite a real one.
-    const bearerToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-    let adminCaller: string | null = null;
-    let customerCaller: string | null = null;
-    try {
-      const { verifyAdminToken, verifyCustomerToken } = await import('../services/adminAuth');
-      adminCaller = verifyAdminToken(bearerToken)?.sub || null;
-      customerCaller = adminCaller ? null : verifyCustomerToken(bearerToken)?.sub || null;
-    } catch (_authErr) {
-      // Auth not configured: treat the caller as anonymous.
+    // Creating, never overwriting: editing an existing order goes through PUT /:id.
+    const requestedId = String(orderData.id || orderData.orderId || '').trim();
+    if (requestedId) {
+      const existing = ((await fetchResource('orders')) || []).find((o: any) => String(o.id) === requestedId);
+      if (existing) return res.status(409).json({ error: 'An order with this reference already exists.' });
     }
 
-    let creditToDeduct = 0;
-    if (!adminCaller) {
-      delete orderData.isRenewal;
-      delete orderData.createdByAdmin;
-      // Internal bookkeeping (notificationsSent, credit markers) is server-owned.
-      delete orderData.data;
-      delete orderData.notificationsSent;
-
-      const requestedId = String(orderData.id || orderData.orderId || '').trim();
-      if (requestedId) {
-        const existing = ((await fetchResource('orders')) || []).find((o: any) => String(o.id) === requestedId);
-        if (existing) {
-          return res.status(409).json({ error: 'An order with this reference already exists.' });
-        }
-      }
-
-      const total = Number(orderData.total);
-      if (!Number.isFinite(total) || total !== 0) {
-        return res.status(400).json({
-          error: 'Orders that require payment are created by the payment gateway after the payment is verified, not by this endpoint.'
-        });
-      }
-      orderData.paymentStatus = 'Paid';
-
-      const credit = Number(orderData.storeCreditApplied) || 0;
-      if (credit < 0) return res.status(400).json({ error: 'Invalid store credit amount.' });
-      if (credit > 0) {
-        const email = String(orderData.customerEmail || '').trim().toLowerCase();
-        if (!customerCaller) {
-          return res.status(401).json({ error: 'Sign in to pay with store credit.' });
-        }
-        if (customerCaller !== email) {
-          return res.status(403).json({ error: 'Store credit can only be spent by the account that owns it.' });
-        }
-        creditToDeduct = Math.round(credit * 100) / 100;
-      }
+    if (orderData.shippingAddress && typeof orderData.shippingAddress === 'object') {
+      const check = validateIndiaAddress({ ...orderData.shippingAddress, phone: orderData.shippingAddress.phone || orderData.customerPhone });
+      if (!check.valid) return res.status(400).json({ error: check.errors[0], errors: check.errors });
+      orderData.shippingAddress = check.address;
     }
 
-    // Store-credit checkouts reach the order straight through this endpoint,
-    // bypassing the payment session, so the UK-only and phone rules are applied
-    // here as well. Orders created by staff or by the renewal worker carry a
-    // marker and are left alone — a renewal must never be blocked by a rule the
-    // original order already passed.
-    const isCustomerCheckout = !orderData.isRenewal && !orderData.createdByAdmin;
-    if (isCustomerCheckout) {
-      const address = (orderData.shippingAddress && typeof orderData.shippingAddress === 'object')
-        ? orderData.shippingAddress
-        : {};
-      const check = validateUkDelivery({
-        phone: orderData.customerPhone || address.phone,
-        postcode: address.postcode,
-        country: address.country || address.countryCode || UK_COUNTRY_NAME
-      });
-      if (!check.valid) {
-        return res.status(400).json({ error: check.errors[0], errors: check.errors });
-      }
-
-      // Store-credit checkouts never touch the payment session, so the
-      // one-per-customer limit has to be applied here too — otherwise a code
-      // refused at the card checkout is still spendable by paying with credit.
-      if (orderData.discountApplied) {
-        const usable = await checkDiscountUsable(
-          orderData.customerEmail,
-          orderData.discountApplied,
-          orderData.id || orderData.orderId
-        );
-        if (!usable.ok) {
-          console.warn(
-            `[Orders] Refused order ${orderData.id || orderData.orderId} for ` +
-              `${orderData.customerEmail}: discount already used on ${usable.priorOrderId}.`
-          );
-          return res.status(400).json({ error: usable.message });
-        }
-      }
+    if (orderData.discountApplied) {
+      const usable = await checkDiscountUsable(orderData.customerEmail, orderData.discountApplied, requestedId || undefined);
+      if (!usable.ok) return res.status(400).json({ error: usable.message });
     }
 
-    // Spend the credit on the server, atomically: the balance check and the
-    // decrement are one UPDATE, so two simultaneous checkouts cannot both spend
-    // the same credit. The browser used to deduct it by rewriting the customer
-    // record itself, which a shopper could simply skip.
-    if (creditToDeduct > 0) {
-      const email = String(orderData.customerEmail).trim().toLowerCase();
-      const { prisma } = await import('../../src/lib/prisma');
-      const result = await prisma.customer.updateMany({
-        where: { email, storeCredit: { gte: creditToDeduct } },
-        data: { storeCredit: { decrement: creditToDeduct } }
-      });
-      if (result.count !== 1) {
-        return res.status(400).json({ error: 'Your store credit balance does not cover this order.' });
-      }
-      // Keep the JSON mirror of this customer in step with the table.
-      try {
-        const list: any[] = (await fetchResource('customers')) || [];
-        const row = await prisma.customer.findUnique({ where: { email } });
-        const cust = list.find((c: any) => String(c.email || '').toLowerCase() === email);
-        if (cust && row) {
-          cust.storeCredit = row.storeCredit ?? 0;
-          await saveResource('customers', [cust]);
-        }
-      } catch (mirrorErr: any) {
-        console.warn('[Orders] Store credit mirror update failed:', mirrorErr?.message || mirrorErr);
-      }
-    }
-
-    let savedOrder: any;
-    try {
-      savedOrder = await saveSingleOrder(orderData);
-    } catch (saveErr) {
-      if (creditToDeduct > 0) {
-        // The order did not save, so the credit was not spent: give it back.
-        const { prisma } = await import('../../src/lib/prisma');
-        await prisma.customer
-          .updateMany({
-            where: { email: String(orderData.customerEmail).trim().toLowerCase() },
-            data: { storeCredit: { increment: creditToDeduct } }
-          })
-          .catch((e: any) => console.error('[Orders] CREDIT REFUND AFTER FAILED SAVE FAILED:', e?.message || e));
-      }
-      throw saveErr;
-    }
+    orderData.createdByAdmin = true;
+    orderData.currency = orderData.currency || 'INR';
+    const savedOrder = await saveSingleOrder(orderData);
     res.json({ success: true, order: savedOrder });
   } catch (err: any) {
     console.error("[Orders Router] POST /create Error:", err);
@@ -790,9 +417,8 @@ router.post("/create", async (req: Request, res: Response) => {
 });
 
 // POST / - Create or sync orders (accepts single order or array)
-// Bulk order sync (admin dashboard). Checkout does NOT use this: card orders are
-// written server-side from the Worldpay callback, and £0 orders go through
-// POST /create, so gating it costs the storefront nothing.
+// Bulk order sync (admin dashboard). Checkout does NOT use this: orders are
+// written server-side by /api/payments once the payment is verified.
 router.post("/", requireAdmin, async (req: Request, res: Response) => {
   try {
     const payload = req.body;
@@ -898,25 +524,38 @@ router.post("/:id/cancel", requireCustomer, async (req: AdminRequest, res: Respo
         if (cIdx !== -1) {
           customersList[cIdx].storeCredit = (customersList[cIdx].storeCredit || 0) + (order.total || 0);
           await saveResource("customers", customersList);
-          console.log(`[Cancel Order] Added £${order.total} store credit to ${order.customerEmail}`);
+          console.log(`[Cancel Order] Added ₹${order.total} store credit to ${order.customerEmail}`);
         }
       } catch (custErr) {
         console.warn("[Cancel Order] Failed to update customer store credit:", custErr);
       }
     } else {
-      // Process refund via Worldpay Payment Gateway if transaction ID is attached
-      if (order.worldpayTxId || order.gatewayTxId) {
+      // Refund the original payment. Only a refund the gateway accepted marks
+      // the order Refunded; anything else is recorded as pending so it is not
+      // reported to the customer as money returned when it was not.
+      const paidAmount = Math.max((Number(order.total) || 0) - (Number(order.storeCreditApplied) || 0), 0);
+      if (paidAmount > 0) {
         try {
-          const { refundWorldpayPayment } = await import("../services/worldpayRefund");
-          await refundWorldpayPayment({
-            order,
-            amount: order.total,
-            reason: `Customer cancellation: ${reason || "Changed mind"}`,
-            transactionId: order.worldpayTxId || order.gatewayTxId
-          });
-        } catch (wpErr) {
-          console.warn("[Cancel Order] Worldpay refund trigger notice:", wpErr);
+          const { refundOrderPayment } = await import("../services/payments/checkout");
+          const refund = await refundOrderPayment(String(order.id), paidAmount, `Customer cancellation: ${reason || "Changed mind"}`, "customer");
+          patch.refundDetails = { ...refund, refundedAt: new Date().toISOString() };
+          if (!refund.ok) {
+            patch.paymentStatus = "Refund Pending";
+            patch.refundReason = refund.message;
+          }
+        } catch (refundErr: any) {
+          patch.paymentStatus = "Refund Pending";
+          patch.refundReason = `Automatic refund failed: ${refundErr?.message || refundErr}`;
+          console.error(`[Cancel Order] Refund for ${order.id} failed:`, refundErr?.message || refundErr);
         }
+      }
+      // Credit that paid for part of the order goes back as credit.
+      const creditPart = Number(order.storeCreditApplied) || 0;
+      if (creditPart > 0) {
+        const { prisma } = await import("../../src/lib/prisma");
+        await prisma.customer
+          .updateMany({ where: { email: String(order.customerEmail || "").toLowerCase() }, data: { storeCredit: { increment: creditPart } } })
+          .catch((e: any) => console.error("[Cancel Order] Store credit return failed:", e?.message || e));
       }
     }
 
@@ -1123,7 +762,7 @@ router.post("/withdrawal", async (req: Request, res: Response) => {
       const { sendOrderCancelledEmail } = await import("../services/emailService");
       await sendOrderCancelledEmail(
         updatedOrder,
-        `Withdrawal requested for ${itemsToReturn.length} item(s), £${refundDue.toFixed(2)}. ` +
+        `Withdrawal requested for ${itemsToReturn.length} item(s), ₹${refundDue.toFixed(2)}. ` +
           `Our team will confirm your refund shortly.`
       );
     } catch (mailErr: any) {
@@ -1131,7 +770,7 @@ router.post("/withdrawal", async (req: Request, res: Response) => {
       console.error(`[Orders Router] Withdrawal email failed for ${order.id}:`, mailErr?.message);
     }
 
-    console.log(`[Orders Router] Withdrawal requested for ${order.id}: ${itemsToReturn.length} item(s), £${refundDue.toFixed(2)}.`);
+    console.log(`[Orders Router] Withdrawal requested for ${order.id}: ${itemsToReturn.length} item(s), ₹${refundDue.toFixed(2)}.`);
 
     return res.json({
       success: true,
@@ -1178,27 +817,31 @@ router.post("/:id/admin-action", requireAdmin, async (req: Request, res: Respons
         };
       }
 
-      // Execute the actual payment provider refund.
-      if (order.worldpayTxId || order.gatewayTxId) {
+      // Execute the actual payment provider refund. If the gateway does not
+      // accept it, nothing is saved and the admin sees why.
+      if (order.paymentStatus === "Refunded") {
+        return res.status(400).json({ error: "This order has already been refunded." });
+      }
+      if (amountToRefund > 0) {
+        const { refundOrderPayment } = await import("../services/payments/checkout");
+        let refundResult: any;
         try {
-          const { refundWorldpayPayment } = await import("../services/worldpayRefund");
-          const refundResult = await refundWorldpayPayment({
-            order,
-            amount: amountToRefund,
-            reason: reason || "Admin processed refund",
-            transactionId: order.worldpayTxId || order.gatewayTxId
-          });
-          patch.refundDetails = {
-            refundRef: refundResult.refundRef,
-            amount: refundResult.amount,
-            reason: reason || "Admin processed refund",
-            gatewayContacted: refundResult.gatewayContacted,
-            gatewayMessage: refundResult.message,
-            refundedAt: new Date().toISOString()
-          };
-        } catch (wpErr) {
-          console.warn("[Admin Action] Worldpay refund trigger notice:", wpErr);
+          refundResult = await refundOrderPayment(String(order.id), amountToRefund, reason || "Admin processed refund", (req as AdminRequest).admin?.email || "admin");
+        } catch (refundErr: any) {
+          return res.status(502).json({ error: refundErr?.message || "The refund could not be processed." });
         }
+        if (!refundResult.ok) {
+          return res.status(409).json({ error: refundResult.message, manual: true });
+        }
+        patch.refundDetails = {
+          refundRef: refundResult.refundId,
+          amount: refundResult.amount,
+          reason: reason || "Admin processed refund",
+          gatewayContacted: true,
+          gatewayMessage: refundResult.message,
+          refundedAt: new Date().toISOString()
+        };
+        if (!refundResult.fullyRefunded) patch.paymentStatus = "Partially Refunded";
       }
       // The refund email is emitted by the Paid -> Refunded transition in
       // saveSingleOrder; sending it here too duplicated it.
@@ -1215,10 +858,8 @@ router.post("/:id/admin-action", requireAdmin, async (req: Request, res: Respons
       runExchangeEmail = true;
 
     } else if (action === "mark_delivered") {
-      // Recorded by hand because nothing else can record it: Click & Drop is a
-      // despatch system and reports no delivery, and Royal Mail's Tracking API
-      // is not integrated. Until it is, a human confirming delivery is the only
-      // source of this fact.
+      // Recorded by hand: no courier integration reports delivery yet, so a
+      // human confirming it is the only source of this fact.
       //
       // Refused on a cancelled order — that is a contradiction, not a late
       // update. Already-Delivered is left to fall through: saveSingleOrder only

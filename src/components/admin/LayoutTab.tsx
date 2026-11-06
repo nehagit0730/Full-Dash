@@ -476,7 +476,6 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                     >
                       <optgroup label="Core Store Tabs">
                         <option value="frontend-home">Storefront Home</option>
-                        <option value="frontend-subscribe">Subscribe Builder</option>
                         <option value="frontend-shop">Shop Now grid</option>
                         <option value="frontend-brands">All Sweden Brands</option>
                         <option value="about">About us info</option>
@@ -571,7 +570,6 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                                 className="text-[10px] text-slate-400 font-semibold bg-transparent hover:bg-slate-100 p-0.5 rounded border-none cursor-pointer max-w-[150px]"
                               >
                                 <option value="frontend-home">Home</option>
-                                <option value="frontend-subscribe">Subscribe</option>
                                 <option value="frontend-shop">Shop grid</option>
                                 <option value="frontend-brands">Sweden Brands</option>
                                 <option value="about">About info</option>

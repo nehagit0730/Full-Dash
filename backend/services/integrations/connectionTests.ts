@@ -133,18 +133,6 @@ const tests: Record<string, () => Promise<TestResult>> = {
     return { ok: sub.ok, message: `UPI is routed through ${provider}: ${sub.message}` };
   },
 
-  async worldpay() {
-    const { values, mode } = await getIntegrationCredentials("worldpay");
-    const base =
-      (process.env.WORLDPAY_BASE_URL || "").replace(/\/+$/, "") ||
-      (mode === "live" ? "https://access.worldpay.com" : "https://try.access.worldpay.com");
-    const auth = Buffer.from(`${values.apiUsername}:${values.apiPassword}`).toString("base64");
-    const r = await http(`${base}/`, { headers: { Authorization: `Basic ${auth}`, Accept: "application/json" } });
-    if (r.status === 200) return { ok: true, message: `Worldpay (${base}) accepted the API credentials.` };
-    if (r.status === 401) return { ok: false, message: "Worldpay rejected the API username/password (401)." };
-    return { ok: false, message: `Worldpay returned HTTP ${r.status}.` };
-  },
-
   async shiprocket() {
     const { values } = await getIntegrationCredentials("shiprocket");
     const r = await http("https://apiv2.shiprocket.in/v1/external/auth/login", {
@@ -218,16 +206,6 @@ const tests: Record<string, () => Promise<TestResult>> = {
     } catch (err: any) {
       return { ok: false, message: err?.message || "AgeChecked base URL is invalid." };
     }
-  },
-
-  async royalmail() {
-    const { getRoyalMailSettings } = await import("../royalMailService");
-    const { checkRoyalMailConnection } = await import("../../../src/lib/royalMail");
-    const s = await getRoyalMailSettings();
-    const key = (s.apiKey || "").trim();
-    if (!key) return { ok: false, message: "No Click & Drop API key saved in the Royal Mail settings panel." };
-    await checkRoyalMailConnection(key);
-    return { ok: true, message: "Royal Mail Click & Drop accepted the API key." };
   },
 
   async klaviyo() {

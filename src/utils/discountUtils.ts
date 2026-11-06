@@ -51,9 +51,9 @@ export type LoyaltyTierId = 'bronze' | 'silver' | 'gold' | 'platinum';
 /**
  * How a milestone reward actually pays out:
  * - 'discount'      money off the order
- * - 'free-cans'     the customer picks N cans, each added to the order at £0
+ * - 'free-cans'     the customer picks N cans, each added to the order at ₹0
  * - 'free-shipping' the delivery charge is zeroed whatever option is chosen
- * - 'gift'          a non-catalogue item (mystery box, merch) ships at £0
+ * - 'gift'          a non-catalogue item (mystery box, merch) ships at ₹0
  * - 'choice'        the customer picks one of several rewards above
  */
 export type LoyaltyRewardKind = 'discount' | 'free-cans' | 'free-shipping' | 'gift' | 'choice';
@@ -79,7 +79,7 @@ export interface LoyaltyMilestoneDef {
   valueType?: 'Percentage' | 'Fixed amount';
   /**
    * Money taken off the subtotal. Deliberately 0 for 'free-cans' and 'gift'
-   * rewards: the can or gift is added as its own £0 line, so also discounting
+   * rewards: the can or gift is added as its own ₹0 line, so also discounting
    * the subtotal would pay the reward out twice.
    */
   valueAmount?: number;
@@ -161,11 +161,11 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     code: 'SILVER9',
     order: 9,
     tier: 'silver',
-    reward: '£5 Store Credit 🎁',
+    reward: '₹5 Store Credit 🎁',
     type: 'Amount off order',
     valueType: 'Fixed amount',
     valueAmount: 5.00,
-    details: '£5.00 Store Credit',
+    details: '₹5.00 Store Credit',
     kind: 'discount'
   },
   SILVER11: {
@@ -285,7 +285,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     code: 'PLATINUM_ODD',
     order: 31,
     tier: 'platinum',
-    reward: 'Odd order reward: choose 3 FREE cans, £10 Store Credit, Free Delivery, exclusive merchandise, or a Mystery Reward',
+    reward: 'Odd order reward: choose 3 FREE cans, ₹10 Store Credit, Free Delivery, exclusive merchandise, or a Mystery Reward',
     ...NO_MONEY_OFF,
     details: 'Platinum VIP odd-order reward',
     kind: 'choice',
@@ -300,9 +300,9 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
       },
       {
         id: 'credit',
-        label: '£10.00 Store Credit 💷',
+        label: '₹10.00 Store Credit 💷',
         kind: 'discount',
-        details: '£10.00 Store Credit',
+        details: '₹10.00 Store Credit',
         type: 'Amount off order',
         valueType: 'Fixed amount',
         valueAmount: 10.00
@@ -571,7 +571,7 @@ export function isFreeShippingReward(discount?: Discount | null): boolean {
     title.includes('BRONZE5') ||
     details.includes('free shipping') ||
     details.includes('free delivery') ||
-    details.includes('free royal mail')
+    details.includes('free tracked delivery')
   );
 }
 

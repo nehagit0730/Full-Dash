@@ -447,7 +447,7 @@ export default function CollectionEditor({
                           </span>
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-bold text-xs pr-4">
-                          £{p.price.toFixed(2)}
+                          ₹{p.price.toFixed(2)}
                         </td>
                         <td className="py-3 px-3.5 text-center">
                           <button
@@ -901,7 +901,7 @@ export default function CollectionEditor({
                       </div>
 
                       <div className="text-right">
-                        <span className="font-mono text-xs font-black text-slate-800">£{prod.price.toFixed(2)}</span>
+                        <span className="font-mono text-xs font-black text-slate-800">₹{prod.price.toFixed(2)}</span>
                         <div className="text-[8px] text-emerald-600 font-black tracking-widest mt-1 uppercase">✓ IN CATALOG</div>
                       </div>
                     </div>

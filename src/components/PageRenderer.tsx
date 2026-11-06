@@ -7,7 +7,6 @@ import {
   Truck, Zap, Shield, Clock, Package, HelpCircle, Globe, Tag, ChevronLeft, ChevronRight, Lock, Gift, RefreshCw, Snowflake, Crown, Percent, Calendar, Send, Mail, Phone, MapPin, AlertCircle, Loader2
 } from 'lucide-react';
 import PremiumSlideshow from './PremiumSlideshow';
-import PlansCanOverlay from './PlansCanOverlay';
 import { useRecaptcha } from '../hooks/useRecaptcha';
 
 interface BrandsWeOfferSectionProps {
@@ -163,263 +162,6 @@ function BrandsWeOfferSection({ sec, handleLinkClick }: BrandsWeOfferSectionProp
   );
 }
 
-interface PlansSectionProps {
-  sec: PageSection;
-  handleLinkClick: (link?: string) => void;
-}
-
-function PlansSection({ sec, handleLinkClick }: PlansSectionProps) {
-  const settings = sec.settings;
-  const bgColor = settings.backgroundColor || '#061229';
-  const title = settings.title || 'CHOOSE YOUR PLAN';
-  const description = settings.description || 'Flexible subscriptions. Premium brands. Serious savings.';
-  const alertBadgeText = settings.alertBadgeText || 'Most customers save up to £55/month';
-  const promoText = settings.promoBannerText || '★ FIRST 50 CUSTOMERS - Get 10% OFF YOUR FIRST ORDER >';
-
-  // Default plans fallback
-  const plans = settings.planItems || [
-    {
-      slug: 'lite',
-      name: 'LITE',
-      subtitle: 'Best for getting started',
-      price: 27.99,
-      limit: 6,
-      saveAmountText: 'Save £5.00/month',
-      imageUrl: '',
-      features: ['6 premium cans', 'Flexible delivery', 'Change flavours anytime', 'Skip or pause anytime'],
-      isPopular: false
-    },
-    {
-      slug: 'core',
-      name: 'CORE',
-      subtitle: 'Most flexible',
-      price: 35.99,
-      limit: 8,
-      saveAmountText: 'Save £10.00/month',
-      imageUrl: '',
-      features: ['8 premium cans', 'Lower price per can', 'Change or swap brands', 'Skip or pause anytime'],
-      isPopular: false
-    },
-    {
-      slug: 'pro',
-      name: 'PRO',
-      subtitle: 'Best value',
-      price: 40.99,
-      limit: 10,
-      saveAmountText: 'Save £14.00/month',
-      imageUrl: '',
-      features: ['10 premium cans', 'FREE delivery 📦', 'Best price per can', 'Loyalty rewards boost', 'Skip or pause anytime'],
-      isPopular: true
-    },
-    {
-      slug: 'ultimate',
-      name: 'ULTIMATE',
-      subtitle: 'Maximum savings',
-      price: 46.99,
-      limit: 12,
-      saveAmountText: 'Save £19.00/month',
-      imageUrl: '',
-      features: ['12 premium cans', 'FREE delivery 📦', 'Lowest price per can', '£3.80 for any extra can', 'Skip or pause anytime'],
-      extraText: '£3.80 FOR ANY ADDITIONAL CAN',
-      isPopular: false
-    }
-  ];
-
-  // Map click of Choose Plan to navigate straight to the subscribe wizard with that plan
-  const handleSelectPlan = (plan: any) => {
-    const targetLink = plan.buttonLink && plan.buttonLink.trim() !== ''
-      ? plan.buttonLink
-      : `/pages/subscribe/${plan.slug}`;
-    handleLinkClick(targetLink);
-  };
-
-  return (
-    <div className="w-full text-white py-8 px-4" style={{ backgroundColor: bgColor }}>
-      <div className="max-w-7xl mx-auto space-y-12">
-        {/* Top Promo Banner Pill */}
-        {promoText && (
-          <div className="flex justify-center">
-            <div className="inline-flex items-center gap-2 bg-[#dfb55a]/10 border border-[#dfb55a]/30 text-[#dfb55a] px-5 py-2 rounded-full text-xs font-black tracking-widest uppercase shadow-md animate-pulse">
-              <Crown className="w-3.5 h-3.5" />
-              <span>{promoText}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Section Header */}
-        <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <h2 className="text-4.5xl md:text-5xl font-black tracking-tight uppercase leading-none font-sans">
-            {title.includes('PLAN') ? (
-              <>
-                {title.substring(0, title.lastIndexOf('PLAN'))}
-                <span className="text-[#dfb55a]">{title.substring(title.lastIndexOf('PLAN'))}</span>
-              </>
-            ) : (
-              title
-            )}
-          </h2>
-          <p className="text-slate-400 text-sm md:text-base font-medium max-w-lg mx-auto">
-            {description}
-          </p>
-
-          {/* Savings Alert Badge */}
-          {alertBadgeText && (
-            <div className="inline-flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-full text-[11px] font-bold text-emerald-400">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{alertBadgeText}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Cycle Switcher Placeholder for Design Aesthetic */}
-        <div className="flex justify-center">
-          <div className="bg-slate-950 p-1.5 rounded-full border border-slate-800 flex items-center gap-1">
-            <button className="px-5 py-2 rounded-full text-xs font-bold text-slate-400 hover:text-white transition-colors">
-              Weekly
-            </button>
-            <button className="px-5 py-2 rounded-full text-xs font-black bg-[#dfb55a] text-slate-950 shadow-md">
-              Every 2 Weeks <span className="text-[9px] opacity-75 font-bold ml-1">(POPULAR)</span>
-            </button>
-            <button className="px-5 py-2 rounded-full text-xs font-bold text-slate-400 hover:text-white transition-colors">
-              Monthly
-            </button>
-          </div>
-        </div>
-
-        {/* 4-Tier Plan Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
-          {plans.map((plan: any) => {
-            const isPopular = plan.isPopular;
-            return (
-              <div 
-                key={plan.slug}
-                className={`bg-white text-slate-900 rounded-3xl p-6 flex flex-col justify-between relative shadow-2xl transition-all duration-300 hover:scale-[1.03] ${
-                  isPopular ? 'ring-4 ring-[#dfb55a]' : 'border border-slate-150'
-                }`}
-              >
-                {/* Floating Ribbon for highlighted / popular tier */}
-                {isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#dfb55a] text-slate-950 font-black text-[10px] tracking-widest uppercase px-5 py-1.5 rounded-full shadow-lg flex items-center gap-1 z-20">
-                    <Flame className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>Best Seller</span>
-                  </div>
-                )}
-
-                <div className="space-y-5">
-                  {/* Card Title Header */}
-                  <div className="text-center">
-                    <h3 className="text-2xl font-black tracking-widest uppercase text-slate-950 leading-none">
-                      {plan.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-wider">
-                      {plan.subtitle}
-                    </p>
-                  </div>
-
-                  {/* Plan image wrapper - uses dynamic custom image if uploaded, or high-fidelity canister overlap */}
-                  <div className="relative h-44 w-full bg-transparent overflow-hidden flex items-center justify-center p-2">
-                    {plan.imageUrl ? (
-                      <img 
-                        src={cleanMediaUrl(plan.imageUrl)} 
-                        alt={plan.name} 
-                        className="w-full h-full object-contain pointer-events-none rounded-xl"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <PlansCanOverlay type={plan.slug} className="w-full h-full bg-transparent border-0 shadow-none p-0" />
-                    )}
-                  </div>
-
-                  {/* Pricing Details */}
-                  <div className="text-center pt-2 border-t border-slate-100 space-y-1">
-                    <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                      Includes {plan.limit} Cans
-                    </div>
-                    <div className="text-3xl font-black text-slate-950 tracking-tight leading-none">
-                      £{plan.price.toFixed(2)}
-                      <span className="text-xs text-slate-450 font-bold tracking-normal block mt-1 uppercase">
-                        per delivery
-                      </span>
-                    </div>
-
-                    {plan.saveAmountText && (
-                      <div className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-black tracking-wide uppercase px-3 py-1 rounded-full border border-emerald-100 mt-2">
-                        <Tag className="w-3 h-3 fill-emerald-100" />
-                        <span>{plan.saveAmountText}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bullets feature list */}
-                  <div className="space-y-2 pt-4 border-t border-slate-100">
-                    {plan.features && plan.features.map((feat: string, idx: number) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-slate-600">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Ultimate plan extra ribbon indicator */}
-                <div className="mt-6 space-y-3">
-                  {plan.extraText ? (
-                    <div className="text-center py-1.5 bg-rose-50 text-rose-600 font-extrabold text-[9px] tracking-widest uppercase rounded-full border border-rose-100">
-                      {plan.extraText}
-                    </div>
-                  ) : (
-                    <div className="h-6" />
-                  )}
-
-                  <button
-                    onClick={() => handleSelectPlan(plan)}
-                    className={`w-full py-3.5 px-6 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 group ${
-                      isPopular 
-                        ? 'bg-[#dfb55a] text-slate-950 hover:bg-[#cf9e42] shadow-amber-500/10' 
-                        : 'bg-slate-950 text-white hover:bg-slate-850'
-                    }`}
-                  >
-                    <span>Choose Plan</span>
-                    <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Dynamic footer trust badges or steps bar for thePlans page */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-12 border-t border-slate-800 text-center text-[10px] font-black tracking-widest text-slate-400 uppercase">
-          <div className="flex flex-col items-center gap-1.5">
-            <Lock className="w-5 h-5 text-[#dfb55a]" />
-            <span>SECURE CHECKOUT</span>
-          </div>
-          <div className="flex flex-col items-center gap-1.5">
-            <Truck className="w-5 h-5 text-[#dfb55a]" />
-            <span>ROYAL MAIL TRACKED</span>
-          </div>
-          <div className="flex flex-col items-center gap-1.5">
-            <Gift className="w-5 h-5 text-[#dfb55a]" />
-            <span>LOYALTY REWARDS</span>
-          </div>
-          <div className="flex flex-col items-center gap-1.5">
-            <RefreshCw className="w-5 h-5 text-[#dfb55a]" />
-            <span>SKIP ANYTIME</span>
-          </div>
-          <div className="col-span-2 md:col-span-1 flex flex-col items-center gap-1.5">
-            <Clock className="w-5 h-5 text-[#dfb55a]" />
-            <span>CANCEL ANYTIME</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface HowItWorksSectionProps {
   sec: PageSection;
   handleLinkClick: (link?: string) => void;
@@ -461,7 +203,7 @@ function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
               <span className="text-[8px] font-black tracking-wider text-slate-400">LITE</span>
               <div className="my-1 text-center">
                 <span className="block text-[11px] font-black text-slate-800 leading-tight">5 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">£27.99</span>
+                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹27.99</span>
                 <span className="text-[7px] text-slate-400 block -mt-0.5">per month</span>
               </div>
             </div>
@@ -471,7 +213,7 @@ function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
               <span className="text-[8px] font-black tracking-wider text-slate-450">CORE</span>
               <div className="my-1 text-center">
                 <span className="block text-[11px] font-black text-slate-800 leading-tight">8 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">£35.99</span>
+                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹35.99</span>
                 <span className="text-[7px] text-slate-400 block -mt-0.5">per month</span>
               </div>
             </div>
@@ -484,7 +226,7 @@ function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
               <span className="text-[8px] font-black tracking-wider text-white mt-1.5">PRO</span>
               <div className="my-1 text-center">
                 <span className="block text-[11px] font-black text-white leading-tight">10 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">£40.99</span>
+                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹40.99</span>
                 <span className="text-[7px] text-slate-350 block -mt-0.5">per month</span>
               </div>
               <span className="text-[4px] font-bold text-emerald-400 tracking-wider uppercase">FREE DEV</span>
@@ -495,7 +237,7 @@ function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
               <span className="text-[8px] font-black tracking-wider text-slate-450">ULTIMATE</span>
               <div className="my-1 text-center">
                 <span className="block text-[11px] font-black text-slate-800 leading-tight">12 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">£46.99</span>
+                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹46.99</span>
                 <span className="text-[7px] text-slate-400 block -mt-0.5">per month</span>
               </div>
               <span className="text-[4px] font-bold text-[#D4AF37] tracking-wider uppercase">FREE DEV</span>
@@ -721,14 +463,14 @@ function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
         {/* Reassurance Objections Grid */}
         <div className="max-w-6xl mx-auto pt-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_12px_40px_rgba(147,197,253,0.04)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 divide-y sm:divide-y-0 lg:divide-y-0 lg:divide-x divide-slate-100">
-            {/* CANCEL ANYTIME */}
+            {/* EASY RETURNS */}
             <div className="flex items-center gap-4 py-4 sm:py-2 md:px-4 first:pt-0 sm:first:pt-2 justify-center lg:justify-start">
               <div className="shrink-0 p-3 rounded-xl bg-slate-50 flex items-center justify-center text-slate-800 shadow-2xs">
                 <ShieldCheck className="h-6 w-6 text-slate-800" />
               </div>
               <div className="text-left">
                 <h4 className="text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                  CANCEL ANYTIME
+                  EASY RETURNS
                 </h4>
                 <p className="text-[11px] text-slate-400 font-bold leading-normal">
                   No ties, no fuss. You're in control.
@@ -788,10 +530,10 @@ function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
           <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Ready to get started?</h4>
           <button
             type="button"
-            onClick={() => handleLinkClick('/pages/subscribe')}
+            onClick={() => handleLinkClick('/collections/all')}
             className="px-8 py-4 bg-[#D4AF37] hover:bg-[#bfa032] active:scale-98 transition-all duration-300 text-white font-extrabold uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg shadow-amber-500/10 cursor-pointer flex items-center gap-2"
           >
-            Start your subscription
+            Shop now
             <ArrowRight className="h-4 w-4 stroke-[2.5]" />
           </button>
           
@@ -950,8 +692,8 @@ function ClearanceSaleSection({
                 <div className="space-y-3 pt-3 border-t border-red-50">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-base font-black text-red-650 font-mono">£{clearancePrice.toFixed(2)}</span>
-                      <span className="text-xs line-through text-slate-400 font-mono">£{prod.price.toFixed(2)}</span>
+                      <span className="text-base font-black text-red-650 font-mono">₹{clearancePrice.toFixed(2)}</span>
+                      <span className="text-xs line-through text-slate-400 font-mono">₹{prod.price.toFixed(2)}</span>
                     </div>
                     <p className="text-[10px] text-emerald-600 font-extrabold mt-0.5">
                       Immediate Stock Dispatch
@@ -1100,14 +842,14 @@ function FeaturedCollectionSection({
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f59e0b]">
-              NOT READY TO SUBSCRIBE?
+              NEW HERE?
             </span>
           </div>
           <h2 
             className="text-3xl md:text-4xl font-black uppercase tracking-tight text-[#0F172A]"
             style={{ color: sec.settings.headingColor || '#0f172a' }}
           >
-            {sec.settings.title || (selectedColl ? selectedColl.title : 'Try Before You Subscribe')}
+            {sec.settings.title || (selectedColl ? selectedColl.title : 'Start With Our Favourites')}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-medium">
             {sec.settings.description || (selectedColl && selectedColl.description ? selectedColl.description : 'Find your favourite flavours before committing to a plan.')}
@@ -1254,25 +996,9 @@ function FeaturedCollectionSection({
                 <div className="space-y-3 pt-3 border-t border-slate-55">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-base font-black text-slate-900 font-mono">£{prod.price.toFixed(2)}</span>
+                      <span className="text-base font-black text-slate-900 font-mono">₹{prod.price.toFixed(2)}</span>
                       <span className="text-[9.5px] text-slate-400 font-semibold uppercase">each</span>
                     </div>
-                    {/* Subscription nudge right under price */}
-                    <p className="text-[10px] text-[#D4AF37] font-extrabold mt-0.5">
-                      Subscribers from <span className="font-mono">£3.80</span>
-                    </p>
-                  </div>
-
-                  {/* Save more with Subscription gentle badge and link */}
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onNavigate('frontend-subscribe');
-                    }}
-                    className="w-full bg-[#FAFAFA] hover:bg-amber-50 hover:border-amber-200 transition-all border border-slate-100 py-2 px-2.5 rounded-xl flex items-center justify-between text-[9px] text-slate-500 font-bold cursor-pointer font-sans"
-                  >
-                    <span className="text-[#B45309]">Save up to 20% with Sub</span>
-                    <span className="text-slate-700 underline flex items-center gap-0.5 hover:text-indigo-600 font-extrabold">Compare Plans →</span>
                   </div>
 
                   {/* Dynamic checkout/basket button */}
@@ -1314,7 +1040,7 @@ function FeaturedCollectionSection({
           <div>
             <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Want the best value?</h3>
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed font-medium">
-              Subscribe and save up to <span className="font-bold text-slate-800">£55/month</span>. Never run out. Cancel anytime.
+              Free delivery on qualifying orders. Secure checkout with UPI, cards and netbanking.
             </p>
           </div>
         </div>
@@ -1327,7 +1053,7 @@ function FeaturedCollectionSection({
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Change Anytime</span>
+            <span>Easy Returns</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1335,10 +1061,10 @@ function FeaturedCollectionSection({
           </div>
           
           <button
-            onClick={() => onNavigate('frontend-subscribe')}
+            onClick={() => onNavigate('frontend-shop')}
             className="bg-amber-500 hover:bg-amber-600 hover:scale-[1.01] active:scale-95 text-white font-black text-xs py-2.5 px-5 rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1 ml-2 uppercase tracking-wider"
           >
-            <span>View Plans</span>
+            <span>Shop All</span>
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
@@ -1564,7 +1290,6 @@ function ContactFormSection({ sec }: ContactFormSectionProps) {
                       <option value="">Select Inquiry Topic...</option>
                       <option value="Order Tracking & Shipping">Order Tracking & Shipping</option>
                       <option value="Product & Brand Advice">Product & Brand Advice</option>
-                      <option value="Subscription & Recurring Delivery">Subscription & Recurring Delivery</option>
                       <option value="Age Verification Query">Age Verification Query</option>
                       <option value="Wholesale & Bulk Orders">Wholesale & Bulk Orders</option>
                       <option value="General Support">General Support</option>
@@ -1672,8 +1397,8 @@ export default function PageRenderer({
       return;
     }
     if (trimmed.includes('subscribe')) {
-      const targetSub = trimmed.startsWith('/') ? trimmed : (trimmed.startsWith('pages/') ? `/${trimmed}` : `/pages/${trimmed}`);
-      onNavigate('frontend-subscribe', targetSub);
+      // Subscriptions were removed; any saved link to them goes to the shop.
+      onNavigate('frontend-shop');
       return;
     }
     if (trimmed === 'frontend-brands' || trimmed === '/brands' || trimmed === '/pages/brands') {
@@ -1976,7 +1701,7 @@ export default function PageRenderer({
 
                   const cleanedVideoUrl = cleanMediaUrl(videoSource);
                   const titleInput = sec.settings.title || 'YOUR NICOTINE, ON AUTOPILOT.';
-                  const descInput = sec.settings.description || 'Premium nicotine pouch subscriptions. Your favourite brands. Delivered your way.';
+                  const descInput = sec.settings.description || 'Your favourite brands, delivered to your door.';
 
                   return (
                     <div className="relative w-full overflow-hidden bg-slate-950 text-white flex flex-col justify-between min-h-[520px] md:min-h-[620px]">
@@ -2044,11 +1769,11 @@ export default function PageRenderer({
                             {/* Primary Button */}
                             <button
                               type="button"
-                              onClick={() => handleLinkClick(sec.settings.buttonLink || 'frontend-subscribe')}
+                              onClick={() => handleLinkClick(sec.settings.buttonLink || 'frontend-shop')}
                               className="bg-[#dfa047] hover:bg-[#c98e3b] text-white font-extrabold py-4 px-8 rounded-xl transition-all duration-300 flex flex-col items-center justify-center cursor-pointer shadow-xl active:scale-95 group shrink-0"
                             >
                               <span className="text-[13px] font-black tracking-widest uppercase">
-                                {sec.settings.buttonText || 'SUBSCRIBE & SAVE'}
+                                {sec.settings.buttonText || 'SHOP NOW'}
                               </span>
                               <span className="text-[10px] text-white/90 font-semibold mt-0.5">Automated hassle-free delivery</span>
                             </button>
@@ -2115,7 +1840,7 @@ export default function PageRenderer({
                             <Truck className="h-5.5 w-5.5 text-white shrink-0" />
                             <div>
                               <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">FREE UK DELIVERY</p>
-                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">On orders £40+</p>
+                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">On orders ₹40+</p>
                             </div>
                           </div>
 
@@ -2287,7 +2012,7 @@ export default function PageRenderer({
 
                 {/* 6. MARQUEE TEXT */}
                 {sec.type === 'Marquee text' && (() => {
-                  const rawText = sec.settings.title || 'DELIVERY // CANCEL ANYTIME // LOYALTY SCHEME // NEVER RUN OUT // DELIVERED ON YOUR SCHEDULE // SAVE VS. SHOP PRICES // DISCREET DELIVERY';
+                  const rawText = sec.settings.title || 'FAST DELIVERY // EASY RETURNS // LOYALTY REWARDS // SECURE CHECKOUT // UPI & CARDS ACCEPTED';
                   const items = rawText.includes('//') 
                     ? rawText.split('//').map(item => item.trim()).filter(Boolean)
                     : rawText.includes('•')
@@ -2568,9 +2293,9 @@ export default function PageRenderer({
                                 <div className="flex items-center justify-between">
                                   <span className="text-[9px] font-black uppercase text-slate-400 tracking-wide">Single Tin</span>
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-black text-slate-900 font-mono">£{prod.price.toFixed(2)}</span>
+                                    <span className="text-xs font-black text-slate-900 font-mono">₹{prod.price.toFixed(2)}</span>
                                     {prod.compareAtPrice > prod.price && (
-                                      <span className="text-[9.5px] text-slate-405 line-through font-mono">£{prod.compareAtPrice.toFixed(2)}</span>
+                                      <span className="text-[9.5px] text-slate-405 line-through font-mono">₹{prod.compareAtPrice.toFixed(2)}</span>
                                     )}
                                   </div>
                                 </div>
@@ -2638,9 +2363,9 @@ export default function PageRenderer({
                                 : (sec.settings.faqItems && sec.settings.faqItems.length > 0) ? sec.settings.faqItems
                                 : null;
                   const faqsToRender = rawList || [
-                    { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time Royal Mail tracking codes emailed instantly upon fulfillment lines dispatch.' },
+                    { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon fulfillment lines dispatch.' },
                     { q: 'Are these pouches 100% tobacco-free?', a: 'Under all current EU & UK reseller regulations, our catalog consists strictly of plant-fiber pouch variants utilizing medical crystalline formats.' },
-                    { q: 'How long do subscriptions repeat?', a: 'Your tailored canister bundles renew automatically at your specific week layouts. Pause, skip custom flavors, or cancel anytime for free in the account dashboard.' },
+                    { q: 'Can I return an item?', a: 'Yes. Contact us within the return window in our refund policy and we will arrange it.' },
                     { q: 'Where are the canisters formulated?', a: 'Formulated in certified European laboratories under strict vacuum sterile protocols, ensuring consistent aroma and maximum flavor lock.' }
                   ];
 
@@ -2896,10 +2621,6 @@ export default function PageRenderer({
                   <HowItWorksSection sec={sec} handleLinkClick={handleLinkClick} />
                 )}
 
-                {/* 19. SUBSCRIPTION PLANS */}
-                {sec.type === 'Plans' && (
-                  <PlansSection sec={sec} handleLinkClick={handleLinkClick} />
-                )}
 
                 {/* 16. ICON WITH TEXT */}
                 {sec.type === 'Icon with text' && (() => {
@@ -2927,7 +2648,7 @@ export default function PageRenderer({
                     if (normIcon.includes('zap') || normTitle.includes('save') || normTitle.includes('price') || normTitle.includes('month')) {
                       return {
                         title: 'SAVE EVERY MONTH',
-                        desc: 'Save up to £55/month compared to buying in-store.',
+                        desc: 'Save up to ₹55/month compared to buying in-store.',
                         benefits: ['Better prices', 'Big savings', 'More value'],
                         iconName: 'Zap'
                       };
@@ -2942,7 +2663,7 @@ export default function PageRenderer({
                     }
                     if (normIcon.includes('clock') || normTitle.includes('cancel') || normTitle.includes('commitment') || normTitle.includes('anytime')) {
                       return {
-                        title: 'CANCEL ANYTIME',
+                        title: 'EASY RETURNS',
                         desc: 'Pause, speed up, slow down, or end your plan anytime in one click.',
                         benefits: ['Zero commitment', 'No hidden fees', 'Instant update'],
                         iconName: 'Clock'

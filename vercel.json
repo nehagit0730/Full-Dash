@@ -18,23 +18,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/worldpay/reconcile-pending",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/subscriptions/cron",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/royalmail/sync-pending",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/recycle-bin/purge-expired",
-      "schedule": "0 3 * * *"
-    }
   ]
 }

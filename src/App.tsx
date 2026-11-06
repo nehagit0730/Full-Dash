@@ -25,8 +25,6 @@ import ComingSoon from './components/ComingSoon';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProductsGrid from './components/ProductsGrid';
-import SubscriptionBuilder from './components/SubscriptionBuilder';
-import type { SubscriptionSelection } from './components/SubscriptionBuilder';
 import BrandList from './components/BrandList';
 import CustomerAccount from './components/CustomerAccount';
 import CartDrawer from './components/CartDrawer';
@@ -43,14 +41,11 @@ import CollectionDetailView from './components/CollectionDetailView';
 import CheckoutView from './components/CheckoutView';
 import { FolderStructureView } from './components/FolderStructureView';
 import { parseOrderTime } from './utils';
-import { SecureGatewaySimulator, PaymentSuccessScreen, PaymentFailedScreen, PaymentCancelledScreen } from './components/PaymentStatusScreens';
 import { 
   Sparkles, ShieldCheck, Truck, RefreshCw, Star, ArrowRight, Package, ShoppingCart, Check, Heart, User, CheckCircle2, Save, AlertTriangle, Search, Undo, Mail, X
 } from 'lucide-react';
 import OrderWithdrawalModal from './components/OrderWithdrawalModal';
 import { cleanMediaUrl } from './utils/mediaUtils';
-import { getPlanImage } from './utils/planImages';
-import { formatSubscriptionItemDisplay } from './utils/subscriptionParser';
 import { 
   initializeKlaviyo,
   initKlaviyo, 
@@ -257,7 +252,6 @@ export default function App() {
       cloudinaryApiSecret: '',
       menuItems: [
         { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },
-        { id: '2', label: 'Subscribe', tab: 'frontend-subscribe', type: 'tab' },
         { id: '3', label: 'Shop Now', tab: 'frontend-shop', type: 'tab' },
         { id: '4', label: 'All Brands', tab: 'frontend-brands', type: 'tab' },
         { id: '5', label: 'About', tab: 'about', type: 'tab' },
@@ -315,13 +309,6 @@ export default function App() {
       const defaultHome = DEFAULT_PAGES.find((p: any) => p.isHomepage);
       if (defaultHome) {
         finalPages = [defaultHome, ...finalPages];
-      }
-    }
-    // Guaranteed presence check for Subscribe page
-    if (!finalPages.some((p: any) => p && p.slug === 'subscribe')) {
-      const defaultSub = DEFAULT_PAGES.find((p: any) => p.slug === 'subscribe');
-      if (defaultSub) {
-        finalPages = [...finalPages, defaultSub];
       }
     }
     // Guaranteed presence check for Brands page
@@ -622,10 +609,6 @@ export default function App() {
               }
             });
 
-            if (!combined.some(p => p && p.slug === 'subscribe')) {
-              const defaultSub = DEFAULT_PAGES.find(p => p.slug === 'subscribe');
-              if (defaultSub) combined = [...combined, defaultSub];
-            }
             if (!combined.some(p => p && p.slug === 'brands')) {
               const defaultBrands = DEFAULT_PAGES.find(p => p.slug === 'brands');
               if (defaultBrands) combined = [...combined, defaultBrands];
@@ -866,7 +849,9 @@ export default function App() {
   };
 
   // Unified SPA navigation helper mapping state shifts to matching browser URLs
-  const navigateToTab = (tab: string, productId?: string, collectionId?: string) => {
+  const navigateToTab = (rawTab: string, productId?: string, collectionId?: string) => {
+    // Subscriptions were removed; saved menus or links that still point there go to the shop.
+    const tab = rawTab === 'frontend-subscribe' || /(^|\/)subscribe(\/|$)/.test(rawTab) ? 'frontend-shop' : rawTab;
     let url = '/';
     let targetTab = tab;
 
@@ -876,13 +861,6 @@ export default function App() {
       url = '/collections/all';
     } else if (tab === 'frontend-brands') {
       url = '/pages/brands';
-    } else if (tab === 'frontend-subscribe' && !productId) {
-      url = '/pages/subscribe';
-    } else if (tab.includes('subscribe') || (tab === 'frontend-subscribe' && productId)) {
-      const subPath = productId || tab;
-      const cleanSub = subPath.startsWith('/') ? subPath : (subPath.startsWith('pages/') ? `/${subPath}` : `/pages/${subPath.startsWith('subscribe') ? subPath : `subscribe/${subPath}`}`);
-      url = cleanSub;
-      targetTab = 'frontend-subscribe';
     } else if (tab === 'frontend-account') {
       url = '/pages/account';
     } else if (tab === 'frontend-checkout') {
@@ -939,10 +917,9 @@ export default function App() {
 
   // Helper for handling navigation requests from custom page section renderers
   const handlePageRendererNavigate = (target: string, arg?: string) => {
-    if (target === 'frontend-subscribe' && arg) {
-      navigateToTab('frontend-subscribe', arg);
-    } else if (target.includes('subscribe')) {
-      navigateToTab('frontend-subscribe', target);
+    if (target.includes('subscribe')) {
+      // Subscriptions were removed; old links to them land on the shop.
+      navigateToTab('frontend-shop');
     } else if (target === 'product-detail' && arg) {
       navigateToTab('product-detail', arg);
     } else if (target === 'collection-detail' && arg) {
@@ -1007,21 +984,6 @@ export default function App() {
       setIsAdminActive(prev => (prev === nextAdminState ? prev : nextAdminState));
       if (nextAdminState) return;
 
-      if (path.startsWith('/payment/')) {
-        const sub = path.replace('/payment/', '');
-        if (sub.startsWith('gateway') || sub.startsWith('worldpay') || sub.startsWith('hpp')) {
-          setCurrentTab(prev => (prev === 'payment-gateway' ? prev : 'payment-gateway'));
-        } else if (sub.startsWith('success')) {
-          setCartItems([]);
-          localStorage.removeItem('ps_cart');
-          setCurrentTab(prev => (prev === 'payment-success' ? prev : 'payment-success'));
-        } else if (sub.startsWith('failed')) {
-          setCurrentTab(prev => (prev === 'payment-failed' ? prev : 'payment-failed'));
-        } else if (sub.startsWith('cancelled')) {
-          setCurrentTab(prev => (prev === 'payment-cancelled' ? prev : 'payment-cancelled'));
-        }
-        return;
-      }
 
       if (path === '/' || path === '' || path === '/home' || path === '/home/' || path === '/homepage') {
         setCurrentTab(prev => (prev === 'frontend-home' ? prev : 'frontend-home'));
@@ -1038,7 +1000,7 @@ export default function App() {
         if (slug === 'home' || slug === 'homepage' || slug === '') {
           setCurrentTab(prev => (prev === 'frontend-home' ? prev : 'frontend-home'));
         } else if (slug === 'subscribe' || slug.startsWith('subscribe/')) {
-          setCurrentTab(prev => (prev === 'frontend-subscribe' ? prev : 'frontend-subscribe'));
+          setCurrentTab(prev => (prev === 'frontend-shop' ? prev : 'frontend-shop'));
         } else if (slug === 'brands') {
           setCurrentTab(prev => (prev === 'frontend-brands' ? prev : 'frontend-brands'));
         } else if (slug === 'account' || slug.startsWith('account/')) {
@@ -1112,8 +1074,6 @@ export default function App() {
           url = '/collections/all';
         } else if (currentTab === 'frontend-brands') {
           url = '/pages/brands';
-        } else if (currentTab === 'frontend-subscribe') {
-          url = '/pages/subscribe';
         } else if (currentTab === 'frontend-account') {
           url = '/pages/account';
         } else if (currentTab === 'blogs') {
@@ -1369,7 +1329,7 @@ export default function App() {
           fresh.subscriptionStatus !== loggedInCustomer.subscriptionStatus ||
           JSON.stringify(fresh.wishlist || []) !== JSON.stringify(loggedInCustomer.wishlist || []);
         if (hasDiff) {
-          console.log(`[Sync Engine] Synchronizing loggedInCustomer state with master customers list. Store credit: £${fresh.storeCredit}`);
+          console.log(`[Sync Engine] Synchronizing loggedInCustomer state with master customers list. Store credit: ₹${fresh.storeCredit}`);
           setLoggedInCustomer(fresh);
         }
       }
@@ -1502,84 +1462,6 @@ export default function App() {
     setCartOpen(true);
     // Track in Klaviyo
     klaviyoTrackAddedToCart(product, quantity);
-  };
-
-  // Add customized subscription pack package directly to cart
-  const handleAddSubBoxToCart = (
-    packName: string,
-    items: SubscriptionSelection[],
-    frequency: string,
-    flatPrice: number
-  ) => {
-    // The exact catalogue title and variant the customer picked are stored as-is,
-    // together with the product and variant ids. The order detail view reads these
-    // back directly, so nothing downstream has to guess a product name from text.
-    const structuredSubItems = items.map(i => {
-      const p = i.product;
-      const brand = (i.brand || i.vendor || p.vendor || (p as any).brand || '').trim();
-      const productTitle = (i.productTitle || p.title || '').trim();
-      const variantName = (i.variantName || i.variant || p.concreteVariantName || (p as any).variant || '').trim();
-
-      return {
-        brand,
-        vendor: brand,
-        productId: i.productId || p.id,
-        variantId: i.variantId,
-        productTitle,
-        name: productTitle,
-        variantName,
-        variant: variantName,
-        quantity: i.quantity,
-        price: i.price ?? p.price,
-        image: p.image || i.image || PLACEHOLDER_IMAGE,
-        formattedLabel: formatSubscriptionItemDisplay({
-          brand,
-          name: productTitle,
-          variant: variantName,
-          quantity: i.quantity
-        })
-      };
-    });
-
-    const listSummary = structuredSubItems.map(i => i.formattedLabel).join(', ');
-
-    // No rhythm discount any more, so the line reads "[Bi-Weekly]" rather than
-    // "[Bi-Weekly - 10% OFF]". The label is parsed back out in several places,
-    // which cope with the bracket carrying the frequency alone.
-    const desc = `${packName} [${frequency}] - (${listSummary})`;
-
-    const now = new Date();
-    const nextPaymentDate = new Date(now);
-    if (frequency === 'Next Day (Test)' || frequency === 'Next Day') {
-      nextPaymentDate.setDate(now.getDate() + 1);
-    } else if (frequency === 'Weekly') {
-      nextPaymentDate.setDate(now.getDate() + 7);
-    } else if (frequency === 'Bi-Weekly') {
-      nextPaymentDate.setDate(now.getDate() + 14);
-    } else {
-      nextPaymentDate.setDate(now.getDate() + 30);
-    }
-
-    setCartItems(prev => [
-      ...prev,
-      {
-        productId: `sub-pack-${Date.now()}`,
-        productTitle: desc,
-        price: flatPrice,
-        image: getPlanImage(packName),
-        quantity: 1,
-        vendor: 'Subscription Pack',
-        isSubscription: true,
-        subscriptionPlan: packName,
-        subscriptionFrequency: frequency,
-        // Left unset: every reader renders it only when present, so a plan with
-        // no rhythm discount shows no "% OFF" badge at all rather than "0% OFF".
-        frequencyDiscount: undefined,
-        subscriptionItems: structuredSubItems,
-        nextPaymentDate: nextPaymentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-      } as any
-    ]);
-    setCartOpen(true);
   };
 
   const handleUpdateCartQty = (productId: string, action: 'inc' | 'dec') => {
@@ -1731,7 +1613,9 @@ export default function App() {
     cardBrand: string;
     storeCreditApplied?: number;
   }) => {
-    // Construct order
+    // The server has already recorded this order (after verifying the payment
+    // with the gateway), sent the confirmation email and spent any store credit.
+    // This only reflects the result on screen.
     const newOrder: Order = {
       id: paymentDetails.orderId,
       customerName: paymentDetails.customerName,
@@ -1739,221 +1623,29 @@ export default function App() {
       tags: paymentDetails.discountApplied ? ['coupon', paymentDetails.discountApplied.title] : [],
       fulfillmentStatus: 'Unfulfilled',
       paymentStatus: 'Paid',
-      gatewayTxId: (paymentDetails as any).gatewayTxId || paymentDetails.paymentTxId || 'TX-GENERIC-AUTH',
-      gatewayAuthCode: (paymentDetails as any).gatewayAuthCode || paymentDetails.paymentAuthCode || 'AUTH-OK',
+      gatewayTxId: (paymentDetails as any).gatewayTxId || paymentDetails.paymentTxId || '',
+      gatewayAuthCode: (paymentDetails as any).gatewayAuthCode || paymentDetails.paymentAuthCode || '',
       cardBrand: paymentDetails.cardBrand,
       total: paymentDetails.total,
       destination: paymentDetails.address,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date().toISOString(),
-      deliveryMethod: 'Royal Mail Tracked 24/48',
-      items: paymentDetails.items,
-      carrier: 'Royal Mail'
+      deliveryMethod: 'Standard Delivery',
+      items: paymentDetails.items
     };
 
-    setOrders(prev => [newOrder, ...prev]);
+    setOrders(prev => [newOrder, ...prev.filter(o => o.id !== newOrder.id)]);
 
-    // Send Simulated Outbound Emails to Customer and scott@pouch-supply.com
-    const itemsHtml = paymentDetails.items.map(item => `
-      <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
-        <span style="color: #334155; font-weight: 600;">${item.productTitle} &times; ${item.quantity}</span>
-        <span style="font-family: monospace; font-weight: bold; color: #1e293b;">£${(item.price * item.quantity).toFixed(2)}</span>
-      </div>
-    `).join('');
-
-    const emailHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); color: #334155;">
-        <div style="background-color: #0f172a; padding: 25px 20px; text-align: center;">
-          <span style="font-size: 20px; font-weight: 900; color: #ffffff; letter-spacing: 2px;">ROYAL MAIL TRACK & TRACE</span>
-          <div style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;">Pouch Supply Order Confirmation Advice</div>
-        </div>
-        
-        <div style="padding: 24px; text-align: left;">
-          <p style="font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 0;">Dear ${paymentDetails.customerName || 'Customer'},</p>
-          <p style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 20px;">
-            Thank you for shopping with <strong>Pouch Supply</strong>. Your order has been securely processed and is preparing for immediate delivery partner handoff.
-          </p>
-
-          <!-- Royal Mail Tracking Box -->
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px;">
-              <span style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Delivery Partner Integration</span>
-              <span style="font-size: 10px; font-weight: bold; color: #1e293b; background-color: #e2e8f0; padding: 2px 8px; border-radius: 4px;">ROYAL MAIL TRACKED</span>
-            </div>
-            
-            <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
-              <tr>
-                <td style="color: #64748b; padding: 4px 0;">Carrier service:</td>
-                <td style="font-weight: bold; color: #0f172a; text-align: right; padding: 4px 0;">Royal Mail Tracked 24/48</td>
-              </tr>
-              <tr>
-                <td style="color: #64748b; padding: 4px 0;">Parcel Status:</td>
-                <td style="font-weight: bold; color: #15803d; text-align: right; padding: 4px 0;">Preparing for dispatch</td>
-              </tr>
-            </table>
-
-            <div style="margin-top: 15px; text-align: center;">
-              <span style="display: inline-block; background-color: #d97706; color: #ffffff; font-size: 11px; font-weight: bold; text-transform: uppercase; padding: 10px 20px; border-radius: 8px; letter-spacing: 1px;">
-                Royal Mail Tracked 24
-              </span>
-            </div>
-          </div>
-
-          <div style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 10px; letter-spacing: 0.5px;">
-              Purchased Items Summary
-            </div>
-            <div style="margin-bottom: 12px;">
-              ${itemsHtml}
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: #0f172a; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
-              <span>Total Payment Confirmed:</span>
-              <span>£${paymentDetails.total.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div style="font-size: 11.5px; color: #64748b; line-height: 1.5; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px; margin-bottom: 15px;">
-            <strong>Secure Payment Reference:</strong><br/>
-            Tx ID: <span style="font-family: monospace;">${(paymentDetails as any).gatewayTxId || paymentDetails.paymentTxId || 'TX-GENERIC-AUTH'}</span><br/>
-            Auth Code: <span style="font-family: monospace;">${(paymentDetails as any).gatewayAuthCode || paymentDetails.paymentAuthCode || 'AUTH-OK'}</span>
-          </div>
-
-          <p style="font-size: 11.5px; color: #64748b; line-height: 1.5; margin-bottom: 0;">
-            If you have any questions, please contact our helpline or reach us directly at <a href="mailto:scott@pouch-supply.com" style="color: #0f172a; font-weight: bold; text-decoration: none;">scott@pouch-supply.com</a>.
-          </p>
-        </div>
-        
-        <div style="background-color: #f8fafc; padding: 15px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 10px; color: #94a3b8;">
-          Thank you for choosing Pouch Supply UK Ltd.
-        </div>
-      </div>
-    `;
-
-    const customerEmailObj = {
-      to: paymentDetails.customerEmail,
-      subject: `Your Pouch Supply Order Confirmation #${paymentDetails.orderId}`,
-      preview: `Your order #${paymentDetails.orderId} has been confirmed and is being prepared for dispatch with Royal Mail.`,
-      body: emailHtml,
-      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    const adminEmailObj = {
-      to: 'scott@pouch-supply.com',
-      subject: `[New Order] Pouch Supply Order #${paymentDetails.orderId}`,
-      preview: `New order for customer ${paymentDetails.customerName} (${paymentDetails.customerEmail}) awaiting Royal Mail dispatch.`,
-      body: emailHtml,
-      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    // Automatically send order confirmation email to the customer's checkout email (from scottkivlinpouch@gmail.com)
-    fetch('/api/send-order-confirmation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newOrder)
-    }).then(res => res.json())
-      .then(data => console.log('[Order Confirmation Email] Dispatched:', data))
-      .catch(err => console.error('[Order Confirmation Email] Dispatch failed:', err));
-
-    // Handle coupon used increase
-    if (paymentDetails.discountApplied) {
-      setDiscounts(prev => prev.map(d => d.id === paymentDetails.discountApplied!.id ? { ...d, used: d.used + 1 } : d));
-    }
-
-    // Handle spent stats, store credit deduction, and referral rewards
     if (loggedInCustomer) {
       const creditUsed = paymentDetails.storeCreditApplied || 0;
-      const hasSubscription = cartItems.some(item => item.productId && (item.productId.startsWith('sub-pack') || item.productId.includes('sub-pack')));
-      const subItem = cartItems.find(item => item.productId && (item.productId.startsWith('sub-pack') || item.productId.includes('sub-pack')));
-
-      const updatedCust = {
+      setLoggedInCustomer({
         ...loggedInCustomer,
         ordersCount: loggedInCustomer.ordersCount + 1,
         amountSpent: loggedInCustomer.amountSpent + paymentDetails.total,
-        storeCredit: Math.max(0, (loggedInCustomer.storeCredit || 0) - creditUsed),
-        subscriptionStatus: hasSubscription ? 'Subscribed' : (loggedInCustomer.subscriptionStatus || 'Not subscribed'),
-        subStatus: hasSubscription ? 'Active' : (loggedInCustomer.subStatus || 'Inactive'),
-        subPlan: hasSubscription ? (subItem?.productId?.replace('sub-pack-', '') || 'core') : (loggedInCustomer.subPlan || 'core'),
-        subFrequency: hasSubscription ? 'Every 4 Weeks' : (loggedInCustomer.subFrequency || 'Every 4 Weeks'),
-        subCansCount: hasSubscription ? (subItem?.quantity || 8) : (loggedInCustomer.subCansCount || 8),
-        subPrice: hasSubscription ? (subItem?.price || 35.99) : (loggedInCustomer.subPrice || 35.99),
-        nextPayment: hasSubscription ? new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : (loggedInCustomer.nextPayment || ''),
-        // Deliberately NOT written at checkout. This used to be "today + 32
-        // days", a guess with no connection to Royal Mail or to the plan's
-        // schedule, and once persisted it never moved — so the account page
-        // went on advertising a delivery date long after it had passed. The
-        // account reads Royal Mail's own dispatch state instead, and any value
-        // already stored here is left alone rather than refreshed with another.
-        nextDelivery: loggedInCustomer.nextDelivery || ''
-      };
-
-      // Check if this customer was referred and is placing an order using their 10% welcome coupon
-      const isVirtualReferral = paymentDetails.discountApplied && paymentDetails.discountApplied.id.startsWith('disc-ref-virtual-');
-      const referrerIdFromVirtual = isVirtualReferral ? paymentDetails.discountApplied!.id.replace('disc-ref-virtual-', '') : null;
-
-      const usedReferralCoupon = paymentDetails.discountApplied && (
-        paymentDetails.discountApplied.id === `disc-ref-${loggedInCustomer.id}` ||
-        paymentDetails.discountApplied.title.startsWith('REF10-') ||
-        isVirtualReferral
-      );
-
-      setCustomers(prev => {
-        let list = prev.map(c => c.id === loggedInCustomer.id ? updatedCust : c);
-        
-        if (updatedCust.referredByCode && usedReferralCoupon) {
-          const referrerCode = updatedCust.referredByCode.toUpperCase();
-          list = list.map(c => {
-            if (c.referralCode && c.referralCode.toUpperCase() === referrerCode) {
-              const newCredit = (c.storeCredit || 0) + 5;
-              console.log(`[Referral System] Rewarding referrer ${c.name} with £5 store credit (referred order placed by ${loggedInCustomer.email})`);
-              return {
-                ...c,
-                storeCredit: newCredit
-              };
-            }
-            return c;
-          });
-        }
-
-        if (isVirtualReferral && referrerIdFromVirtual) {
-          list = list.map(c => {
-            if (c.id === referrerIdFromVirtual) {
-              const newCredit = (c.storeCredit || 0) + 5;
-              console.log(`[Referral System] Rewarding referrer ${c.name} with £5 store credit via virtual coupon (order placed by ${loggedInCustomer.email})`);
-              return {
-                ...c,
-                storeCredit: newCredit
-              };
-            }
-            return c;
-          });
-        }
-        return list;
+        storeCredit: Math.max(0, (loggedInCustomer.storeCredit || 0) - creditUsed)
       });
-
-      setLoggedInCustomer(updatedCust);
-    } else {
-      // Guest order using virtual referral coupon
-      const isVirtualReferral = paymentDetails.discountApplied && paymentDetails.discountApplied.id.startsWith('disc-ref-virtual-');
-      const referrerIdFromVirtual = isVirtualReferral ? paymentDetails.discountApplied!.id.replace('disc-ref-virtual-', '') : null;
-
-      if (isVirtualReferral && referrerIdFromVirtual) {
-        setCustomers(prev => {
-          return prev.map(c => {
-            if (c.id === referrerIdFromVirtual) {
-              const newCredit = (c.storeCredit || 0) + 5;
-              console.log(`[Referral System] Rewarding referrer ${c.name} with £5 store credit via virtual coupon (order placed by Guest)`);
-              return {
-                ...c,
-                storeCredit: newCredit
-              };
-            }
-            return c;
-          });
-        });
-      }
     }
 
-    // Track Placed Order in Klaviyo
     klaviyoTrackPlacedOrder(
       paymentDetails.orderId,
       paymentDetails.items || cartItems,
@@ -1964,7 +1656,6 @@ export default function App() {
       paymentDetails.address
     );
 
-    // Clear cart
     setCartItems([]);
     setCartOpen(false);
   };
@@ -2250,12 +1941,6 @@ export default function App() {
                           >
                             Shop Now (All Brands) <ArrowRight className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => navigateToTab('frontend-subscribe')}
-                            className="bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 py-3.5 px-8 rounded-xl cursor-pointer"
-                          >
-                            Subscription Box 📦
-                          </button>
                         </div>
                       </div>
 
@@ -2291,32 +1976,7 @@ export default function App() {
                     </div>
                   </section>
 
-                  {/* Welcome Highlights */}
-                  <section className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                    <img
-                      src={PLACEHOLDER_IMAGE}
-                      alt="Canisters"
-                      className="rounded-2xl shadow-md border object-cover h-80 w-full"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <div className="space-y-4">
-                      <span className="text-xs text-indigo-650 font-bold uppercase tracking-wider">High performance Can packaging</span>
-                      <h2 className="text-2xl font-black text-slate-900">Custom Subscription Box: Curate your customized flavor bundle saving 15%</h2>
-                      <p className="text-slate-500 leading-normal text-xs">
-                        No more constant ordering pipelines. Set up your bespoke recurring deliveries of 6 cans, tweak frequencies automatically, cancel or edit anything from your user account.
-                      </p>
-                      <button
-                        onClick={() => navigateToTab('frontend-subscribe')}
-                        className="text-xs text-indigo-600 hover:text-indigo-805 font-bold flex items-center gap-1 cursor-pointer pt-2"
-                      >
-                        Configure LITE plan boxes <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </section>
+
 
                   {/* Top Seller canisters */}
                   <section className="max-w-7xl mx-auto px-6">
@@ -2350,7 +2010,7 @@ export default function App() {
                           </div>
                           <div className="space-y-1 text-center">
                             <h4 className="text-xs font-bold text-slate-800 truncate">{prod.title}</h4>
-                            <p className="text-slate-900 font-black text-xs">£{prod.price.toFixed(2)}</p>
+                            <p className="text-slate-900 font-black text-xs">₹{prod.price.toFixed(2)}</p>
                           </div>
                         </div>
                       ))}
@@ -2472,20 +2132,6 @@ export default function App() {
               );
             })()}
 
-            {/* FRONTEND VIEW - SUBSCRIBE BUILDER */}
-            {currentTab === 'frontend-subscribe' && (() => {
-              const subPage = customPages.find(p => p.slug === 'subscribe');
-              const plansSection = subPage?.sections.find(s => s.type === 'Plans');
-              return (
-                <SubscriptionBuilder
-                  allProducts={products}
-                  collections={collections}
-                  onAddSubToCart={handleAddSubBoxToCart}
-                  plansSection={plansSection}
-                />
-              );
-            })()}
-
             {/* FRONTEND VIEW - SHOP/CATALOG */}
             {currentTab === 'frontend-shop' && (
               <ProductsGrid
@@ -2565,46 +2211,6 @@ export default function App() {
                 products={products}
                 collections={collections}
                 onApplyDiscount={setCheckoutDiscount}
-              />
-            )}
-
-            {/* FRONTEND VIEW - SECURE GATEWAY */}
-            {currentTab === 'payment-gateway' && (
-              <SecureGatewaySimulator 
-                onReturnToShop={() => {
-                  window.history.pushState({}, '', '/collections/all');
-                  window.dispatchEvent(new Event('popstate'));
-                }}
-              />
-            )}
-
-            {/* FRONTEND VIEW - SECURE PAYMENT SUCCESS */}
-            {currentTab === 'payment-success' && (
-              <PaymentSuccessScreen 
-                onReturnToShop={() => {
-                  window.history.pushState({}, '', '/collections/all');
-                  window.dispatchEvent(new Event('popstate'));
-                }}
-              />
-            )}
-
-            {/* FRONTEND VIEW - SECURE PAYMENT FAILED */}
-            {currentTab === 'payment-failed' && (
-              <PaymentFailedScreen 
-                onReturnToCheckout={() => {
-                  window.history.pushState({}, '', '/pages/checkout');
-                  window.dispatchEvent(new Event('popstate'));
-                }}
-              />
-            )}
-
-            {/* FRONTEND VIEW - SECURE PAYMENT CANCELLED */}
-            {currentTab === 'payment-cancelled' && (
-              <PaymentCancelledScreen 
-                onReturnToCheckout={() => {
-                  window.history.pushState({}, '', '/pages/checkout');
-                  window.dispatchEvent(new Event('popstate'));
-                }}
               />
             )}
 
@@ -3032,7 +2638,7 @@ export default function App() {
             )}
 
             {/* FRONTEND VIEW - 404 NOT FOUND FOR NONEXISTENT PAGES */}
-            {!['frontend-home', 'frontend-shop', 'frontend-brands', 'frontend-subscribe', 'frontend-account', 'product-detail', 'collection-detail', 'blogs', 'blog-detail', 'privacy-policy', 'shipping-policy', 'refund-policy', 'terms-conditions', 'folder-structure', 'pages/folder-structure', 'structure', 'frontend-checkout', 'payment-gateway', 'payment-success', 'payment-failed', 'payment-cancelled'].includes(currentTab) && !customPages.some(p => p.slug === currentTab || p.id === currentTab || p.slug === currentTab.replace(/^page-/, '') || p.id === currentTab.replace(/^page-/, '')) && (
+            {!['frontend-home', 'frontend-shop', 'frontend-brands', 'frontend-account', 'product-detail', 'collection-detail', 'blogs', 'blog-detail', 'privacy-policy', 'shipping-policy', 'refund-policy', 'terms-conditions', 'folder-structure', 'pages/folder-structure', 'structure', 'frontend-checkout'].includes(currentTab) && !customPages.some(p => p.slug === currentTab || p.id === currentTab || p.slug === currentTab.replace(/^page-/, '') || p.id === currentTab.replace(/^page-/, '')) && (
               <div className="max-w-6xl mx-auto py-24 px-4 text-center space-y-6">
                 <span className="text-7xl block">🔍</span>
                 <div className="space-y-1.5">
@@ -3120,7 +2726,7 @@ export default function App() {
               </div>
               <div className="flex justify-between font-bold text-slate-705 pt-2 border-t mt-2">
                 <span>Charged Amount</span>
-                <span className="text-emerald-700">£{checkoutSuccessful.amount.toFixed(2)}</span>
+                <span className="text-emerald-700">₹{checkoutSuccessful.amount.toFixed(2)}</span>
               </div>
             </div>
 
@@ -3189,7 +2795,7 @@ export default function App() {
       )}
 
       {/* Universal Footer layout */}
-      {!isAdminActive && !['payment-gateway', 'payment-success', 'payment-failed', 'payment-cancelled', 'frontend-checkout'].includes(currentTab) && (
+      {!isAdminActive && !['frontend-checkout'].includes(currentTab) && (
         <Footer onNavigate={navigateToTab} layoutSettings={layoutSettings} />
       )}
 
@@ -3248,7 +2854,7 @@ export default function App() {
               </div>
               <h4 className="font-extrabold text-xs text-white mt-1">Order Withdrawal Confirmation</h4>
               <p className="text-[10.5px] text-slate-300 leading-normal mt-1">
-                A confirmation email for refund value <strong>£{emailToast.refund.toFixed(2)}</strong> has been sent to <strong>{emailToast.to}</strong>!
+                A confirmation email for refund value <strong>₹{emailToast.refund.toFixed(2)}</strong> has been sent to <strong>{emailToast.to}</strong>!
               </p>
               <div className="flex gap-2 mt-3">
                 <button

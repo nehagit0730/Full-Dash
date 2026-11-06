@@ -30,7 +30,6 @@ import {
   renderOrderShippedTemplate,
   renderOutForDeliveryTemplate,
   renderDeliveredTemplate,
-  renderSubscriptionPriceChangeTemplate,
   renderOrderCancelledTemplate,
   renderOrderRefundedTemplate,
   renderOrderExchangedTemplate,
@@ -64,9 +63,9 @@ function getSampleTemplateData(type: EmailTemplateType, customData?: any): Email
     deliveryCost: 2.99,
     total: 37.93,
     destination: '42 Baker Street, Marylebone, London, NW1 6XE, United Kingdom',
-    deliveryMethod: 'Royal Mail Tracked 24/48',
+    deliveryMethod: 'Standard Delivery',
     trackingNumber: 'GB892341982UK',
-    carrier: 'Royal Mail Tracked 24',
+    carrier: 'Delhivery',
     estimatedDelivery: 'Tomorrow by 1:00 PM',
     cancellationReason: 'Customer requested order change',
     refundAmount: 37.93,
@@ -245,9 +244,6 @@ router.post('/preview', requireAdmin, async (req: Request, res: Response) => {
         break;
       case 'order_delivered':
         html = renderDeliveredTemplate(data);
-        break;
-      case 'subscription_price_change':
-        html = renderSubscriptionPriceChangeTemplate(data);
         break;
       case 'order_cancelled':
         html = renderOrderCancelledTemplate(data);

@@ -120,9 +120,9 @@ export function selectionKey(selection: FreeCanSelection): string {
 }
 
 /**
- * The £0 lines a reward adds to the order: the chosen cans, plus any gift
+ * The ₹0 lines a reward adds to the order: the chosen cans, plus any gift
  * (mystery box, merchandise). These are kept out of `cartItems` on purpose —
- * a £0 cart line would be counted by the volume-price tiers and by the
+ * a ₹0 cart line would be counted by the volume-price tiers and by the
  * minimum-quantity rules on other discounts — and are appended only when the
  * order payload is built.
  */
@@ -187,7 +187,7 @@ export function getRewardLines(discount?: Discount | null): RewardLine[] {
 }
 
 /**
- * The order `items[]` payload: the paid cart lines followed by the reward's £0
+ * The order `items[]` payload: the paid cart lines followed by the reward's ₹0
  * lines. Both checkout paths (card and store-credit) build items through here so
  * a reward cannot reach one and be missing from the other.
  */

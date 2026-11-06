@@ -215,7 +215,7 @@ export default function WebsiteStatusPanel() {
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
             <span className="text-[10px] text-slate-400">
               {status?.updatedAt
-                ? `Last changed ${new Date(status.updatedAt).toLocaleString('en-GB')}${status.updatedBy ? ` by ${status.updatedBy}` : ''}`
+                ? `Last changed ${new Date(status.updatedAt).toLocaleString('en-IN')}${status.updatedBy ? ` by ${status.updatedBy}` : ''}`
                 : 'Never changed'}
             </span>
             <button

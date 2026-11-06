@@ -62,7 +62,7 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     supportsTestMode: true,
     webhookPath: "/api/payments/webhook/razorpay",
     docsUrl: "https://razorpay.com/docs/api/",
-    capabilities: ["Credential test"],
+    capabilities: ["Checkout (cards, UPI, netbanking, wallets)", "Server-side amount verification", "Signed webhooks", "Refunds", "Credential test"],
     fields: [
       { key: "keyId", label: "Key ID", type: "text", required: true, placeholder: "rzp_test_… or rzp_live_…", help: "Publishable. Sent to the browser for Razorpay Checkout." },
       { key: "keySecret", label: "Key Secret", type: "secret", secret: true, required: true },
@@ -143,24 +143,6 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
       { key: "collectFlow", label: "UPI collect (enter VPA)", type: "boolean", defaultValue: false, help: "NPCI has restricted collect requests; many providers no longer support it." }
     ]
   },
-  {
-    id: "worldpay",
-    name: "Worldpay",
-    category: "payment",
-    description:
-      "Worldpay Access Hosted Payment Pages, including stored-card subscription renewals. Currently configured through environment variables; values saved here take priority once Worldpay is switched over to read them.",
-    supportsTestMode: true,
-    webhookPath: "/api/worldpay/webhook",
-    docsUrl: "https://developer.worldpay.com/products/access",
-    capabilities: ["Payments, refunds, webhooks, recurring subscriptions (existing)", "Credential test"],
-    fields: [
-      { key: "apiUsername", label: "API username", type: "text", required: true, env: ["WORLDPAY_API_USERNAME"] },
-      { key: "apiPassword", label: "API password", type: "secret", secret: true, required: true, env: ["WORLDPAY_API_PASSWORD"] },
-      { key: "entity", label: "Entity", type: "text", required: true, env: ["WORLDPAY_ENTITY", "WORLDPAY_ENTITY_ID"] },
-      { key: "checkoutId", label: "Checkout ID", type: "text", env: ["WORLDPAY_CHECKOUT_ID", "NEXT_PUBLIC_WORLDPAY_CHECKOUT_ID"] },
-      { key: "webhookSecret", label: "Webhook secret", type: "secret", secret: true, env: ["WORLDPAY_WEBHOOK_SECRET"] }
-    ]
-  },
 
   // ───────────────────────────── Shipping ─────────────────────────────
   {
@@ -194,16 +176,6 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
       { key: "pickupLocation", label: "Pickup location (warehouse) name", type: "text" },
       { key: "testPincode", label: "Pincode used for connection tests", type: "text", defaultValue: "110001" }
     ]
-  },
-  {
-    id: "royalmail",
-    name: "Royal Mail Click & Drop",
-    category: "shipping",
-    description: "UK shipping, labels, tracking and returns. Managed in its existing settings panel.",
-    supportsTestMode: false,
-    legacyPanel: { tab: "shipping", label: "Open Royal Mail settings" },
-    capabilities: ["Shipments, labels, tracking sync, cancellation, return labels (existing)"],
-    fields: []
   },
   {
     id: "ithink",

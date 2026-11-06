@@ -134,10 +134,10 @@ async function main() {
     }
   });
   await check("environment fallback is reported as such", async () => {
-    process.env.WORLDPAY_API_USERNAME = "env-user";
-    const v = await getIntegrationView("worldpay");
-    assert.equal(v!.fields.apiUsername.source, "env");
-    assert.equal(v!.fields.apiUsername.value, "env-user");
+    process.env.CLOUDINARY_CLOUD_NAME = "env-cloud";
+    const v = await getIntegrationView("cloudinary");
+    assert.equal(v!.fields.cloudName.source, "env");
+    assert.equal(v!.fields.cloudName.value, "env-cloud");
   });
   await check("audit log records field names and never values", async () => {
     const rows = await listAudit("razorpay");

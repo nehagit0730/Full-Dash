@@ -68,7 +68,7 @@ export default function Header({
       {/* Top micro promo bar */}
       <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white text-[10px] text-center py-2 px-4 uppercase tracking-widest font-extrabold flex items-center justify-center gap-1.5 shadow-inner">
         <Sparkles className="h-3 w-3 text-amber-400 animate-pulse" />
-        <span className="tracking-widest">Free Shipping on all orders over £40! Standard Delivery £2.99 for orders under £40</span>
+        <span className="tracking-widest">Free Shipping on all orders over ₹40! Standard Delivery ₹2.99 for orders under ₹40</span>
       </div>
 
       {/* Slide-down Search Overlay */}
@@ -125,7 +125,7 @@ export default function Header({
                           <span className="block text-xs font-black text-slate-800 truncate">{p.title}</span>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-[11px] font-extrabold text-indigo-750 bg-indigo-50 px-2 py-0.5 rounded-md">£{p.price.toFixed(2)}</span>
+                          <span className="text-[11px] font-extrabold text-indigo-750 bg-indigo-50 px-2 py-0.5 rounded-md">₹{p.price.toFixed(2)}</span>
                           <span className="block text-[8px] font-semibold text-slate-400 mt-0.5">{p.category}</span>
                         </div>
                       </div>
@@ -208,11 +208,10 @@ export default function Header({
         <nav className="hidden lg:flex items-center gap-2">
           {(layoutSettings?.menuItems || [
             { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },
-            { id: '2', label: 'Subscribe', tab: 'frontend-subscribe', type: 'tab' },
             { id: '3', label: 'Shop Now', tab: 'frontend-shop', type: 'tab' },
             { id: '4', label: 'All Brands', tab: 'frontend-brands', type: 'tab' },
             { id: '5', label: 'About', tab: 'about', type: 'tab' }
-          ]).map((item, iIdx) => {
+          ]).filter((item: any) => !String(item?.tab || item?.url || '').includes('subscribe')).map((item, iIdx) => {
             const itemTab = getMenuItemTab(item);
             return (
               <button
@@ -371,11 +370,10 @@ export default function Header({
                 <div className="grid grid-cols-2 gap-2">
                   {(layoutSettings?.menuItems || [
                     { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },
-                    { id: '2', label: 'Subscribe', tab: 'frontend-subscribe', type: 'tab' },
                     { id: '3', label: 'Shop Now', tab: 'frontend-shop', type: 'tab' },
                     { id: '4', label: 'All Brands', tab: 'frontend-brands', type: 'tab' },
                     { id: '5', label: 'About', tab: 'about', type: 'tab' }
-                  ]).map((item, iIdx) => {
+                  ]).filter((item: any) => !String(item?.tab || item?.url || '').includes('subscribe')).map((item, iIdx) => {
                     const itemTab = getMenuItemTab(item);
                     const isActive = currentTab === itemTab && !isAdminActive;
                     
@@ -473,7 +471,7 @@ export default function Header({
                     <span className="text-emerald-500">✔</span> Official Supplier
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-emerald-500">✔</span> Royal Mail Tracked
+                    <span className="text-emerald-500">✔</span> Tracked Delivery
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-emerald-500">✔</span> Age Verified

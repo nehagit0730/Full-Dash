@@ -849,7 +849,7 @@ export const AgeGate = forwardRef<AgeGateHandle, AgeGateProps>(({ compact = fals
             <span className="text-[11px] font-medium text-amber-900/80">
               {isVerifying
                 ? "Complete verification in the secure AgeChecked panel. This page updates automatically."
-                : "Click 'Verify with AgeChecked' or 'Pay with Worldpay' to complete the 18+ check."}
+                : "Click 'Verify with AgeChecked' or 'Pay' to complete the age check."}
             </span>
           </div>
         ) : (

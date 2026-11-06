@@ -22,8 +22,6 @@ const ORDER_COLUMNS = [
   'tags',
   'fulfillmentStatus',
   'paymentStatus',
-  'worldpayTxId',
-  'worldpayAuthCode',
   'gatewayTxId',
   'gatewayAuthCode',
   'cardBrand',
@@ -43,7 +41,6 @@ const ORDER_COLUMNS = [
   'paymentMethod',
   'currency',
   'trackingNumber',
-  'royalMailOrderId',
   'isSubscription',
   'subscriptionDetails',
   'notificationsSent'
@@ -68,7 +65,7 @@ export function toOrderRow(item: any): Record<string, any> {
     fulfillmentStatus: item?.fulfillmentStatus || 'Unfulfilled',
     destination: item?.destination || item?.address || 'United Kingdom',
     date: item?.date || new Date().toISOString(),
-    deliveryMethod: item?.deliveryMethod || 'Royal Mail Tracked 24/48',
+    deliveryMethod: item?.deliveryMethod || 'Standard Delivery',
     items: Array.isArray(item?.items) ? item.items : [],
     total: num(item?.total),
     // The whole order, including the fields the table has no column for.
@@ -87,20 +84,6 @@ export function toOrderRow(item: any): Record<string, any> {
     row.shippingCost = num(item.deliveryCost, 0);
   }
 
-  // Royal Mail writes its dispatch details under `data.royalMail`, so the
-  // dedicated columns stayed empty and the shipment could not be found from SQL.
-  const royalMail = item?.data?.royalMail;
-  if (royalMail) {
-    if (row.royalMailOrderId === undefined && royalMail.royalMailOrderId) {
-      row.royalMailOrderId = String(royalMail.royalMailOrderId);
-    }
-    if (row.trackingNumber === undefined && royalMail.trackingNumber) {
-      row.trackingNumber = String(royalMail.trackingNumber);
-    }
-    if (row.carrier === undefined && royalMail.carrier) {
-      row.carrier = String(royalMail.carrier);
-    }
-  }
   if (row.storeCreditApplied !== undefined) row.storeCreditApplied = num(row.storeCreditApplied);
   if (row.subtotal !== undefined) row.subtotal = num(row.subtotal);
   if (row.shippingCost !== undefined) row.shippingCost = num(row.shippingCost);

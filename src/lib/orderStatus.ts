@@ -2,16 +2,14 @@
  * Customer-facing reading of an order's fulfilment status.
  *
  * `fulfillmentStatus` carries two values that mean the parcel has left us:
- * 'Shipped', written by the Royal Mail sync once Click & Drop confirms despatch,
- * and 'Fulfilled', set by hand in admin. They are the same fact to a customer,
+ * 'Shipped' and 'Fulfilled', both set in admin when the parcel is handed over. They are the same fact to a customer,
  * but each screen used to test for one or the other, so an order despatched by
  * the sync still read as "Processing" while one moved by hand read as "In
- * Transit" — two words for one state, on the same page, neither matching what
- * Royal Mail tells the customer.
+ * Transit" — two words for one state, on the same page.
  *
  * Both now resolve here, and "Dispatched" is the single word for it. "In transit"
  * is deliberately NOT used for a status value: it asserts movement, which we only
- * know from a live Royal Mail scan, and the live tracking card says it there.
+ * know from a courier scan.
  */
 
 export type DispatchStage = 'processing' | 'dispatched' | 'delivered' | 'exception';

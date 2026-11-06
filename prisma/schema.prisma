@@ -174,8 +174,6 @@ model Order {
   tags               String[] @default([])
   fulfillmentStatus  String   @default("Unfulfilled")
   paymentStatus      String?  @default("Paid")
-  worldpayTxId       String?
-  worldpayAuthCode   String?
   gatewayTxId        String?
   gatewayAuthCode    String?
   cardBrand          String?
@@ -199,11 +197,10 @@ model Order {
   shippingCost   Float?  @default(0.0)
   discountAmount Float?  @default(0.0)
   paymentMethod  String?
-  currency       String? @default("GBP")
+  currency       String? @default("INR")
 
   // Fulfilment details that the storefront writes but the table could not hold.
   trackingNumber   String?
-  royalMailOrderId String?
 
   // Subscription linkage for recurring orders.
   isSubscription      Boolean @default(false)
@@ -454,11 +451,6 @@ model Subscription {
   billingInterval String    @default("month")
   nextBillingDate DateTime?
 
-  worldpayTransactionId   String?
-  worldpayTokenHref       String?
-  worldpayRecurringHref   String?
-  worldpaySchemeReference String?
-
   lastPaymentStatus  String?
   lastPaymentId      String?
   lastPaymentAt      DateTime?
@@ -556,5 +548,39 @@ model IntegrationAuditLog {
   createdAt     DateTime @default(now())
 
   @@index([integrationId])
+  @@index([createdAt])
+}
+
+/// One row per payment attempt at a gateway (Razorpay today).
+///
+/// Created BEFORE the shopper is sent to pay, holding the server-computed
+/// quote. `orderId` is the store order the payment will become; no Order row
+/// exists until the payment is verified with the gateway. Status moves
+/// created → paid exactly once (a conditional UPDATE), which is what stops a
+/// browser callback and a webhook from both creating the order.
+model PaymentTransaction {
+  id                String    @id
+  provider          String
+  orderId           String    @unique
+  providerOrderId   String?   @unique
+  providerPaymentId String?
+  /// Smallest currency unit (paise).
+  amount            Int
+  currency          String    @default("INR")
+  status            String    @default("created")
+  mode              String    @default("test")
+  customerEmail     String?
+  /// The server-side quote: lines, totals, discount, address, store credit.
+  checkout          Json
+  refunds           Json      @default("[]")
+  refundedAmount    Int       @default(0)
+  lastError         String?
+  orderRecorded     Boolean   @default(false)
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
+  @@index([customerEmail])
   @@index([createdAt])
 }
