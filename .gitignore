@@ -1,0 +1,20 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Database exports contain customer PII and order history — never commit them.
+backups/
+
+# Runtime settings written by the admin panel. These mirror rows already held in
+# the database and carry live API credentials (Royal Mail, Klaviyo), so they are
+# machine-local state, not source.
+royalmail_settings.json
+klaviyo_settings.json
+recaptcha_settings.json
+dev_settings.json
+email_settings.json

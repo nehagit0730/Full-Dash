@@ -1,0 +1,560 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+model SystemStatus {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model StoreResource {
+  id        String   @id @default(uuid())
+  resource  String
+  itemId    String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([resource, itemId])
+}
+
+model StoreSetting {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model AnalyticsRecord {
+  id        String   @id @default(uuid())
+  metric    String
+  value     Float
+  period    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                String   @id
+  title             String
+  description       String?
+  price             Float    @default(0.0)
+  compareAtPrice    Float?   @default(0.0)
+  inventory         Int      @default(0)
+  sku               String?
+  category          String?
+  vendor            String?
+  status            String   @default("Active")
+  image             String?
+  weight            Float?
+  tags              String[] @default([])
+  media             String[] @default([])
+  variants          Json?
+  concreteVariants  Json?
+  barcode           String?
+  weightUnit        String?
+  slug              String?  @unique
+  seoTitle          String?
+  seoDescription    String?
+  strength          String?
+  flavour           String?
+  isVariantCard     Boolean? @default(false)
+  concreteVariantId String?
+  parentSlug        String?
+  parentId          String?
+  data              Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations. `media`/`image` above stay as denormalised Cloudinary URLs for
+  // the storefront; `files` is the managed link to the FileEntry records that
+  // own those assets (and their Cloudinary publicIds).
+  collections CollectionProduct[]
+  orderItems  OrderItem[]
+  files       FileEntry[]
+
+  @@index([category])
+  @@index([vendor])
+  @@index([status])
+  @@index([slug])
+}
+
+model Collection {
+  id                String   @id
+  title             String
+  description       String?
+  type              String   @default("Manual")
+  image             String?
+  // Denormalised list kept in sync with the CollectionProduct join table below.
+  // The join table is the referentially-enforced version of this array.
+  productIds        String[] @default([])
+  productConditions String?
+  slug              String?  @unique
+  seoTitle          String?
+  seoDescription    String?
+  ogImage           String?
+  data              Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  products CollectionProduct[]
+  files    FileEntry[]
+
+  @@index([slug])
+}
+
+/// Explicit many-to-many between collections and products, replacing the
+/// unenforced `Collection.productIds` string array. Deleting either side
+/// cleans up the link rather than leaving a dangling id behind.
+model CollectionProduct {
+  collectionId String
+  productId    String
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, productId])
+  @@index([productId])
+}
+
+model FileEntry {
+  id               String   @id
+  publicId         String?  @unique
+  url              String
+  secureUrl        String?
+  resourceType     String?  @default("image")
+  format           String?
+  width            Int?
+  height           Int?
+  fileSize         String?
+  folder           String?  @default("storefront_media")
+  originalFilename String?
+  fileName         String?
+  altText          String?
+  dateAdded        String?
+  size             String?
+  references       String?
+  mimeType         String?
+  data             Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Optional owner links so an uploaded Cloudinary asset can be traced back to
+  // the record that uses it. Nullable because the media library also holds
+  // unattached uploads.
+  productId    String?
+  blogPostId   String?
+  collectionId String?
+
+  product    Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  blogPost   BlogPost?   @relation(fields: [blogPostId], references: [id], onDelete: SetNull)
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  @@index([publicId])
+  @@index([productId])
+  @@index([blogPostId])
+  @@index([collectionId])
+}
+
+model Order {
+  id                 String   @id
+  customerName       String
+  customerEmail      String
+  tags               String[] @default([])
+  fulfillmentStatus  String   @default("Unfulfilled")
+  paymentStatus      String?  @default("Paid")
+  worldpayTxId       String?
+  worldpayAuthCode   String?
+  gatewayTxId        String?
+  gatewayAuthCode    String?
+  cardBrand          String?
+  total              Float    @default(0.0)
+  storeCreditApplied Float?   @default(0.0)
+  destination        String
+  date               String
+  deliveryMethod     String
+  items              Json
+  trackingId         String?
+  carrier            String?
+  trackingHistory    Json?
+  discountApplied    Json?
+  data               Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Money breakdown. These previously existed only inside `data`, so the order
+  // total could not be reconciled against items + shipping in SQL.
+  subtotal       Float?  @default(0.0)
+  shippingCost   Float?  @default(0.0)
+  discountAmount Float?  @default(0.0)
+  paymentMethod  String?
+  currency       String? @default("GBP")
+
+  // Fulfilment details that the storefront writes but the table could not hold.
+  trackingNumber   String?
+  royalMailOrderId String?
+
+  // Subscription linkage for recurring orders.
+  isSubscription      Boolean @default(false)
+  subscriptionDetails Json?
+
+  // Which lifecycle emails have already been sent for this order. Persisted so
+  // a retried webhook or a duplicate save cannot re-notify the customer.
+  notificationsSent Json?
+
+  customerId     String?
+  subscriptionId String?
+
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  orderItems   OrderItem[]
+
+  @@index([customerEmail])
+  @@index([fulfillmentStatus])
+  @@index([paymentStatus])
+  @@index([customerId])
+  @@index([subscriptionId])
+  @@index([createdAt])
+}
+
+/// Normalised line items. `Order.items` stays as the denormalised JSON the
+/// storefront and emails read; these rows make per-product sales reporting and
+/// order/product integrity possible in SQL.
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String?
+
+  productTitle String
+  sku          String?
+  variant      String?
+  vendor       String?
+  image        String?
+  quantity     Int     @default(1)
+  unitPrice    Float   @default(0.0)
+  lineTotal    Float   @default(0.0)
+
+  isSubscription    Boolean @default(false)
+  subscriptionPlan  String?
+  subscriptionItems Json?
+
+  createdAt DateTime @default(now())
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model CustomPage {
+  id         String   @id
+  title      String
+  slug       String   @unique
+  visibility String   @default("Visible")
+  isHomepage Boolean  @default(false)
+  sections   Json
+  data       Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Customer {
+  id                 String   @id
+  name               String
+  email              String   @unique
+  subscriptionStatus String   @default("Not subscribed")
+  location           String?
+  ordersCount        Int      @default(0)
+  amountSpent        Float    @default(0.0)
+  addresses          String[] @default([])
+  wishlist           String[] @default([])
+  referralCode       String?
+  storeCredit        Float?   @default(0.0)
+  referredByCode     String?
+  subStatus          String?
+  subPlan            String?
+  subFrequency       String?
+  subCansCount       Int?
+  subPrice           Float?
+  nextPayment        String?
+  nextDelivery       String?
+  data               Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  orders        Order[]
+  subscriptions Subscription[]
+
+  @@index([email])
+  @@index([referralCode])
+}
+
+model BlogPost {
+  id          String   @id
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  content     String
+  image       String?
+  author      String?
+  category    String?
+  status      String   @default("Active")
+  publishedAt String?
+  readTime    String?
+  tags        String[] @default([])
+  data        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files FileEntry[]
+
+  @@index([slug])
+  @@index([status])
+}
+
+model Discount {
+  id          String   @id
+  title       String
+  status      String   @default("Active")
+  method      String?
+  eligibility String?
+  type        String
+  used        Int      @default(0)
+  details     String?
+  data        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([title])
+}
+
+/// Delivery log for every transactional email. Previously kept only as a
+/// StoreResource JSON blob, so it could not be queried or pruned by date.
+model EmailLog {
+  id        String   @id
+  type      String
+  recipient String
+  subject   String?
+  status    String
+  provider  String?
+  messageId String?
+  resendId  String?
+  error     String?
+  orderId   String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([recipient])
+  @@index([status])
+  @@index([orderId])
+  @@index([timestamp])
+}
+
+/// Klaviyo event dispatch log.
+model KlaviyoLog {
+  id         String   @id
+  event      String
+  email      String?
+  status     String
+  channel    String?
+  statusCode Int?
+  error      String?
+  properties Json?
+  timestamp  DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([event])
+  @@index([email])
+  @@index([status])
+  @@index([timestamp])
+}
+
+/// Checkout payloads held between starting a payment and the gateway
+/// confirming it. No order exists until payment succeeds, so this is the only
+/// record of what the shopper was buying if the callback needs replaying.
+model PendingCheckout {
+  id                 String   @id
+  orderId            String   @unique
+  customerName       String?
+  customerEmail      String?
+  destination        String?
+  items              Json?
+  total              Float    @default(0.0)
+  subtotal           Float?   @default(0.0)
+  shippingCost       Float?   @default(0.0)
+  deliveryMethod     String?
+  discountApplied    Json?
+  storeCreditApplied Float?   @default(0.0)
+  status             String   @default("pending")
+  data               Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([customerEmail])
+  @@index([status])
+}
+
+/// AgeChecked (AC0130) verification results, retained for compliance.
+model AgeVerification {
+  id         String    @id
+  email      String?
+  customerId String?
+  status     String
+  reference  String?
+  provider   String?   @default("AgeChecked")
+  verifiedAt DateTime?
+  data       Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([reference])
+}
+
+model LayoutSetting {
+  id                    String   @id @default("layout_settings")
+  headerLogoText        String?
+  headerLogoSubtext     String?
+  headerLogoImage       String?
+  footerLogoText        String?
+  footerLogoDescription String?
+  footerLogoImage       String?
+  menuItems             Json?
+  data                  Json?
+  updatedAt             DateTime @updatedAt
+}
+
+model Subscription {
+  id            String  @id @default(cuid())
+  customerId    String?
+  customerEmail String
+  customerName  String?
+  planId        String
+  planName      String
+  amount        Decimal @db.Decimal(10, 2)
+  currency      String  @default("GBP")
+
+  status          String    @default("active")
+  billingInterval String    @default("month")
+  nextBillingDate DateTime?
+
+  worldpayTransactionId   String?
+  worldpayTokenHref       String?
+  worldpayRecurringHref   String?
+  worldpaySchemeReference String?
+
+  lastPaymentStatus  String?
+  lastPaymentId      String?
+  lastPaymentAt      DateTime?
+  lastPaymentError   String?
+  failedPaymentCount Int       @default(0)
+
+  // Box contents and delivery details. These were silently dropped on every
+  // write because the table had no columns for them, so a renewal could not
+  // reproduce the customer's actual box or shipping charge from Postgres.
+  items           Json?
+  cansCount       Int?
+  itemPrice       Float?
+  shippingCost    Float?  @default(0.0)
+  shippingAddress String?
+  deliveryMethod  String?
+
+  // The order whose payment created this subscription — lets a repeated
+  // gateway callback be recognised instead of creating a duplicate agreement.
+  sourceOrderId String?
+
+  cancelledAt        DateTime?
+  cancellationReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  orders   Order[]
+
+  @@index([customerEmail])
+  @@index([customerId])
+  @@index([status])
+  @@index([nextBillingDate])
+  @@index([sourceOrderId])
+}
+
+/// Soft-deleted records, held for 30 days before they are destroyed.
+///
+/// Deleting anything from the admin dashboard moves the whole record here and
+/// removes it from its own table, so the active data is exactly what is live.
+/// `payload` is the complete record as it was, which is what makes a restore
+/// put back the thing that was deleted rather than an approximation of it.
+model RecycleBinItem {
+  id       String @id @default(uuid())
+  /// Which store it came from: orders, products, collections, customPages,
+  /// blogs, customers, files.
+  resource String
+  /// Its id in that store, so a restore lands back on the same record.
+  itemId   String
+  /// What to show in the bin listing — a title, an order number, an email.
+  label    String?
+
+  payload Json
+
+  deletedAt DateTime  @default(now())
+  /// deletedAt + 30 days. The sweep deletes everything past this.
+  expiresAt DateTime
+  deletedBy String?
+
+  @@unique([resource, itemId])
+  @@index([resource])
+  @@index([expiresAt])
+  @@index([deletedAt])
+}
+
+/// One row per external integration (payment gateway, courier, marketing, …).
+///
+/// Non-secret configuration lives in `config`; credentials live in `secrets`,
+/// every value of which is AES-256-GCM ciphertext (see
+/// backend/services/integrations/crypto.ts). The key is never in this table.
+model IntegrationSetting {
+  id             String    @id
+  enabled        Boolean   @default(false)
+  mode           String    @default("test")
+  config         Json      @default("{}")
+  secrets        Json      @default("{}")
+  status         String    @default("not_configured")
+  lastError      String?
+  lastTestedAt   DateTime?
+  lastTestResult Json?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+/// Who changed which integration setting, and when. Records field NAMES only,
+/// never values — an audit log full of credentials would be its own leak.
+model IntegrationAuditLog {
+  id            String   @id @default(uuid())
+  integrationId String
+  action        String
+  actor         String?
+  changedFields String[] @default([])
+  details       Json?
+  createdAt     DateTime @default(now())
+
+  @@index([integrationId])
+  @@index([createdAt])
+}

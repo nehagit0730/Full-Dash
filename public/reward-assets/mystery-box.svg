@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Mystery reward box">
+  <title>Mystery reward box</title>
+  <defs>
+    <linearGradient id="psMysteryBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#123a63"/>
+      <stop offset="1" stop-color="#071d37"/>
+    </linearGradient>
+    <linearGradient id="psMysteryLid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b4c7d"/>
+      <stop offset="1" stop-color="#0d2b4b"/>
+    </linearGradient>
+    <linearGradient id="psMysteryRibbon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0bd68"/>
+      <stop offset="1" stop-color="#dfa047"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="80" cy="80" r="78" fill="#f4f7fb"/>
+
+  <!-- Sparkles -->
+  <g fill="#dfa047">
+    <path d="M32 34l2.6 6.4L41 43l-6.4 2.6L32 52l-2.6-6.4L23 43l6.4-2.6z" opacity=".85"/>
+    <path d="M128 28l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" opacity=".7"/>
+    <path d="M136 96l1.7 4.3 4.3 1.7-4.3 1.7-1.7 4.3-1.7-4.3-4.3-1.7 4.3-1.7z" opacity=".55"/>
+  </g>
+
+  <!-- Box body -->
+  <rect x="34" y="70" width="92" height="56" rx="6" fill="url(#psMysteryBody)"/>
+  <!-- Lid -->
+  <rect x="26" y="54" width="108" height="22" rx="6" fill="url(#psMysteryLid)"/>
+
+  <!-- Vertical ribbon -->
+  <rect x="72" y="54" width="16" height="72" fill="url(#psMysteryRibbon)"/>
+  <!-- Horizontal ribbon on lid -->
+  <rect x="26" y="60" width="108" height="10" fill="url(#psMysteryRibbon)" opacity=".92"/>
+
+  <!-- Bow -->
+  <g fill="url(#psMysteryRibbon)">
+    <path d="M80 54c-10-2-22-10-22-20 0-6 5-10 11-8 8 3 11 16 11 28z"/>
+    <path d="M80 54c10-2 22-10 22-20 0-6-5-10-11-8-8 3-11 16-11 28z"/>
+  </g>
+  <circle cx="80" cy="52" r="7" fill="#f6cd86"/>
+
+  <!-- Question mark -->
+  <text x="80" y="112" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="bold" fill="#dfa047">?</text>
+</svg>
