@@ -22,15 +22,15 @@
   "crons": [
     {
       "path": "/api/worldpay/reconcile-pending",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/subscriptions/cron",
-      "schedule": "0 * * * *"
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/royalmail/sync-pending",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/recycle-bin/purge-expired",
