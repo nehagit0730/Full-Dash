@@ -55,21 +55,18 @@ function volumeCostAtBasePrice(qty: number): number {
 }
 
 /**
- * Total price for `quantity` units of a product, under the volume tiers above.
+ * Total price for `quantity` units of a product: unit price × quantity.
  *
- * Pack sizes land exactly on their tier — at the ₹4.99 base, 3 = ₹14.55,
- * 5 = ₹23.50, 8 = ₹35.20, 10 = ₹42.00, 12 = ₹49.20, 20 = ₹77.00 — and every
- * quantity in between is priced at the cheapest combination of tiers that covers
- * it.
+ * The name is kept because the cart, checkout and the server's pricing engine
+ * all call it, which is what keeps them in agreement. It used to apply the
+ * nicotine-pouch pack tiers above (3 for less than 3 × price, and so on); a
+ * clothing store charges every item at its own price, so no multi-buy discount
+ * is applied here. Use a discount code for promotions instead.
  */
 export function calculateVolumePrice(basePrice: number, quantity: number): number {
   const qty = Math.floor(quantity);
-  if (qty <= 0) return 0;
-
-  // Scale ratio if base price is custom (default base is ₹4.99)
-  const ratio = basePrice > 0 ? basePrice / VOLUME_BASE_UNIT_PRICE : 1;
-
-  return Number(((volumeCostAtBasePrice(qty) / 100) * ratio).toFixed(2));
+  if (qty <= 0 || !(basePrice > 0)) return 0;
+  return Number((basePrice * qty).toFixed(2));
 }
 
 export function calculateDiscountAmount(

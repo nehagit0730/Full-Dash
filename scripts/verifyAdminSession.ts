@@ -51,7 +51,7 @@ async function main() {
   check('no time remaining', adminSessionTimeRemaining(), 0);
 
   console.log('\n-- a freshly minted 8-hour token --');
-  const fresh = signAdminToken('admin@pouch-supply.com');
+  const fresh = signAdminToken('admin@example.com');
   setAdminToken(fresh);
   check('the server accepts it', Boolean(verifyAdminToken(fresh)), true);
   check('the dashboard sees a live session', hasValidAdminSession(), true);
@@ -61,7 +61,7 @@ async function main() {
 
   console.log('\n-- the overnight case: the same token, expired --');
   // Exactly the shape of a token minted yesterday morning.
-  const stale = signAdminToken('admin@pouch-supply.com', -60);
+  const stale = signAdminToken('admin@example.com', -60);
   setAdminToken(stale);
   check('the server now rejects it', verifyAdminToken(stale), null);
   check('and so does the dashboard', hasValidAdminSession(), false);
@@ -69,7 +69,7 @@ async function main() {
   check('its expiry is still readable, and in the past', (adminTokenExpiresAt() ?? Infinity) < Date.now(), true);
 
   console.log('\n-- a token on the edge --');
-  setAdminToken(signAdminToken('admin@pouch-supply.com', 5));
+  setAdminToken(signAdminToken('admin@example.com', 5));
   check('five seconds left still counts as live', hasValidAdminSession(), true);
 
   console.log('\n-- rubbish in storage is not a session --');
@@ -79,7 +79,7 @@ async function main() {
   }
 
   console.log('\n-- signing out clears both the token and the view flag --');
-  setAdminToken(signAdminToken('admin@pouch-supply.com'));
+  setAdminToken(signAdminToken('admin@example.com'));
   (globalThis as any).sessionStorage.setItem('ps_admin_authenticated', 'true');
   clearAdminSession();
   check('token gone', hasValidAdminSession(), false);
@@ -118,8 +118,8 @@ async function main() {
     check(label, JSON.stringify(events), JSON.stringify(want));
   };
 
-  const live = signAdminToken('admin@pouch-supply.com');
-  const dead = signAdminToken('admin@pouch-supply.com', -60);
+  const live = signAdminToken('admin@example.com');
+  const dead = signAdminToken('admin@example.com', -60);
 
   await attempt('a live token on a 200 raises nothing', live, 200, []);
   await attempt('an expired token is caught before the call', dead, 200, ['expired']);

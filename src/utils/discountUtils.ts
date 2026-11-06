@@ -9,8 +9,8 @@ export const MYSTERY_BOX_IMAGE = '/reward-assets/mystery-box.svg';
 export const MERCH_GIFT_IMAGE = '/reward-assets/merch-gift.svg';
 
 /** Standard UK delivery charge and the spend that waives it. */
-export const STANDARD_DELIVERY_COST = 2.99;
-export const FREE_SHIPPING_THRESHOLD = 40;
+export const STANDARD_DELIVERY_COST = 99;
+export const FREE_SHIPPING_THRESHOLD = 1999;
 
 export interface ResolveDiscountResult {
   success: boolean;
@@ -94,19 +94,19 @@ const MYSTERY_GIFT: RewardGift = {
   id: 'gift-mystery-box',
   label: 'Mystery Reward 🎁',
   image: MYSTERY_BOX_IMAGE,
-  note: 'A surprise chosen for you by Pouch Supply — revealed when your parcel arrives.'
+  note: 'A surprise chosen for you by Ecommerce Store — revealed when your parcel arrives.'
 };
 
 const MERCH_GIFT: RewardGift = {
   id: 'gift-merch',
-  label: 'Exclusive Pouch Supply merchandise 🎁',
+  label: 'Exclusive Ecommerce Store merchandise 🎁',
   image: MERCH_GIFT_IMAGE,
-  note: 'Stickers, keyring, bottle opener and other Pouch Supply extras.'
+  note: 'Stickers, keyring, bottle opener and other Ecommerce Store extras.'
 };
 
 const PREMIUM_MERCH_GIFT: RewardGift = {
   id: 'gift-merch-premium',
-  label: 'Premium Pouch Supply merchandise 👕',
+  label: 'Premium Ecommerce Store merchandise 👕',
   image: MERCH_GIFT_IMAGE,
   note: 'Premium branded apparel, packed with your order.'
 };
@@ -132,7 +132,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'bronze',
     reward: 'FREE can of your choice',
     ...NO_MONEY_OFF,
-    details: '1 FREE can of your choice',
+    details: '1 FREE item of your choice',
     kind: 'free-cans',
     freeCanCount: 1
   },
@@ -153,7 +153,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'silver',
     reward: 'FREE can of your choice 🥫',
     ...NO_MONEY_OFF,
-    details: '1 FREE can of your choice',
+    details: '1 FREE item of your choice',
     kind: 'free-cans',
     freeCanCount: 1
   },
@@ -174,7 +174,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'silver',
     reward: 'FREE can of your choice 🥫',
     ...NO_MONEY_OFF,
-    details: '1 FREE can of your choice',
+    details: '1 FREE item of your choice',
     kind: 'free-cans',
     freeCanCount: 1
   },
@@ -182,9 +182,9 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     code: 'SILVER13',
     order: 13,
     tier: 'silver',
-    reward: 'Exclusive Pouch Supply merchandise (stickers, keyring, bottle opener, etc.) 🎁',
+    reward: 'Exclusive Ecommerce Store merchandise (stickers, keyring, bottle opener, etc.) 🎁',
     ...NO_MONEY_OFF,
-    details: 'Exclusive Pouch Supply merchandise included free',
+    details: 'Exclusive Ecommerce Store merchandise included free',
     kind: 'gift',
     gifts: [MERCH_GIFT]
   },
@@ -194,7 +194,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'silver',
     reward: '2 FREE cans of your choice 🥫',
     ...NO_MONEY_OFF,
-    details: '2 FREE cans of your choice',
+    details: '2 FREE items of your choice',
     kind: 'free-cans',
     freeCanCount: 2
   },
@@ -215,7 +215,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'gold',
     reward: '2 FREE cans of your choice 🥫',
     ...NO_MONEY_OFF,
-    details: '2 FREE cans of your choice',
+    details: '2 FREE items of your choice',
     kind: 'free-cans',
     freeCanCount: 2
   },
@@ -223,7 +223,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     code: 'GOLD21',
     order: 21,
     tier: 'gold',
-    reward: 'Mystery Reward (chosen by Pouch Supply) 🎁',
+    reward: 'Mystery Reward (chosen by Ecommerce Store) 🎁',
     ...NO_MONEY_OFF,
     details: 'Mystery Reward included free with this order',
     kind: 'gift',
@@ -235,7 +235,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'gold',
     reward: '2 FREE cans of your choice 🥫',
     ...NO_MONEY_OFF,
-    details: '2 FREE cans of your choice',
+    details: '2 FREE items of your choice',
     kind: 'free-cans',
     freeCanCount: 2
   },
@@ -243,9 +243,9 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     code: 'GOLD25',
     order: 25,
     tier: 'gold',
-    reward: 'Premium Pouch Supply merchandise 👕',
+    reward: 'Premium Ecommerce Store merchandise 👕',
     ...NO_MONEY_OFF,
-    details: 'Premium Pouch Supply merchandise included free',
+    details: 'Premium Ecommerce Store merchandise included free',
     kind: 'gift',
     gifts: [PREMIUM_MERCH_GIFT]
   },
@@ -266,7 +266,7 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     tier: 'gold',
     reward: '2 FREE cans of your choice 🥫',
     ...NO_MONEY_OFF,
-    details: '2 FREE cans of your choice',
+    details: '2 FREE items of your choice',
     kind: 'free-cans',
     freeCanCount: 2
   },
@@ -292,9 +292,9 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
     choices: [
       {
         id: 'cans',
-        label: '3 FREE cans of your choice 🥫',
+        label: '3 FREE items of your choice 🎁',
         kind: 'free-cans',
-        details: '3 FREE cans of your choice',
+        details: '3 FREE items of your choice',
         ...NO_MONEY_OFF,
         freeCanCount: 3
       },
@@ -318,9 +318,9 @@ export const LOYALTY_MILESTONE_DEFINITIONS: Record<string, LoyaltyMilestoneDef> 
       },
       {
         id: 'merch',
-        label: 'Exclusive Pouch Supply merchandise 🎁',
+        label: 'Exclusive Ecommerce Store merchandise 🎁',
         kind: 'gift',
-        details: 'Exclusive Pouch Supply merchandise included free',
+        details: 'Exclusive Ecommerce Store merchandise included free',
         ...NO_MONEY_OFF,
         gifts: [MERCH_GIFT]
       },

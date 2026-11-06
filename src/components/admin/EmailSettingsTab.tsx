@@ -102,13 +102,13 @@ export function EmailSettingsTab() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   // Test email state
-  const [testRecipient, setTestRecipient] = useState('scottkivlinpouch@gmail.com');
+  const [testRecipient, setTestRecipient] = useState('');
   const [testTemplate, setTestTemplate] = useState('order_confirmation');
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
   // Test Klaviyo state
-  const [testKlaviyoEmail, setTestKlaviyoEmail] = useState('scottkivlinpouch@gmail.com');
+  const [testKlaviyoEmail, setTestKlaviyoEmail] = useState('');
   const [sendingKlaviyoTest, setSendingKlaviyoTest] = useState(false);
   const [testKlaviyoResult, setTestKlaviyoResult] = useState<any>(null);
   const [verifyingKlaviyoKey, setVerifyingKlaviyoKey] = useState(false);
@@ -715,7 +715,7 @@ export function EmailSettingsTab() {
                     <ol className="list-decimal list-inside space-y-1 text-blue-800 pl-1">
                       <li>Go to your Google Account Security: <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="font-bold underline text-blue-700">myaccount.google.com/apppasswords</a></li>
                       <li>Ensure <strong>2-Step Verification</strong> is enabled on your Google account.</li>
-                      <li>Type App Name: <strong>Pouch Supply Co.</strong> and click <strong>Create</strong>.</li>
+                      <li>Type App Name: <strong>Ecommerce Store</strong> and click <strong>Create</strong>.</li>
                       <li>Copy the generated <strong>16-character code</strong> (e.g. <code className="bg-white px-1.5 py-0.5 rounded border border-blue-200 font-mono">abcd efgh ijkl mnop</code>) and paste it below!</li>
                     </ol>
                   </div>
@@ -731,7 +731,7 @@ export function EmailSettingsTab() {
                       id="gmail-user-input"
                       value={emailSettings.gmailUser || ''}
                       onChange={(e) => setEmailSettings({ ...emailSettings, gmailUser: e.target.value })}
-                      placeholder="e.g. scottkivlinpouch@gmail.com"
+                      placeholder="e.g. you@example.com"
                       className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-medium bg-white"
                     />
                     <p className="text-[11px] text-neutral-500 mt-1">
@@ -779,7 +779,7 @@ export function EmailSettingsTab() {
                       id="smtp-host-input"
                       value={emailSettings.smtpHost || ''}
                       onChange={(e) => setEmailSettings({ ...emailSettings, smtpHost: e.target.value })}
-                      placeholder="e.g. smtp.gmail.com or mail.pouch-supply.com"
+                      placeholder="e.g. smtp.gmail.com or mail.example.com"
                       className="w-full px-3.5 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                     />
                   </div>
@@ -871,9 +871,9 @@ export function EmailSettingsTab() {
                   <input
                     type="text"
                     id="sender-name-input"
-                    value={emailSettings.fromName || 'Pouch Supply Co.'}
+                    value={emailSettings.fromName || 'Ecommerce Store'}
                     onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
-                    placeholder="Pouch Supply Co."
+                    placeholder="Ecommerce Store"
                     className="w-full px-3.5 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   />
                   <p className="text-[10px] text-neutral-400 mt-1">Shown in customer inbox</p>
@@ -886,9 +886,9 @@ export function EmailSettingsTab() {
                   <input
                     type="email"
                     id="sender-email-input"
-                    value={emailSettings.fromEmail || emailSettings.gmailUser || 'scottkivlinpouch@gmail.com'}
+                    value={emailSettings.fromEmail || emailSettings.gmailUser || ''}
                     onChange={(e) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })}
-                    placeholder="orders@pouch-supply.com"
+                    placeholder="orders@example.com"
                     className="w-full px-3.5 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   />
                   <p className="text-[10px] text-neutral-400 mt-1">Customer replies go here</p>
@@ -901,9 +901,9 @@ export function EmailSettingsTab() {
                   <input
                     type="email"
                     id="admin-email-input"
-                    value={emailSettings.adminNotificationEmail || 'scottkivlinpouch@gmail.com'}
+                    value={emailSettings.adminNotificationEmail || ''}
                     onChange={(e) => setEmailSettings({ ...emailSettings, adminNotificationEmail: e.target.value })}
-                    placeholder="scottkivlinpouch@gmail.com"
+                    placeholder="you@example.com"
                     className="w-full px-3.5 py-2 text-xs rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   />
                   <p className="text-[10px] text-neutral-400 mt-1">Receives instant alerts on new orders</p>
@@ -1185,7 +1185,7 @@ export function EmailSettingsTab() {
                 id="test-recipient-input"
                 value={testRecipient}
                 onChange={(e) => setTestRecipient(e.target.value)}
-                placeholder="scottkivlinpouch@gmail.com"
+                placeholder="you@example.com"
                 className="w-full px-4 py-2.5 text-xs rounded-xl border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
               />
             </div>
@@ -1533,7 +1533,7 @@ export function EmailSettingsTab() {
                 type="email"
                 value={testKlaviyoEmail}
                 onChange={(e) => setTestKlaviyoEmail(e.target.value)}
-                placeholder="scottkivlinpouch@gmail.com"
+                placeholder="you@example.com"
                 className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-neutral-300 focus:ring-2 focus:ring-emerald-500 bg-white"
               />
               <button

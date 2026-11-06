@@ -1116,7 +1116,7 @@ export default function DevelopmentTab({ settings: initialSettings, onUpdateSett
                     setDevSettings(updated);
                     handleSaveDevSettings(updated);
                   }}
-                  placeholder="https://api.pouchsupply.co.uk/webhooks/orders"
+                  placeholder="https://api.yourstore.com/webhooks/orders"
                   className="w-full text-xs font-mono p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-amber-400"
                 />
               </div>

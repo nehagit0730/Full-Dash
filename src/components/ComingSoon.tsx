@@ -40,7 +40,7 @@ export default function ComingSoon({ headline, message, onUnlock }: ComingSoonPr
     <div className="min-h-screen bg-[#071d37] text-white flex items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md text-center space-y-8">
         <div className="space-y-2">
-          <div className="text-[11px] font-black uppercase tracking-[0.3em] text-[#dfb55a]">Pouch Supply</div>
+          <div className="text-[11px] font-black uppercase tracking-[0.3em] text-[#dfb55a]">Ecommerce Store</div>
           <h1 className="text-3xl font-black leading-tight">{headline || "We'll be back shortly"}</h1>
           {message && <p className="text-sm text-slate-300 leading-relaxed">{message}</p>}
         </div>

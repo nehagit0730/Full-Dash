@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, ShieldCheck, Truck, RefreshCw, Sparkles, HelpCircle, ArrowRight } from 'lucide-react';
+import { ArrowRight, RefreshCw, ShieldCheck, Truck } from 'lucide-react';
 import { LayoutSettings } from '../types';
 import { klaviyoTrackNewsletterSubscribe } from '../utils/klaviyo';
 import { cleanMediaUrl } from '../utils/mediaUtils';
 import { useRecaptcha } from '../hooks/useRecaptcha';
+import { storeName } from './storefront/storeKit';
 
 interface FooterProps {
   onNavigate?: (tab: string) => void;
@@ -15,16 +16,20 @@ export default function Footer({ onNavigate, layoutSettings }: FooterProps) {
   const [subscribed, setSubscribed] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const { executeRecaptcha } = useRecaptcha();
+  const name = storeName(layoutSettings);
+  const description =
+    layoutSettings?.footerLogoDescription && !/nicotine|pouch|canister/i.test(layoutSettings.footerLogoDescription)
+      ? layoutSettings.footerLogoDescription
+      : 'Contemporary womenswear — dresses, ethnic wear and everyday essentials, designed to be worn and loved.';
 
   const handleSubscribe = async () => {
     setErrorMsg('');
-    if (!email || !email.includes('@')) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrorMsg('Please enter a valid email.');
       return;
     }
     klaviyoTrackNewsletterSubscribe(email);
     setSubscribed(true);
-
     try {
       const recaptchaToken = await executeRecaptcha('newsletter_subscribe');
       await fetch('/api/email/subscribe', {
@@ -35,170 +40,113 @@ export default function Footer({ onNavigate, layoutSettings }: FooterProps) {
     } catch (err) {
       console.warn('Newsletter subscribe email dispatch warning:', err);
     }
-
     setEmail('');
   };
 
+  const link = (label: string, tab: string) => (
+    <li>
+      <button type="button" onClick={() => onNavigate?.(tab)} className="text-sm text-white/70 transition hover:text-white cursor-pointer">
+        {label}
+      </button>
+    </li>
+  );
+
   return (
-    <>
-      <footer id="global-footer" className="bg-slate-900 text-white border-t border-slate-800">
-      
-      {/* Brand value propositions row */}
-      <div className="bg-slate-950 border-b border-slate-800/80 py-8 px-6">
-        <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 text-xs text-slate-300">
-          <div className="flex gap-3 items-center">
-            <div className="p-2.5 bg-indigo-950/40 rounded-xl text-indigo-400 border border-indigo-900/40 shrink-0">
-              <Truck className="h-5 w-5" />
+    <footer className="store mt-auto">
+      {/* Service promises */}
+      <div className="border-t border-line bg-sand">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
+          {[
+            { icon: Truck, title: 'Free delivery', text: 'On orders above ₹1,999 across India' },
+            { icon: RefreshCw, title: 'Easy returns', text: '7-day returns on unworn items' },
+            { icon: ShieldCheck, title: 'Secure payments', text: 'UPI, cards & netbanking via Razorpay' }
+          ].map(({ icon: Icon, title, text }) => (
+            <div key={title} className="flex items-center gap-4">
+              <Icon className="h-6 w-6 shrink-0 text-clay" strokeWidth={1.4} />
+              <div>
+                <p className="text-sm uppercase tracking-[0.14em]">{title}</p>
+                <p className="text-sm text-stone">{text}</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-extrabold text-white text-xs uppercase tracking-wide">Next-Day Shipping</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">Reliable local courier dispatching</p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 items-center">
-            <div className="p-2.5 bg-indigo-950/40 rounded-xl text-indigo-400 border border-indigo-900/40 shrink-0">
-              <RefreshCw className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="font-extrabold text-white text-xs uppercase tracking-wide">Flexible Schedules</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">Easy returns within our return window</p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 items-center">
-            <div className="p-2.5 bg-indigo-950/40 rounded-xl text-indigo-400 border border-indigo-900/40 shrink-0">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="font-extrabold text-white text-xs uppercase tracking-wide">Secured Checkout</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">Bank-grade 256-bit SSL encryptions</p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 items-center">
-            <div className="p-2.5 bg-indigo-950/40 rounded-xl text-indigo-400 border border-indigo-900/40 shrink-0">
-              <HelpCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="font-extrabold text-white text-xs uppercase tracking-wide">Instant Support</h4>
-              <p className="text-slate-400 text-[11px] mt-0.5">Email and chat support desks open</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Main categories navigation columns */}
-      <div className="max-w-[1440px] mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
-        
-        {/* Brand identity column */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
+      <div className="bg-ink text-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-14 sm:px-6 md:grid-cols-12 lg:px-8">
+          <div className="md:col-span-4">
             {layoutSettings?.footerLogoImage ? (
-              <img 
-                src={cleanMediaUrl(layoutSettings.footerLogoImage)} 
-                className="max-h-10 max-w-[150px] object-contain rounded" 
-                alt="Footer Logo" 
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              <img src={cleanMediaUrl(layoutSettings.footerLogoImage)} alt={name} className="h-10 w-auto object-contain" />
             ) : (
-              <>
-                <div className="h-8 w-8 rounded-full bg-indigo-650 text-white flex items-center justify-center font-black tracking-tighter shadow">
-                  {(layoutSettings?.footerLogoText || 'P').charAt(0).toUpperCase()}
-                </div>
-                <span className="font-black tracking-widest text-white uppercase text-xs">
-                  {layoutSettings?.footerLogoText || 'POUCH SUPPLY'}
-                </span>
-              </>
+              <p className="font-display text-3xl tracking-[0.06em]">{name}</p>
             )}
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">{description}</p>
           </div>
-          <p className="text-slate-400 leading-relaxed text-[11px]">
-            {layoutSettings?.footerLogoDescription || 'Leading premium directory for tobacco-free nicotine slim white canisters. Sourced directly from partners across Sweden, Poland, and Germany.'}
-          </p>
-          <p className="text-[10px] text-slate-500">
-            © 2026 {layoutSettings?.headerLogoText || 'Pouch Supply'} UK. All rights reserved.
-          </p>
-        </div>
 
-        {/* Info links */}
-        <div>
-          <h4 className="font-black text-slate-200 uppercase tracking-widest mb-4">Info</h4>
-          <ul className="space-y-2.5 text-slate-400 font-medium">
-            <li onClick={() => onNavigate?.('strength-guide')} className="hover:text-white transition-colors cursor-pointer">Strength Guide</li>
-            <li onClick={() => onNavigate?.('faqs')} className="hover:text-white transition-colors cursor-pointer">Faq's</li>
-            <li onClick={() => onNavigate?.('about')} className="hover:text-white transition-colors cursor-pointer">About</li>
-            <li onClick={() => onNavigate?.('contact')} className="hover:text-white transition-colors cursor-pointer">Contact</li>
-            <li onClick={() => onNavigate?.('blogs')} className="hover:text-white transition-colors cursor-pointer">Journal</li>
-          </ul>
-        </div>
+          <div className="md:col-span-2">
+            <p className="mb-4 text-[11px] uppercase tracking-[0.22em] text-white/50">Shop</p>
+            <ul className="space-y-2.5">
+              {link('New In', 'frontend-shop')}
+              {link('Shop All', 'frontend-shop')}
+              {link('Journal', 'blogs')}
+            </ul>
+          </div>
 
-        {/* Policies */}
-        <div>
-          <h4 className="font-black text-slate-200 uppercase tracking-widest mb-4">Policies</h4>
-          <ul className="space-y-2.5 text-slate-400 font-medium">
-            <li onClick={() => onNavigate?.('privacy-policy')} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</li>
-            <li onClick={() => onNavigate?.('shipping-policy')} className="hover:text-white transition-colors cursor-pointer">Shipping Policy</li>
-            <li onClick={() => onNavigate?.('refund-policy')} className="hover:text-white transition-colors cursor-pointer">Refund Policy</li>
-            <li onClick={() => onNavigate?.('terms-conditions')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</li>
-          </ul>
-        </div>
+          <div className="md:col-span-2">
+            <p className="mb-4 text-[11px] uppercase tracking-[0.22em] text-white/50">Help</p>
+            <ul className="space-y-2.5">
+              {link('Contact us', 'contact')}
+              {link('Shipping', 'shipping-policy')}
+              {link('Returns & refunds', 'refund-policy')}
+              <li>
+                <button type="button" onClick={() => window.dispatchEvent(new Event('open-order-withdrawal'))} className="text-sm text-white/70 transition hover:text-white cursor-pointer">
+                  Return or cancel an order
+                </button>
+              </li>
+              {link('Our story', 'about')}
+            </ul>
+          </div>
 
-        {/* Email dispatcher */}
-        <div className="space-y-4">
-          <h4 className="font-black text-slate-200 uppercase tracking-widest mb-2 flex items-center gap-1">
-            <Mail className="h-4 w-4 text-indigo-400" /> join the crew
-          </h4>
-          <p className="text-slate-400 leading-normal text-[11px]">
-            Subscribe to receive exclusive weekly offers, nicotine strength updates, and flash sales codes.
-          </p>
-          {subscribed ? (
-            <div className="bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs p-3 rounded-lg text-center font-bold">
-              🎉 Joined successfully! Welcome aboard.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex gap-2.5">
+          <div className="md:col-span-4">
+            <p className="mb-4 text-[11px] uppercase tracking-[0.22em] text-white/50">Newsletter</p>
+            <p className="text-sm text-white/70">New arrivals, styling notes and early access to sales.</p>
+            {subscribed ? (
+              <p className="mt-4 text-sm text-white">Thank you — you’re on the list.</p>
+            ) : (
+              <form
+                className="mt-4 flex border-b border-white/40"
+                onSubmit={e => {
+                  e.preventDefault();
+                  handleSubscribe();
+                }}
+              >
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSubscribe();
-                  }}
+                  onChange={e => setEmail(e.target.value)}
                   placeholder="Your email address"
-                  className="bg-slate-800 border border-slate-700/80 p-2 text-xs rounded-lg text-white w-full pr-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-500 font-medium"
+                  aria-label="Email address"
+                  className="flex-1 bg-transparent py-3 text-sm text-white outline-none placeholder:text-white/40"
                 />
-                <button
-                  onClick={handleSubscribe}
-                  className="bg-indigo-600 hover:bg-indigo-700 font-bold p-2 px-3 rounded-lg text-white cursor-pointer transition-colors text-[10px] uppercase tracking-wider shrink-0"
-                >
-                  Join
+                <button type="submit" className="px-2 text-white transition hover:text-blush cursor-pointer" aria-label="Subscribe">
+                  <ArrowRight className="h-5 w-5" />
                 </button>
-              </div>
-              {errorMsg && (
-                <p className="text-red-400 text-[10px] font-bold leading-none">{errorMsg}</p>
-              )}
-              <div className="flex items-center gap-1 text-[9px] text-slate-500 font-medium pt-1">
-                <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
-                <span>Protected by Google reCAPTCHA v3</span>
-              </div>
-            </div>
-          )}
+              </form>
+            )}
+            {errorMsg && <p className="mt-2 text-xs text-blush">{errorMsg}</p>}
+          </div>
         </div>
 
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-white/50 sm:flex-row sm:px-6 lg:px-8">
+            <p>© {new Date().getFullYear()} {name}. All rights reserved.</p>
+            <div className="flex gap-5">
+              <button type="button" onClick={() => onNavigate?.('privacy-policy')} className="hover:text-white cursor-pointer">Privacy</button>
+              <button type="button" onClick={() => onNavigate?.('terms-conditions')} className="hover:text-white cursor-pointer">Terms</button>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Disclaimers micro block */}
-      <div className="bg-slate-950 border-t border-slate-800 py-6 px-4 text-center text-[10px] text-slate-500 leading-relaxed max-w-[1440px] mx-auto">
-        <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1">HEALTH & AGE WARNING DISCLOSURE</span>
-        <span>Nicotine is highly addictive. Our products are strictly intended only for adult consumers of legal age. These statement summaries have not been evaluated by general medical regulators. Consult certified physicians for nicotine cessation guidelines.</span>
-      </div>
-
     </footer>
-    </>
   );
 }

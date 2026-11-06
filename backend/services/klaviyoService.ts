@@ -354,7 +354,7 @@ export async function trackKlaviyoEvent(
   const siteId = (settings.siteId || settings.publicKey || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || process.env.KLAVIYO_SITE_ID || 'VPbY66').trim();
 
   // 1. Sanitize Profile Attributes for Klaviyo API v3
-  const cleanEmail = (customerEmail || 'customer@pouch-supply.com').trim().toLowerCase();
+  const cleanEmail = (customerEmail || 'customer@example.com').trim().toLowerCase();
   const profileAttributes: Record<string, any> = {
     email: cleanEmail
   };
@@ -656,7 +656,7 @@ export async function trackCheckoutStarted(
 export async function trackPurchaseCompleted(order: any) {
   const settings = await getKlaviyoSettings();
   if (settings.trackEvents && settings.trackEvents.purchase === false) return;
-  const email = (order.customerEmail || 'customer@pouch-supply.com').toLowerCase().trim();
+  const email = (order.customerEmail || 'customer@example.com').toLowerCase().trim();
 
   const nameParts = (order.customerName || '').trim().split(/\s+/);
   const firstName = nameParts[0] || 'Valued';
@@ -675,7 +675,7 @@ export async function trackPurchaseCompleted(order: any) {
       Price: priceNum,
       RowTotal: parseFloat((priceNum * qtyNum).toFixed(2)),
       ImageURL: i.image || i.imageUrl || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300',
-      Vendor: i.vendor || 'Pouch Supply Co.',
+      Vendor: i.vendor || 'Ecommerce Store',
       IsSubscription: isSubscriptionLineItem(i),
       IsRewardItem: Boolean(i.isRewardItem)
     };
@@ -768,7 +768,7 @@ export async function trackPurchaseCompleted(order: any) {
 export async function trackOrderRefunded(order: any, refundAmount?: number) {
   const settings = await getKlaviyoSettings();
   if (!settings.trackEvents.refunded) return;
-  const email = order.customerEmail || 'customer@pouch-supply.com';
+  const email = order.customerEmail || 'customer@example.com';
   return trackKlaviyoEvent('Refunded Order', email, {
     $event_id: String(order.id || order.orderId),
     $value: refundAmount !== undefined ? refundAmount : order.total,
@@ -787,7 +787,7 @@ export async function trackWishlistAdded(email: string, item: any) {
 }
 
 export async function trackOrderShipped(order: any, trackingNumber?: string, carrier?: string) {
-  const email = order.customerEmail || 'customer@pouch-supply.com';
+  const email = order.customerEmail || 'customer@example.com';
   return trackKlaviyoEvent('Order Shipped', email, {
     $event_id: String(order.id || order.orderId),
     OrderId: String(order.id || order.orderId),

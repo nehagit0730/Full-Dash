@@ -1,4 +1,4 @@
-// Email templates for Pouch Supply Co. with responsive cross-client styling
+// Email templates for Ecommerce Store with responsive cross-client styling
 export interface EmailTemplateData {
   headerLogoImage?: string;
   logoUrl?: string;
@@ -42,12 +42,12 @@ export interface EmailTemplateData {
   billingInterval?: string;
 }
 
-const BRAND_NAME = "Pouch Supply Co.";
+const BRAND_NAME = "Ecommerce Store";
 const BRAND_HEADER_BG = "#e7e7e7";
 const BRAND_PRIMARY = "#071d37";
 const BRAND_ACCENT = "#008060";
 const BRAND_BG = "#f8fafc";
-const SUPPORT_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "support@pouch-supply.com";
+const SUPPORT_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "support@example.com";
 
 // The storefront logo is stored however it was uploaded: Cloudinary hands back an
 // absolute https URL, the local uploader hands back "/api/uploads/<file>", and the
@@ -61,7 +61,7 @@ const SUPPORT_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "support@pouch-sup
 const EMAIL_ASSET_BASE_URL = (
   process.env.EMAIL_ASSET_BASE_URL ||
   process.env.APP_URL ||
-  'https://www.pouch-supply.com'
+  'https://www.yourstore.com'
 ).trim().replace(/\/+$/, '');
 
 function resolveEmailLogoSrc(raw?: string): string {
@@ -120,7 +120,7 @@ function renderBaseHeader(title: string, subtitle?: string, data?: EmailTemplate
                 </div>
               </td>
               <td style="vertical-align: middle; text-align: left;">
-                <div style="font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #071d37; text-transform: uppercase; line-height: 1.1;">POUCH SUPPLY</div>
+                <div style="font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #071d37; text-transform: uppercase; line-height: 1.1;">ECOMMERCE STORE</div>
                 <div style="font-size: 10px; font-weight: 700; color: #008060; letter-spacing: 2px; text-transform: uppercase;">PREMIUM CANISTERS</div>
               </td>
             </tr>
@@ -140,7 +140,7 @@ function renderBaseFooter(): string {
       </div>
       <div class="footer">
         <p style="margin: 0 0 8px 0; font-weight: 700; color: #ffffff;">${BRAND_NAME}</p>
-        <p style="margin: 0 0 12px 0;">UK-Licensed Laboratory Pouch Compounding Facility</p>
+        <p style="margin: 0 0 12px 0;">Contemporary womenswear, delivered across India</p>
         <p style="margin: 0;">Need support? Email us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
         <p style="margin-top: 16px; font-size: 10px; color: #64748b;">© ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
       </div>
@@ -157,7 +157,7 @@ function renderOrderItemsTable(data: EmailTemplateData): string {
 
   const itemsHtml = data.items.map(item => {
     const lineTotal = (item.price || 0) * (item.quantity || 1);
-    // Loyalty reward lines ship at ₹0. Showing "₹0.00" next to a can reads as a
+    // Loyalty reward lines ship at ₹0. Showing "₹0.00" next to an item reads as a
     // pricing error, so they are labelled as the gift they are.
     const isReward = Boolean((item as any).isRewardItem);
     const detailBits = [`Qty: ${item.quantity || 1}`];
@@ -166,7 +166,7 @@ function renderOrderItemsTable(data: EmailTemplateData): string {
     return `
     <tr>
       <td style="width: 60%; font-weight: 600; color: #1e293b;">
-        ${item.productTitle || 'Nicotine Canister Pack'}
+        ${item.productTitle || 'Item'}
         ${isReward ? `<div style="font-size: 10px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;">Loyalty reward — included free</div>` : ''}
         <div style="font-size: 11px; color: #64748b; font-weight: normal;">${detailBits.join(' · ')}</div>
       </td>
@@ -236,7 +236,7 @@ export function renderOrderConfirmationTemplate(data: EmailTemplateData): string
         </div>
       </div>
       <p style="font-size: 13px; color: #475569; margin: 0;">
-        Your nicotine pouch order has been received and sent to our compounding lab for priority dispatch.
+        Thank you for your order! We have received it and will let you know as soon as it ships.
       </p>
     </div>
 
@@ -264,7 +264,7 @@ export function renderOrderProcessingTemplate(data: EmailTemplateData): string {
   const name = data.customerName || 'Valued Customer';
   const orderId = data.orderId || 'PS10001';
 
-  return renderBaseHeader(`Order Processing #${orderId}`, `We are packing your canisters, ${name}!`, data) + `
+  return renderBaseHeader(`Order Processing #${orderId}`, `We are packing your order, ${name}!`, data) + `
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <div>
@@ -276,7 +276,7 @@ export function renderOrderProcessingTemplate(data: EmailTemplateData): string {
         </div>
       </div>
       <p style="font-size: 13px; color: #475569; margin: 0;">
-        Great news! Your canisters are being verified, sealed, and prepared for carrier pickup.
+        Great news! Your order is being carefully packed and prepared for dispatch.
       </p>
     </div>
 
@@ -362,7 +362,7 @@ export function renderDeliveredTemplate(data: EmailTemplateData): string {
   const name = data.customerName || 'Valued Customer';
   const orderId = data.orderId || 'PS10001';
 
-  return renderBaseHeader(`Order Delivered #${orderId}`, `Enjoy your pouch supply, ${name}!`, data) + `
+  return renderBaseHeader(`Order Delivered #${orderId}`, `Enjoy your ecommerce store, ${name}!`, data) + `
     <div class="card" style="background-color: #f0fdf4; border-color: #bbf7d0; text-align: center;">
       <span class="badge badge-success" style="margin-bottom: 8px;">Delivered</span>
       <p style="font-size: 15px; color: #166534; font-weight: 800; margin: 0 0 6px 0;">
@@ -374,7 +374,7 @@ export function renderDeliveredTemplate(data: EmailTemplateData): string {
     </div>
 
     <p style="font-size: 13px; color: #475569; text-align: center;">
-      We hope you enjoy your nicotine canisters. Have feedback or need help? Reply to this email!
+      We hope you love your new pieces. Have feedback or need help? Reply to this email!
     </p>
 
     <div style="text-align: center; margin-top: 20px;">
@@ -499,7 +499,7 @@ export function renderEmailVerificationTemplate(data: EmailTemplateData): string
   return renderBaseHeader(`Verify Your Email`, `Welcome to ${BRAND_NAME}, ${name}!`, data) + `
     <div class="card" style="text-align: center;">
       <p style="font-size: 13px; color: #475569; margin: 0 0 16px 0;">
-        Please verify your email address to complete your account setup and access member-only canister pricing.
+        Please verify your email address to complete your account setup and access member-only offers.
       </p>
       
       <div style="background-color: #0f172a; color: ${BRAND_ACCENT}; font-size: 28px; font-weight: 900; letter-spacing: 6px; padding: 16px; border-radius: 8px; font-family: monospace; display: inline-block;">
@@ -521,7 +521,7 @@ export function renderWelcomeTemplate(data: EmailTemplateData): string {
   return renderBaseHeader(`Welcome to ${BRAND_NAME}!`, `Your account is ready`, data) + `
     <div class="card" style="background-color: #f8fafc; text-align: center; padding: 24px;">
       <p style="font-size: 14px; color: #1e293b; font-weight: 600; margin: 0 0 12px 0;">
-        Welcome to the UK's premier nicotine canister compounding standard.
+        Welcome! Discover new arrivals, festive edits and everyday essentials.
       </p>
       <p style="font-size: 13px; color: #64748b; margin: 0 0 20px 0;">
         As a welcome gift, take <strong>10% OFF</strong> your first order with your personal code:
@@ -533,7 +533,7 @@ export function renderWelcomeTemplate(data: EmailTemplateData): string {
     </div>
 
     <div style="text-align: center; margin-top: 24px;">
-      <a href="${data.siteUrl || '#'}" class="btn">Explore Canisters</a>
+      <a href="${data.siteUrl || '#'}" class="btn">Shop New Arrivals</a>
     </div>
   ` + renderBaseFooter();
 }

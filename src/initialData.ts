@@ -25,7 +25,7 @@ export const DEFAULT_PAGES: CustomPage[] = [
           backgroundColor: '#111827',
           headingColor: '#FFFFFF',
           textColor: '#E5E7EB',
-          title: 'Pouch Supply Storefront',
+          title: 'Ecommerce Store Storefront',
           description: 'Start managing your products, collections, and page sections inside the Admin Dashboard.',
           buttonText: 'View Store Catalog',
           buttonLink: 'frontend-shop',
@@ -96,8 +96,8 @@ export const DEFAULT_PAGES: CustomPage[] = [
           backgroundColor: '#FFFFFF',
           headingColor: '#0F172A',
           textColor: '#475569',
-          title: 'About Pouch Supply',
-          description: 'Pouch Supply is Europe’s premier directory and depot for tobacco-free nicotine slim white canisters. We source directly from certified manufacturing laboratories across Sweden, Poland, Germany, and Europe, ensuring 100% genuine products, freshness guarantees, and rapid worldwide dispatch.'
+          title: 'About Ecommerce Store',
+          description: 'We design contemporary womenswear — flowing dresses, festive ethnic wear and everyday essentials — made to be worn and loved, and delivered across India.'
         }
       },
       {

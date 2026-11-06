@@ -259,7 +259,7 @@ export async function signInWithGoogle(): Promise<{ customer: Customer; user: an
               </div>
               <div>
                 <h3 class="text-base font-black text-slate-900 leading-tight">Sign in with Google</h3>
-                <p class="text-[11px] text-slate-500 font-medium">Continue to Pouch Supply Account</p>
+                <p class="text-[11px] text-slate-500 font-medium">Continue to Ecommerce Store Account</p>
               </div>
             </div>
             <button id="ps-google-close-btn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors">
@@ -274,7 +274,7 @@ export async function signInWithGoogle(): Promise<{ customer: Customer; user: an
                 type="email" 
                 id="ps-google-email-input" 
                 placeholder="e.g. name@gmail.com" 
-                value="scottkivlinpouch@gmail.com"
+                value="you@example.com"
                 class="w-full text-xs font-semibold px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
               />
             </div>

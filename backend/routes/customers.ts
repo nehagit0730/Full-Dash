@@ -607,7 +607,7 @@ router.post("/admin-login", async (req, res) => {
       token,
       adminUser: {
         email: String(email).trim().toLowerCase(),
-        name: "Pouch Supply Administrator"
+        name: "Ecommerce Store Administrator"
       }
     });
   } catch (err: any) {

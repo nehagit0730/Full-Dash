@@ -192,7 +192,7 @@ export default function CartDrawer({
                   <div className="text-center py-24 space-y-3">
                     <span className="text-3xl block">🛒</span>
                     <p className="font-bold text-slate-750 text-sm">Your cart drawer is empty</p>
-                    <p className="text-xs text-slate-400 max-w-xs mx-auto">Explore our nicotine pouches, configure custom collection subscribers or custom packs.</p>
+                    <p className="text-xs text-slate-400 max-w-xs mx-auto">Explore new arrivals and add your favourites to your bag.</p>
                     <button
                       onClick={onClose}
                       className="inline-block text-xs bg-slate-900 border-slate-900 hover:bg-slate-850 text-white font-bold py-2.5 px-6 rounded-lg shadow-xs cursor-pointer transition-colors mt-2"
@@ -296,7 +296,7 @@ export default function CartDrawer({
                       <Sparkles className="h-3.5 w-3.5" />
                       {appliedDiscount.rewardKind === 'choice'
                         ? 'Choose your reward'
-                        : `Choose your free can${outstandingCans !== 1 ? 's' : ''} (${outstandingCans} to pick)`}
+                        : `Choose your free item${outstandingCans !== 1 ? 's' : ''} (${outstandingCans} to pick)`}
                     </button>
                   )}
 

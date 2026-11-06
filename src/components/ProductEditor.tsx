@@ -68,8 +68,8 @@ export default function ProductEditor({
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
 
   // Preset vendors/categories for smart search options
-  const defaultVendors = ['77', 'clew', 'cuba', 'maggie', 'nordic spirit', 'xqs', 'zyn', 'pablo', 'killa', 'fumi', 'velo', 'white fox', 'snu'];
-  const defaultCategories = ['Clothing', 'Jwellery', 'Nicotine Pouches', 'Protein', 'Food'];
+  const defaultVendors: string[] = [];
+  const defaultCategories = ['Dresses', 'Ethnic Wear', 'Tops', 'Bottoms', 'Outerwear', 'Accessories'];
 
   // Helper to generate combination names from option dimensions
   const generateCombinations = (options: ProductVariant[]): string[] => {
@@ -102,7 +102,7 @@ export default function ProductEditor({
       setSku(product.sku || '');
       setBarcode(product.barcode || '');
       setCategory(product.category || 'Nicotine Pouches');
-      setVendor(product.vendor || '77');
+      setVendor(product.vendor || '');
       setStatus(product.status || 'Active');
       setWeight(product.weight || 0);
       setWeightUnit((product.weightUnit as 'g' | 'kg' | 'oz' | 'lb') || 'g');
@@ -130,7 +130,7 @@ export default function ProductEditor({
       setSku(`PCH-${100000 + Math.floor(Math.random() * 900000)}`);
       setBarcode('');
       setCategory('Nicotine Pouches');
-      setVendor('77');
+      setVendor('');
       setStatus('Active');
       setWeight(24);
       setWeightUnit('g');
@@ -427,7 +427,7 @@ export default function ProductEditor({
         sku !== (product.sku || '') ||
         barcode !== (product.barcode || '') ||
         category !== (product.category || 'Nicotine Pouches') ||
-        vendor !== (product.vendor || '77') ||
+        vendor !== (product.vendor || '') ||
         status !== (product.status || 'Active') ||
         weight !== (product.weight || 0) ||
         weightUnit !== (product.weightUnit || 'g') ||
@@ -1255,7 +1255,7 @@ export default function ProductEditor({
 
             {/* Google Snippet display */}
             <div className="bg-slate-50 border border-slate-205 p-4 rounded-xl space-y-1 text-left font-serif leading-none select-none max-w-xl">
-              <span className="text-neutral-400 font-sans text-[10px] block truncate font-medium">https://pouchsupply.co.uk/products/{customSlug || slugify(title || 'untitled')}</span>
+              <span className="text-neutral-400 font-sans text-[10px] block truncate font-medium">https://yourstore.com/products/{customSlug || slugify(title || 'untitled')}</span>
               <span className="text-[#1a0dab] font-sans text-xs sm:text-sm block hover:underline cursor-pointer font-extrabold leading-tight">
                 {seoTitle || title || 'Untitled Nicotine Pouch Can'}
               </span>

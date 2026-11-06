@@ -2,7 +2,7 @@ import { DevSettings } from '../types';
 
 export const DEFAULT_DEV_SETTINGS: DevSettings = {
   customCss: `/* =========================================================
-   Pouch Supply Global Custom CSS Overrides
+   Ecommerce Store Global Custom CSS Overrides
    ========================================================= */
 
 /* Custom scrollbar styling */
@@ -44,7 +44,7 @@ export const DEFAULT_DEV_SETTINGS: DevSettings = {
   customCssEnabled: true,
 
   customJs: `// =========================================================
-// Pouch Supply Global Custom JavaScript Handler
+// Ecommerce Store Global Custom JavaScript Handler
 // =========================================================
 
 (function() {
@@ -63,7 +63,7 @@ export const DEFAULT_DEV_SETTINGS: DevSettings = {
   customHeadCode: `<!-- Custom Head Meta Tags & Resource Hints -->
 <meta name="pouch-supply-environment" content="production-uk-eu">
 <meta name="pouch-supply-dev-build" content="v2.8.4">
-<link rel="dns-prefetch" href="https://cdn.pouchsupply.co.uk">`,
+<link rel="dns-prefetch" href="https://cdn.yourstore.com">`,
   customHeadEnabled: true,
 
   customBodyCode: `<!-- Custom Body Footer Injection Hook -->
@@ -109,7 +109,7 @@ export const DEFAULT_DEV_SETTINGS: DevSettings = {
     microsoftClarityEnabled: false,
     hotjarSiteId: '5098231',
     hotjarEnabled: false,
-    customWebhookUrl: 'https://api.pouchsupply.co.uk/webhooks/orders',
+    customWebhookUrl: 'https://api.yourstore.com/webhooks/orders',
     customWebhookEnabled: false
   },
 

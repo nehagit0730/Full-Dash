@@ -453,6 +453,8 @@ export interface LayoutSettings {
   footerLogoDescription: string;
   footerLogoImage: string; // Base64 or URL
   menuItems: MenuItem[];
+  /** 'theme' (default) shows the built-in storefront home page; 'page-builder' shows the page marked as homepage. */
+  homepageSource?: 'theme' | 'page-builder';
   klaviyoPublicKey?: string;
   cloudinaryCloudName?: string;
   cloudinaryApiKey?: string;

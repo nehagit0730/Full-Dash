@@ -109,6 +109,20 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
               <span className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Header Brand Identity</span>
             </div>
 
+            <div>
+              <label htmlFor="homepage-source" className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Home page</label>
+              <select
+                id="homepage-source"
+                value={(localLayoutSettings as any).homepageSource || 'theme'}
+                onChange={(e) => setLocalLayoutSettings({ ...localLayoutSettings, homepageSource: e.target.value as any })}
+                className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="theme">Theme home page (default storefront design)</option>
+                <option value="page-builder">Page Builder home page (the page marked as homepage)</option>
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">The logo text below is the store name shown in the header, footer and emails.</p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Logo Text</label>
@@ -117,7 +131,7 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                   value={localLayoutSettings.headerLogoText}
                   onChange={(e) => setLocalLayoutSettings({ ...localLayoutSettings, headerLogoText: e.target.value })}
                   className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. Pouch Supply"
+                  placeholder="e.g. Ecommerce Store"
                 />
               </div>
 
@@ -128,7 +142,7 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                   value={localLayoutSettings.headerLogoSubtext}
                   onChange={(e) => setLocalLayoutSettings({ ...localLayoutSettings, headerLogoSubtext: e.target.value })}
                   className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. Premium Nicotine"
+                  placeholder="e.g. Womenswear"
                 />
               </div>
             </div>
@@ -160,7 +174,7 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                   value={localLayoutSettings.footerLogoText}
                   onChange={(e) => setLocalLayoutSettings({ ...localLayoutSettings, footerLogoText: e.target.value })}
                   className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. POUCH SUPPLY"
+                  placeholder="e.g. ECOMMERCE STORE"
                 />
               </div>
 

@@ -15,7 +15,9 @@
     "verify:vercel-analytics": "tsx scripts/verifyVercelAnalytics.ts",
     "verify:recycle-bin": "tsx scripts/verifyRecycleBin.ts",
     "verify:admin-session": "esbuild scripts/verifyAdminSession.ts --bundle --platform=node --format=cjs --packages=external --loader:.jpg=empty --outfile=dist/verifyAdminSession.cjs --log-level=warning && node dist/verifyAdminSession.cjs",
-    "verify:integrations": "tsx scripts/verifyIntegrationSettings.ts"
+    "verify:integrations": "tsx scripts/verifyIntegrationSettings.ts",
+    "seed:fashion-demo": "tsx scripts/seedFashionDemo.ts",
+    "verify:payments": "tsx scripts/verifyPayments.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

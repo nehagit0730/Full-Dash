@@ -9,7 +9,7 @@
 import "dotenv/config";
 import assert from "assert";
 import { prisma } from "../src/lib/prisma";
-import { ensureNeonTablesExist } from "../serverDb";
+import { ensureNeonTablesExist, getDb } from "../serverDb";
 import { decryptSecret, encryptSecret, isEncrypted, maskSecret } from "../backend/services/integrations/crypto";
 import {
   getIntegrationCredentials,
@@ -44,6 +44,13 @@ async function rejects(p: Promise<any>, pattern: RegExp) {
 const SECRET = "test_secret_value_ABCDEFGH1234";
 
 async function main() {
+  // Never touch real data: the data layer mirrors every write into a local
+  // JSON file (local_store_data.json by default). Tests must use a scratch one,
+  // and must not fall back to that file when the database is unreachable.
+  if (!process.env.LOCAL_STORE_PATH || /local_store_data.json$/.test(process.env.LOCAL_STORE_PATH)) {
+    throw new Error("Set LOCAL_STORE_PATH to a scratch file (not local_store_data.json) before running this test.");
+  }
+  if (!(await getDb())) throw new Error("The test database is not reachable (DATABASE_URL). Refusing to run against the local fallback file.");
   if (!process.env.SETTINGS_ENCRYPTION_KEY) process.env.SETTINGS_ENCRYPTION_KEY = "x".repeat(40);
   await ensureNeonTablesExist();
   await prisma.integrationSetting.deleteMany({ where: { id: { in: ["razorpay", "upi"] } } });

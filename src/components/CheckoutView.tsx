@@ -1273,7 +1273,7 @@ export default function CheckoutView({
                 >
                   {currentDiscount.rewardKind === 'choice'
                     ? 'Choose your reward'
-                    : `Choose your free can${outstandingCans !== 1 ? 's' : ''} (${outstandingCans} to pick)`}
+                    : `Choose your free item${outstandingCans !== 1 ? 's' : ''} (${outstandingCans} to pick)`}
                 </button>
               )}
             </div>
