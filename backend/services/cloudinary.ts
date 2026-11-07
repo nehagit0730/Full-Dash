@@ -8,6 +8,47 @@ export function isCloudinaryConfigured(): boolean {
   );
 }
 
+/**
+ * Loads Cloudinary credentials into the running process and reports whether
+ * uploads can proceed.
+ *
+ * Order of precedence:
+ *   1. Admin → Settings → Integrations → Cloudinary (encrypted in Neon). The
+ *      integration store itself falls back to CLOUDINARY_* env vars per field.
+ *   2. CLOUDINARY_* environment variables.
+ *   3. The older Layout-tab fields (layout settings), kept for compatibility.
+ *
+ * Everything downstream still reads process.env, so the resolved values are
+ * written there; a change saved in the dashboard takes effect on the next call
+ * without a restart or redeploy.
+ */
+export async function ensureCloudinaryConfigured(): Promise<boolean> {
+  try {
+    const { getIntegrationCredentials } = await import('./integrations/store');
+    const { values } = await getIntegrationCredentials('cloudinary');
+    const cloudName = String(values.cloudName || '').trim();
+    const apiKey = String(values.apiKey || '').trim();
+    const apiSecret = String(values.apiSecret || '').trim();
+    if (cloudName && apiKey && apiSecret) {
+      process.env.CLOUDINARY_CLOUD_NAME = cloudName;
+      process.env.CLOUDINARY_API_KEY = apiKey;
+      process.env.CLOUDINARY_API_SECRET = apiSecret;
+    }
+  } catch (err: any) {
+    console.warn('[Cloudinary] Could not read Integrations settings:', err?.message || err);
+  }
+
+  if (!isCloudinaryConfigured()) {
+    try {
+      // Populates CLOUDINARY_* from the legacy layout-settings fields if present.
+      const { fetchLayoutSettings } = await import('../../serverDb');
+      await fetchLayoutSettings();
+    } catch (_e) {}
+  }
+
+  return isCloudinaryConfigured();
+}
+
 export function getCloudinaryClient() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
@@ -50,13 +91,12 @@ export async function uploadToCloudinary(
     publicId?: string;
   } = {}
 ): Promise<CloudinaryUploadResult> {
+  if (!(await ensureCloudinaryConfigured())) {
+    throw new Error('Cloudinary is not configured. Add the cloud name, API key and API secret in Admin → Settings → Integrations → Cloudinary.');
+  }
   const client = getCloudinaryClient();
   const folder = options.folder || 'storefront_media';
   const resourceType = options.resourceType || 'auto';
-
-  if (!isCloudinaryConfigured()) {
-    throw new Error('Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are missing.');
-  }
 
   return new Promise((resolve, reject) => {
     const uploadOptions: any = {
@@ -124,7 +164,7 @@ export async function uploadToCloudinary(
  * Delete asset from Cloudinary by publicId
  */
 export async function deleteFromCloudinary(publicId: string, resourceType: string = 'image'): Promise<boolean> {
-  if (!isCloudinaryConfigured()) return false;
+  if (!(await ensureCloudinaryConfigured())) return false;
   try {
     const client = getCloudinaryClient();
     const result = await client.uploader.destroy(publicId, {

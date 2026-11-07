@@ -44,11 +44,34 @@ const BACKUP_FILE_PATH = process.env.LOCAL_STORE_PATH
   ? path.resolve(process.env.LOCAL_STORE_PATH)
   : path.join(process.cwd(), 'local_store_data.json');
 
+/**
+ * Identifies which database a snapshot was taken from (host + database name,
+ * never credentials). A snapshot from a different database — e.g. after
+ * DATABASE_URL is pointed at a new Neon project — must not be served, or the
+ * store keeps showing the old project's data.
+ */
+function currentDbFingerprint(): string {
+  const raw = (process.env.DATABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+  if (!raw) return 'none';
+  try {
+    const u = new URL(raw);
+    return `${u.hostname}/${u.pathname.replace(/^\//, '')}`;
+  } catch {
+    return 'invalid';
+  }
+}
+
+const SNAPSHOT_META_KEY = '__dbFingerprint';
+
 function loadMemoryCacheFromBackup() {
   try {
     if (fs.existsSync(BACKUP_FILE_PATH)) {
       const raw = fs.readFileSync(BACKUP_FILE_PATH, 'utf8');
       const data = JSON.parse(raw);
+      if (data && typeof data === 'object' && data[SNAPSHOT_META_KEY] !== currentDbFingerprint()) {
+        console.log('[Local Backup] Ignoring local_store_data.json: it was taken from a different database than DATABASE_URL.');
+        return;
+      }
       if (data && typeof data === 'object') {
         for (const key of Object.keys(data)) {
           if (Array.isArray(data[key]) && data[key].length > 0) {
@@ -74,7 +97,12 @@ function persistMemoryCacheToBackup() {
       return;
     }
 
-    const payload = JSON.stringify(memoryCache, null, 2);
+    // Only a snapshot of a live database is worth keeping; tag it with which one.
+    const fingerprint = currentDbFingerprint();
+    if (fingerprint === 'none' || fingerprint === 'invalid') {
+      return;
+    }
+    const payload = JSON.stringify({ [SNAPSHOT_META_KEY]: fingerprint, ...memoryCache }, null, 2);
     if (fs.existsSync(BACKUP_FILE_PATH)) {
       const existing = fs.readFileSync(BACKUP_FILE_PATH, 'utf8');
       if (existing === payload) {
