@@ -458,32 +458,19 @@ export default function App() {
           safeFetchJson('/api/devsettings'),
         ]);
 
-        if (Array.isArray(prodsRes) && prodsRes.length > 0) {
-          setProducts(prevLocalProds => {
-            const serverMap = new Map(prodsRes.map((p: any) => [p.id, p]));
-            const merged = [...prodsRes];
-            for (const localProd of prevLocalProds) {
-              if (localProd && localProd.id && !serverMap.has(localProd.id)) {
-                merged.push(localProd);
-              }
-            }
-            lastSyncedHash.current['products'] = JSON.stringify(merged);
-            return merged;
-          });
+        // The server is the source of truth. A successful response replaces this
+        // browser's cached copy outright — even when it is empty (e.g. a fresh
+        // Neon database). Merging in items that exist only in localStorage used
+        // to resurrect a previous database's data and, for an admin, sync it
+        // straight back into the new database.
+        if (Array.isArray(prodsRes)) {
+          setProducts(prodsRes);
+          lastSyncedHash.current['products'] = JSON.stringify(prodsRes);
           loadedProductsSuccess.current = true;
         }
-        if (Array.isArray(collsRes) && collsRes.length > 0) {
-          setCollections(prevLocalColls => {
-            const serverMap = new Map(collsRes.map((c: any) => [c.id, c]));
-            const merged = [...collsRes];
-            for (const localCol of prevLocalColls) {
-              if (localCol && localCol.id && !serverMap.has(localCol.id)) {
-                merged.push(localCol);
-              }
-            }
-            lastSyncedHash.current['collections'] = JSON.stringify(merged);
-            return merged;
-          });
+        if (Array.isArray(collsRes)) {
+          setCollections(collsRes);
+          lastSyncedHash.current['collections'] = JSON.stringify(collsRes);
           loadedCollectionsSuccess.current = true;
         }
         if (Array.isArray(ordersRes)) {
@@ -497,17 +484,8 @@ export default function App() {
           loadedOrdersSuccess.current = true;
         }
         if (Array.isArray(filesRes)) {
-          setFiles(prevLocalFiles => {
-            const serverUrls = new Set(filesRes.map((f: any) => f.url));
-            const merged = [...filesRes];
-            for (const localFile of prevLocalFiles) {
-              if (localFile && localFile.url && !serverUrls.has(localFile.url)) {
-                merged.push(localFile);
-              }
-            }
-            lastSyncedHash.current['files'] = JSON.stringify(merged);
-            return merged;
-          });
+          setFiles(filesRes);
+          lastSyncedHash.current['files'] = JSON.stringify(filesRes);
           loadedFilesSuccess.current = true;
         }
         // An admin gets the array; a shopper gets { customer } from by-email and
@@ -518,7 +496,7 @@ export default function App() {
             ? [(custsRes as any).customer]
             : null;
 
-        if (custsList && custsList.length > 0) {
+        if (custsList && (custsList.length > 0 || Array.isArray(custsRes))) {
           setCustomers(custsList);
           lastSyncedHash.current['customers'] = JSON.stringify(custsList);
           loadedCustomersSuccess.current = true;
@@ -537,7 +515,7 @@ export default function App() {
             } catch (e) {}
           }
         }
-        if (Array.isArray(discsRes) && discsRes.length > 0) {
+        if (Array.isArray(discsRes)) {
           setDiscounts(discsRes);
           lastSyncedHash.current['discounts'] = JSON.stringify(discsRes);
           loadedDiscountsSuccess.current = true;
@@ -569,21 +547,9 @@ export default function App() {
               };
             });
 
-            // Keep local pages created on client that aren't on server yet
-            const serverIdSet = new Set(pagesRes.map((p: any) => p && p.id).filter(Boolean));
-            const serverSlugsSet = new Set(pagesRes.map((p: any) => p && p.slug).filter(Boolean));
-            const serverHasHomepage = pagesRes.some((sp: any) => sp && (sp.isHomepage || sp.slug === '' || sp.slug === 'home' || sp.slug === 'homepage' || sp.id === 'homepage' || sp.id === 'page-home'));
-
-            const missingLocalPages = prevLocalPages.filter(lp => {
-              if (!lp || !lp.id) return false;
-              const isLocalHome = lp.isHomepage || lp.slug === '' || lp.slug === 'home' || lp.slug === 'homepage' || lp.id === 'homepage' || lp.id === 'page-home';
-              if (serverHasHomepage && isLocalHome) return false;
-              if (serverIdSet.has(lp.id)) return false;
-              if (lp.slug && serverSlugsSet.has(lp.slug)) return false;
-              return true;
-            });
-
-            let combined = [...mergedPages, ...missingLocalPages];
+            // Pages that exist only in this browser's cache are not re-added:
+            // they belong to whichever database the cache was filled from.
+            let combined = [...mergedPages];
 
             // Normalize homepage flags across all pages to prevent duplicate/overwriting homepage entries
             const explicitHomeIdx = combined.findIndex(p => p && p.isHomepage === true);
@@ -612,7 +578,14 @@ export default function App() {
           });
           loadedPagesSuccess.current = true;
         }
-        if (Array.isArray(blogsRes) && blogsRes.length > 0) {
+        if (Array.isArray(pagesRes) && pagesRes.length === 0) {
+          // Empty database: start from the built-in default pages, not from
+          // whatever an earlier database left in this browser.
+          setCustomPages(DEFAULT_PAGES);
+          lastSyncedHash.current['custompages'] = JSON.stringify(DEFAULT_PAGES);
+          loadedPagesSuccess.current = true;
+        }
+        if (Array.isArray(blogsRes)) {
           setBlogs(blogsRes);
           lastSyncedHash.current['blogs'] = JSON.stringify(blogsRes);
           loadedBlogsSuccess.current = true;

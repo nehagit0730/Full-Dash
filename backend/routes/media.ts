@@ -3,12 +3,13 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { prisma } from '../../src/lib/prisma';
-import { fetchResource, saveResource, fetchLayoutSettings, saveUploadedImage } from '../../serverDb';
+import { fetchResource, saveResource, saveUploadedImage } from '../../serverDb';
 import { 
   uploadToCloudinary, 
   deleteFromCloudinary, 
-  isCloudinaryConfigured, 
-  buildOptimizedCloudinaryUrl 
+  isCloudinaryConfigured,
+  ensureCloudinaryConfigured,
+  buildOptimizedCloudinaryUrl
 } from '../services/cloudinary';
 
 const router = Router();
@@ -158,10 +159,8 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     if (passedApiKey) process.env.CLOUDINARY_API_KEY = String(passedApiKey).trim();
     if (passedApiSecret) process.env.CLOUDINARY_API_SECRET = String(passedApiSecret).trim();
 
-    if (!isCloudinaryConfigured()) {
-      try {
-        await fetchLayoutSettings();
-      } catch (e) {}
+    if (!passedCloudName || !passedApiKey || !passedApiSecret) {
+      await ensureCloudinaryConfigured();
     }
 
     const isVideo = mimeType.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg|avi|mkv)$/i.test(fileName);

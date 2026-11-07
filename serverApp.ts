@@ -30,7 +30,7 @@ import integrationsRouter from "./backend/routes/integrations";
 import paymentsRouter from "./backend/routes/payments";
 
 import mediaRouter from "./backend/routes/media";
-import { uploadToCloudinary, isCloudinaryConfigured } from "./backend/services/cloudinary";
+import { uploadToCloudinary, isCloudinaryConfigured, ensureCloudinaryConfigured } from "./backend/services/cloudinary";
 import { prisma } from "./src/lib/prisma";
 import { requireAdmin } from "./backend/middleware/requireAdmin";
 
@@ -175,10 +175,8 @@ export async function createExpressApp() {
       if (passedApiKey) process.env.CLOUDINARY_API_KEY = String(passedApiKey).trim();
       if (passedApiSecret) process.env.CLOUDINARY_API_SECRET = String(passedApiSecret).trim();
 
-      if (!isCloudinaryConfigured()) {
-        try {
-          await fetchLayoutSettings();
-        } catch (e) {}
+      if (!passedCloudName || !passedApiKey || !passedApiSecret) {
+        await ensureCloudinaryConfigured();
       }
 
       let base64String = data;
@@ -544,6 +542,9 @@ export async function createExpressApp() {
   // Cloudinary configuration & diagnostic check
   const handleTestCloudinary = async (req: express.Request, res: express.Response) => {
     try {
+      if (!req.body?.cloudName || !req.body?.apiKey || !req.body?.apiSecret) {
+        await ensureCloudinaryConfigured();
+      }
       let cloudName = req.body?.cloudName || process.env.CLOUDINARY_CLOUD_NAME;
       let apiKey = req.body?.apiKey || process.env.CLOUDINARY_API_KEY;
       let apiSecret = req.body?.apiSecret || process.env.CLOUDINARY_API_SECRET;
