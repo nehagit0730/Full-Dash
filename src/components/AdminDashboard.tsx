@@ -27,6 +27,8 @@ import DiscountsTab from './admin/DiscountsTab';
 import BlogsTab from './admin/BlogsTab';
 import LayoutTab from './admin/LayoutTab';
 import PagesTab from './admin/PagesTab';
+import ThemesTab from './admin/ThemesTab';
+import { Palette } from 'lucide-react';
 import DevelopmentTab from './admin/DevelopmentTab';
 import { DiagnosticsTab } from './admin/DiagnosticsTab';
 import RecycleBinTab from './admin/RecycleBinTab';
@@ -574,7 +576,7 @@ function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
   );
 }
 
-type SidebarTab = 'analytics' | 'orders' | 'collections' | 'products' | 'pages' | 'blogs' | 'files' | 'customers' | 'discounts' | 'email' | 'layout' | 'development' | 'diagnostics' | 'recycle-bin' | 'payments' | 'delivery' | 'age-verification' | 'integrations';
+type SidebarTab = 'analytics' | 'orders' | 'collections' | 'products' | 'pages' | 'themes' | 'blogs' | 'files' | 'customers' | 'discounts' | 'email' | 'layout' | 'development' | 'diagnostics' | 'recycle-bin' | 'payments' | 'delivery' | 'age-verification' | 'integrations';
 
 export default function AdminDashboard({
   products: parentProducts,
@@ -609,6 +611,7 @@ export default function AdminDashboard({
     collections: 'collections',
     products: 'products',
     pages: 'pages',
+    themes: 'themes',
     blogs: 'blog-posts',
     files: 'files',
     customers: 'customers',
@@ -630,6 +633,7 @@ export default function AdminDashboard({
     collections: 'collections',
     products: 'products',
     pages: 'pages',
+    themes: 'themes',
     'blog-posts': 'blogs',
     files: 'files',
     'file-manager': 'files',
@@ -3287,6 +3291,7 @@ export default function AdminDashboard({
                 { id: 'collections', label: 'Collections', icon: Building },
                 { id: 'products', label: 'Products', icon: ShoppingBag },
                 { id: 'pages', label: 'Page Builder', icon: FileCode },
+                { id: 'themes', label: 'Themes', icon: Palette },
                 { id: 'blogs', label: 'Blog Posts', icon: Layout },
                 { id: 'files', label: 'Files Manager', icon: HardDrive },
                 { id: 'customers', label: 'Customers', icon: Users },
@@ -3812,6 +3817,29 @@ export default function AdminDashboard({
               setSelectedBuilderPageId(null);
               setSelectedBuilderSectionId(null);
               setActiveTab('layout' as any);
+            }}
+          />
+        )}
+
+        {/* 5b. THEME LIBRARY */}
+        {activeTab === 'themes' && (
+          <ThemesTab
+            products={products}
+            collections={collections}
+            blogs={blogs}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onPublished={(pages, layout) => {
+              onUpdateCustomPages(pages);
+              setLocalLayoutSettings(layout);
+              if (onUpdateLayoutSettings) onUpdateLayoutSettings(layout);
+              setSelectedBuilderPageId(null);
+              setSelectedBuilderSectionId(null);
+            }}
+            onCustomize={() => {
+              const home = localPages.find(p => p.isHomepage) || localPages[0];
+              setSelectedBuilderPageId(home ? home.id : null);
+              setSelectedBuilderSectionId(null);
+              setActiveTab('pages');
             }}
           />
         )}

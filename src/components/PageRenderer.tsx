@@ -1179,6 +1179,16 @@ function buildSectionStyleCss(sec: PageSection, page: CustomPage): string {
   return rules.join('\n');
 }
 
+/**
+ * Setting values (colours, sizes, custom CSS) are interpolated into <style>
+ * text. A value containing "</style>" would end the element and let markup
+ * after it run — and themes can now be imported from files written by anyone.
+ * "<" never belongs in these rules, so it is escaped to its CSS form.
+ */
+function cssSafe(css: string): string {
+  return css.replace(/</g, '\\3C ');
+}
+
 const ANIMATION_KEYFRAMES = `
 @keyframes pr-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes pr-slide-up { from { opacity: 0; transform: translateY(28px) } to { opacity: 1; transform: none } }
@@ -1670,7 +1680,7 @@ export default function PageRenderer({
                 editor ? 'cursor-pointer group/sec' : ''
               } ${isDisabled ? 'opacity-40' : ''}`}
             >
-              <style dangerouslySetInnerHTML={{ __html: customStyles + '\n' + buildSectionStyleCss(sec, page) }} />
+              <style dangerouslySetInnerHTML={{ __html: cssSafe(customStyles + '\n' + buildSectionStyleCss(sec, page)) }} />
               {editor && (
                 <>
                   <div

@@ -19,6 +19,7 @@ import filesRouter from "./backend/routes/files";
 import customersRouter from "./backend/routes/customers";
 import discountsRouter from "./backend/routes/discounts";
 import customPagesRouter from "./backend/routes/customPages";
+import themesRouter from "./backend/routes/themes";
 import blogsRouter from "./backend/routes/blogs";
 import structureRouter from "./backend/routes/structure";
 import emailRouter from "./backend/routes/email";
@@ -675,6 +676,7 @@ export async function createExpressApp() {
   app.use("/api/customers", customersRouter);
   app.use("/api/discounts", discountsRouter);
   app.use("/api/custompages", customPagesRouter);
+  app.use("/api/themes", requireAdmin, themesRouter);
   app.use("/api/blogs", blogsRouter);
   app.use("/api/payments", paymentsRouter);
   app.use("/api/folder-structure", requireAdmin, structureRouter);
