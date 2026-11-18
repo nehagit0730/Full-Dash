@@ -50,7 +50,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Image banner',
     file: 'image-banner',
     description: 'Large hero image with heading, text and up to two buttons.',
-    settings: [title('Welcome to our store'), description, { key: 'imageUrl', type: 'image', label: 'Image' }, ...button(), fullWidth],
+    settings: [title('Welcome to our store'), description, { key: 'imageUrl', type: 'image', label: 'Image' }, ...button(), fullWidth, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'New season, new favourites', description: 'Discover the latest arrivals.', imageUrl: IMG, buttonText: 'Shop now', buttonLink: '/shop', fullWidth: true }
   },
   {
@@ -59,7 +59,8 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     description: 'Autoplaying, muted background video (MP4 file or YouTube) with heading and button.',
     settings: [title('Watch the story'), description,
       { key: 'videoMp4Url', type: 'video', label: 'MP4 video URL', info: 'Used first when set.' },
-      { key: 'videoUrl', type: 'url', label: 'YouTube URL', info: 'e.g. https://www.youtube.com/watch?v=…' }, ...button(), fullWidth],
+      { key: 'videoUrl', type: 'url', label: 'YouTube URL', info: 'e.g. https://www.youtube.com/watch?v=…' }, ...button(), fullWidth,
+      { key: 'showFeatureBar', type: 'boolean', label: 'Show the delivery / returns bar', default: true }],
     example: { title: 'Made with care', description: 'See how every piece is finished by hand.', videoMp4Url: '', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', buttonText: 'Shop now', buttonLink: '/shop', fullWidth: true }
   },
   {
@@ -72,9 +73,16 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
   {
     type: 'Text column with image',
     file: 'text-columns',
-    description: 'Heading and text above a row of feature columns.',
-    settings: [title('Why customers love us'), description],
-    example: { title: 'Why customers love us', description: 'Quality you can feel, service you can count on.' }
+    description: 'Heading and text above a row of columns, each with optional image, label and link.',
+    settings: [title('Why customers love us'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
+    lists: [{ key: 'columnItems', label: 'Columns', item: [
+      { key: 'title', type: 'text', label: 'Heading' },
+      { key: 'description', type: 'textarea', label: 'Text' },
+      { key: 'imageUrl', type: 'image', label: 'Image' },
+      { key: 'badge', type: 'text', label: 'Label on the image' },
+      { key: 'linkUrl', type: 'link', label: 'Link' }
+    ] }],
+    example: { title: 'Why customers love us', description: 'Quality you can feel, service you can count on.', columnItems: [{ title: 'Quality materials', description: 'Chosen to last.' }, { title: 'Fast delivery', description: 'Tracked to your door.' }, { title: 'Friendly support', description: 'Here when you need us.' }] }
   },
   {
     type: 'Rich text',
@@ -121,22 +129,26 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     description: 'A grid of products from one collection.',
     settings: [title('Featured collection'), description,
       { key: 'selectedCollectionId', type: 'collection', label: 'Collection', info: 'A collection id from this store. Empty shows all products.' },
-      { key: 'itemsCount', type: 'number', label: 'Products to show', min: 1, max: 24, default: 4 }],
-    example: { title: 'Bestsellers', selectedCollectionId: '', itemsCount: 8 }
+      { key: 'itemsCount', type: 'number', label: 'Products to show', min: 1, max: 24, default: 8 },
+      { key: 'showTabs', type: 'boolean', label: 'Show New / Bestsellers / On sale tabs', default: true, info: 'Bestsellers = products tagged "bestseller"; On sale = compare-at price above price.' },
+      ...button()],
+    example: { title: 'Bestsellers', selectedCollectionId: '', itemsCount: 8, buttonText: 'View all', buttonLink: '/shop' }
   },
   {
     type: 'Clearance Sale',
     file: 'clearance-sale',
     description: 'Hand-picked sale products.',
     settings: [title('Clearance sale'), description,
-      { key: 'selectedProductIds', type: 'products', label: 'Products', info: 'Product ids from this store.' }],
+      { key: 'selectedProductIds', type: 'products', label: 'Products', info: 'Product ids from this store. Empty shows every product with a compare-at price above its price.' },
+      { key: 'itemsCount', type: 'number', label: 'Products to show', min: 1, max: 24, default: 8 },
+      ...button()],
     example: { title: 'Final clearance', description: 'While stocks last.', selectedProductIds: [] }
   },
   {
     type: 'Images gallery',
     file: 'images-gallery',
     description: 'A grid of images.',
-    settings: [title('Gallery'), description],
+    settings: [title('Gallery'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'galleryImages', label: 'Images', ofImages: true, item: [{ key: '', type: 'image', label: 'Image URL' }] }],
     example: { title: 'Gallery', description: 'Moments from our studio.', galleryImages: [IMG, IMG, IMG, IMG] }
   },
@@ -172,7 +184,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Blog post',
     file: 'blog-posts',
     description: 'Your latest blog posts.',
-    settings: [title('From the journal'), description,
+    settings: [title('From the journal'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' },
       { key: 'columnsDesktop', type: 'number', label: 'Columns on desktop', min: 1, max: 4, default: 3 },
       { key: 'columnsMobile', type: 'number', label: 'Columns on mobile', min: 1, max: 2, default: 1 }],
     example: { title: 'From the journal', columnsDesktop: 3, columnsMobile: 1 }
@@ -181,7 +193,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Brand list',
     file: 'brand-list',
     description: 'Image cards for brands, each with a link.',
-    settings: [title('Shop by brand'), description],
+    settings: [title('Shop by brand'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'brandItems', label: 'Brands', item: [
       { key: 'title', type: 'text', label: 'Name' },
       { key: 'imageUrl', type: 'image', label: 'Image' },
@@ -193,7 +205,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Brands we offer',
     file: 'brands-we-offer',
     description: 'A scrolling carousel of brand cards.',
-    settings: [title('Brands we offer'), description],
+    settings: [title('Brands we offer'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'brandItems', label: 'Brands', item: [
       { key: 'title', type: 'text', label: 'Name' },
       { key: 'imageUrl', type: 'image', label: 'Image' },
@@ -205,7 +217,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'How it works',
     file: 'how-it-works',
     description: 'Numbered steps with images.',
-    settings: [title('How it works'), description],
+    settings: [title('How it works'), description, ...button(), { key: 'accentColor', type: 'color', label: 'Number and button color' }],
     lists: [{ key: 'stepItems', label: 'Steps', item: [
       { key: 'number', type: 'text', label: 'Step number' },
       { key: 'title', type: 'text', label: 'Heading' },
@@ -219,7 +231,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Icon with text',
     file: 'icon-with-text',
     description: 'Icons with short headings — delivery, returns, guarantees.',
-    settings: [title('Why shop with us'), description],
+    settings: [title('Why shop with us'), description, { key: 'iconColor', type: 'color', label: 'Icon color' }],
     lists: [{ key: 'iconItems', label: 'Items', item: [
       { key: 'iconName', type: 'select', label: 'Icon', options: ['Truck', 'Zap', 'Shield', 'Clock', 'Award', 'Package', 'Heart', 'HelpCircle', 'Star'] },
       { key: 'title', type: 'text', label: 'Heading' },

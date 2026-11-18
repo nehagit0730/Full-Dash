@@ -9,6 +9,7 @@ import {
 import PremiumSlideshow from './PremiumSlideshow';
 import { useRecaptcha } from '../hooks/useRecaptcha';
 import { fontStack, googleFontHrefs } from '../utils/sectionFonts';
+import { ProductCard } from './storefront/storeKit';
 
 interface BrandsWeOfferSectionProps {
   sec: PageSection;
@@ -58,7 +59,7 @@ function BrandsWeOfferSection({ sec, handleLinkClick }: BrandsWeOfferSectionProp
         <div className="flex items-center justify-center gap-4">
           <div className="w-10 h-[1px] bg-[#D4AF37]" />
           <span className="block text-xs font-bold uppercase tracking-[0.25em] text-[#D4AF37]">
-            THE BRANDS YOU LOVE
+            {sec.settings.badgeText || 'Our brands'}
           </span>
           <div className="w-10 h-[1px] bg-[#D4AF37]" />
         </div>
@@ -169,386 +170,74 @@ interface HowItWorksSectionProps {
 }
 
 function HowItWorksSection({ sec, handleLinkClick }: HowItWorksSectionProps) {
-  const steps = (sec.settings.stepItems && sec.settings.stepItems.length > 0) 
-    ? sec.settings.stepItems 
+  const steps = (sec.settings.stepItems && sec.settings.stepItems.length > 0)
+    ? sec.settings.stepItems
     : [
-        { number: 1, title: 'Choose Your Plan', description: 'Pick the plan that suits you best. Flexible. Simple. No commitment.' },
-        { number: 2, title: 'Pick Your Favourite Brands', description: 'Mix and match from 20+ premium brands, flavours and strengths.' },
-        { number: 3, title: 'Relax, We Handle The Rest', description: 'We pack and deliver to your door, automatically. You focus on life.' }
+        { number: '1', title: 'Browse the collection', description: 'Find what you love across our curated range.', imageUrl: '' },
+        { number: '2', title: 'Check out securely', description: 'Pay with cards, UPI or wallets in a few taps.', imageUrl: '' },
+        { number: '3', title: 'Delivered to your door', description: 'Tracked shipping with updates every step of the way.', imageUrl: '' }
       ];
-
-  const renderStepVisualMockup = (sidx: number, step: any) => {
-    if (step.imageUrl && step.imageUrl.trim() !== '') {
-      return (
-        <div className="w-full my-4 flex items-center justify-center overflow-hidden rounded-xl">
-          <img 
-            src={cleanMediaUrl(step.imageUrl)} 
-            className="w-full max-h-60 object-contain filter drop-shadow-md group-hover:scale-[1.03] transition-transform duration-500" 
-            alt={step.title} 
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </div>
-      );
-    }
-
-    if (sidx === 0) {
-      return (
-        <div className="w-full bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center my-4">
-          <div className="grid grid-cols-4 gap-1 w-full">
-            {/* LITE */}
-            <div className="bg-white rounded-lg border border-slate-200/60 p-1.5 flex flex-col items-center justify-between text-center shadow-2xs h-32">
-              <span className="text-[8px] font-black tracking-wider text-slate-400">LITE</span>
-              <div className="my-1 text-center">
-                <span className="block text-[11px] font-black text-slate-800 leading-tight">5 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹27.99</span>
-                <span className="text-[7px] text-slate-400 block -mt-0.5">per month</span>
-              </div>
-            </div>
-            
-            {/* CORE */}
-            <div className="bg-white rounded-lg border border-slate-200/60 p-1.5 flex flex-col items-center justify-between text-center shadow-2xs h-32">
-              <span className="text-[8px] font-black tracking-wider text-slate-450">CORE</span>
-              <div className="my-1 text-center">
-                <span className="block text-[11px] font-black text-slate-800 leading-tight">8 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹35.99</span>
-                <span className="text-[7px] text-slate-400 block -mt-0.5">per month</span>
-              </div>
-            </div>
-
-            {/* PRO */}
-            <div className="bg-[#0C1017] rounded-lg border border-[#D4AF37] p-1.5 flex flex-col items-center justify-between text-center shadow-sm h-32 relative overflow-hidden transform scale-105 z-10">
-              <div className="absolute top-0 left-0 right-0 bg-[#D4AF37] text-[5px] font-black text-slate-950 py-0.5 uppercase tracking-wider text-center">
-                MOST POPULAR
-              </div>
-              <span className="text-[8px] font-black tracking-wider text-white mt-1.5">PRO</span>
-              <div className="my-1 text-center">
-                <span className="block text-[11px] font-black text-white leading-tight">10 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹40.99</span>
-                <span className="text-[7px] text-slate-350 block -mt-0.5">per month</span>
-              </div>
-              <span className="text-[4px] font-bold text-emerald-400 tracking-wider uppercase">FREE DEV</span>
-            </div>
-
-            {/* ULTIMATE */}
-            <div className="bg-white rounded-lg border border-[#D4AF37]/50 p-1.5 flex flex-col items-center justify-between text-center shadow-2xs h-32">
-              <span className="text-[8px] font-black tracking-wider text-slate-450">ULTIMATE</span>
-              <div className="my-1 text-center">
-                <span className="block text-[11px] font-black text-slate-800 leading-tight">12 Cans</span>
-                <span className="block text-[10px] font-bold text-[#D4AF37] leading-tight">₹46.99</span>
-                <span className="text-[7px] text-slate-400 block -mt-0.5">per month</span>
-              </div>
-              <span className="text-[4px] font-bold text-[#D4AF37] tracking-wider uppercase">FREE DEV</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (sidx === 1) {
-      return (
-        <div className="w-full h-40 relative my-4 flex items-center justify-center overflow-hidden">
-          <div className="relative w-full max-w-[260px] h-full flex items-center justify-center">
-            {/* CAN 1: ZYN */}
-            <div className="absolute left-1 top-4 w-[64px] h-[64px] rounded-full bg-white border border-slate-200 shadow-md flex flex-col items-center justify-center p-0.5 transform -rotate-12 z-10 transition-transform duration-300 hover:scale-105">
-              <div className="w-[56px] h-[56px] rounded-full border border-sky-400/30 flex flex-col items-center justify-center bg-sky-50/20">
-                <span className="text-[9px] font-extrabold text-sky-600 tracking-tight leading-none">ZYN</span>
-                <span className="text-[4px] font-bold text-sky-400 uppercase tracking-widest mt-0.5">COOL MINT</span>
-              </div>
-            </div>
-
-            {/* CAN 2: VELO */}
-            <div className="absolute right-1 top-4 w-[64px] h-[64px] rounded-full bg-white border border-slate-200 shadow-md flex flex-col items-center justify-center p-0.5 transform rotate-12 z-10 transition-transform duration-300 hover:scale-105">
-              <div className="w-[56px] h-[56px] rounded-full border border-blue-500/30 flex flex-col items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600">
-                <span className="text-[9px] font-extrabold text-white tracking-tight leading-none">VELO</span>
-                <span className="text-[3px] font-bold text-sky-200 uppercase tracking-widest mt-0.5">FREEZE</span>
-              </div>
-            </div>
-
-            {/* CAN 3: FUMI */}
-            <div className="absolute left-9 bottom-2 w-[60px] h-[60px] rounded-full bg-white border border-slate-200 shadow-md flex flex-col items-center justify-center p-0.5 transform rotate-6 z-20 transition-transform duration-300 hover:scale-105">
-              <div className="w-[52px] h-[52px] rounded-full border border-purple-500/20 flex flex-col items-center justify-center bg-gradient-to-br from-purple-500 to-purple-700">
-                <span className="text-[8px] font-extrabold text-white tracking-tight leading-none">FUMI</span>
-                <span className="text-[3px] font-bold text-purple-200 uppercase tracking-widest mt-0.5">BERRY</span>
-              </div>
-            </div>
-
-            {/* CAN 4: PABLO */}
-            <div className="absolute right-9 bottom-2 w-[60px] h-[60px] rounded-full bg-white border border-slate-200 shadow-md flex flex-col items-center justify-center p-0.5 transform -rotate-6 z-20 transition-transform duration-300 hover:scale-105">
-              <div className="w-[52px] h-[52px] rounded-full border border-red-650/30 flex flex-col items-center justify-center bg-slate-50">
-                <span className="text-[8px] font-black text-red-650 tracking-tighter leading-none italic">PABLO</span>
-                <span className="text-[3px] font-black text-slate-800 uppercase tracking-widest mt-0.5">EXCLUSIVE</span>
-              </div>
-            </div>
-
-            {/* CAN 5: 77 */}
-            <div className="absolute left-[38%] top-2 w-[70px] h-[70px] rounded-full bg-white border border-slate-200 shadow-lg flex flex-col items-center justify-center p-0.5 transform -translate-x-1/2 -rotate-3 z-30 transition-transform duration-300 hover:scale-105">
-              <div className="w-[62px] h-[62px] rounded-full border border-slate-900 flex flex-col items-center justify-center bg-[#0C1017]">
-                <span className="text-[14px] font-black text-white tracking-tighter leading-none">77</span>
-                <span className="text-[3.5px] font-bold text-[#D4AF37] uppercase tracking-widest -mt-0.5">NICOTINE</span>
-              </div>
-            </div>
-
-            {/* CAN 6: CUBA */}
-            <div className="absolute right-[38%] top-2 w-[70px] h-[70px] rounded-full bg-white border border-slate-200 shadow-lg flex flex-col items-center justify-center p-0.5 transform translate-x-1/2 rotate-3 z-30 transition-transform duration-300 hover:scale-105">
-              <div className="w-[62px] h-[62px] rounded-full border border-amber-500 flex flex-col items-center justify-center bg-slate-900">
-                <span className="text-[11px] font-black text-amber-400 tracking-wider leading-none">CUBA</span>
-                <span className="text-[3.5px] font-bold text-white uppercase tracking-widest mt-0.5">BLACK</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (sidx === 2) {
-      return (
-        <div className="w-full h-40 relative my-4 flex items-center justify-center">
-          <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-            <div className="w-40 h-20 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 blur-xl rounded-full" />
-            <span className="text-emerald-500 text-sm absolute left-12 top-6 animate-pulse">🌿</span>
-            <span className="text-emerald-500 text-xs absolute right-12 bottom-6 animate-pulse" style={{ animationDelay: '1s' }}>🌿</span>
-          </div>
-
-          <div className="w-48 h-28 bg-[#0C1017] rounded-xl border border-slate-800 shadow-[0_12px_24px_rgba(0,0,0,0.25)] relative overflow-hidden transform rotate-2 hover:rotate-0 transition-transform duration-500 flex flex-col justify-between p-2.5 select-none">
-            <div className="absolute top-2 right-3 w-12 h-10 bg-white/95 rounded-sm p-0.5 shadow-2xs flex flex-col justify-between border-l border-b border-slate-200 text-slate-800">
-              <div className="w-full h-0.5 bg-slate-400 rounded-2xs" />
-              <div className="space-y-[1.5px]">
-                <div className="w-6 h-[1.5px] bg-slate-300" />
-                <div className="w-8 h-[1.5px] bg-slate-300" />
-              </div>
-              <div className="flex gap-[0.5px] h-2 items-end">
-                <div className="w-[1px] h-full bg-slate-800" />
-                <div className="w-[1.5px] h-full bg-slate-800" />
-                <div className="w-[1px] h-[70%] bg-slate-800" />
-                <div className="w-[1px] h-full bg-slate-800" />
-              </div>
-            </div>
-
-            <div className="mt-1 space-y-0.5 text-left">
-              <span className="block text-[11px] font-black tracking-[0.12em] text-[#D4AF37] leading-none">POUCH</span>
-              <span className="block text-[11px] font-black tracking-[0.12em] text-[#D4AF37] leading-none">SUPPLY</span>
-            </div>
-
-            <div className="border-t border-slate-800/65 pt-1.5 flex items-center justify-between">
-              <span className="text-[4.5px] font-bold text-slate-450 uppercase tracking-[0.18em]">NICOTINE ON AUTOPILOT</span>
-              <div className="flex gap-0.5">
-                <div className="w-0.5 h-0.5 rounded-full bg-slate-800" />
-                <div className="w-0.5 h-0.5 rounded-full bg-slate-800" />
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-8 w-36 h-36 flex items-center justify-center bg-slate-50/50 rounded-2xl p-4 shrink-0 border border-slate-100/50 group-hover:border-slate-200 group-hover:bg-white transition-all duration-300">
-        {step.imageUrl ? (
-          <img 
-            src={cleanMediaUrl(step.imageUrl)} 
-            className="max-h-28 max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300" 
-            alt={step.title} 
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        ) : (
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">No Image Asset</span>
-        )}
-      </div>
-    );
-  };
-
-  const renderStepCheckmarks = (sidx: number) => {
-    const checkmarks = sidx === 0 
-      ? ["Weekly, Fortnightly or Monthly", "Change anytime"]
-      : sidx === 1 
-      ? ["Change brands or flavours anytime"]
-      : ["Automatic deliveries", "Skip or pause anytime"];
-
-    return (
-      <div className="mt-4 space-y-2 w-full text-left">
-        {checkmarks.map((text, cidx) => (
-          <div key={cidx} className="flex items-center gap-2 text-xs font-bold text-slate-850 justify-center">
-            <div className="w-4 h-4 rounded-full bg-amber-50 border border-amber-250 text-[#D4AF37] flex items-center justify-center shrink-0">
-              <Check className="h-2.5 w-2.5 stroke-[3]" />
-            </div>
-            <span className="text-[11.5px] text-slate-650 font-extrabold">{text}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const accent = sec.settings.accentColor || sec.settings.buttonBgColor || '#111827';
 
   return (
-    <div 
-      className="py-8 w-full font-sans transition-all duration-300 overflow-hidden"
-      style={{ backgroundColor: sec.settings.backgroundColor || '#F8FAFC' }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 relative">
-        {/* Section Header */}
-        <div className="text-center space-y-4 max-w-3xl mx-auto flex flex-col items-center">
-          <div className="flex items-center justify-center gap-4 animate-fade-in">
-            <div className="w-10 h-[1px] bg-[#D4AF37]" />
-            <span className="text-xs font-black uppercase tracking-[0.25em] text-[#D4AF37]">
-              HOW IT WORKS
-            </span>
-            <div className="w-10 h-[1px] bg-[#D4AF37]" />
-          </div>
-          
-          <h2 
-            className="text-3xl md:text-[42px] font-black uppercase tracking-tight text-[#0C1017] leading-none"
-            style={{ color: sec.settings.headingColor || '#0C1017' }}
-          >
-            {sec.settings.title || 'Get Started In Under 60 Seconds'}
+    <div className="py-10 w-full">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <span className="subheading block text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: accent }}>
+            How it works
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight" style={{ color: sec.settings.headingColor || '#0F172A' }}>
+            {sec.settings.title || 'Shopping made simple'}
           </h2>
-          
           {sec.settings.description && (
-            <p 
-              className="text-xs sm:text-sm leading-relaxed text-slate-550 font-semibold opacity-90"
-              style={{ color: sec.settings.textColor || '#64748B' }}
-            >
+            <p className="text-sm leading-relaxed" style={{ color: sec.settings.textColor || '#64748B' }}>
               {sec.settings.description}
             </p>
           )}
-
-          {/* Reassuring timing badge */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50/75 border border-amber-100 text-[#D4AF37] text-xs font-black animate-fade-in">
-            <Clock className="h-3.5 w-3.5 stroke-[2.5]" />
-            <span>Takes less than 60 seconds</span>
-          </div>
         </div>
 
-        {/* Steps Grid */}
-        <div className="relative max-w-6xl mx-auto pt-6">
-          {/* Gold Connecting Dotted Line */}
-          <div className="absolute top-[180px] left-[15%] right-[15%] h-[2px] border-t-2 border-dashed border-[#D4AF37]/45 hidden md:block z-0" />
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 relative z-10">
-            {steps.map((step, sidx) => (
-              <div 
+        <div className={`grid grid-cols-1 gap-6 ${steps.length >= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : steps.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+          {steps.map((step: any, sidx: number) => {
+            const clickable = !!step.linkUrl;
+            return (
+              <div
                 key={sidx}
-                className="bg-white rounded-[24px] border border-slate-100 p-8 flex flex-col items-center justify-between text-center shadow-[0_15px_40px_rgba(147,197,253,0.1)] hover:shadow-[0_24px_50px_rgba(147,197,253,0.16)] hover:-translate-y-1.5 transition-all duration-500 min-h-[440px] group relative"
+                onClick={clickable ? () => handleLinkClick(step.linkUrl) : undefined}
+                className={`card-bg card-box relative flex flex-col items-center text-center rounded-2xl border border-slate-200/70 bg-white p-7 ${clickable ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all' : ''}`}
               >
-                {/* Gold step circle overlapping border */}
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-[#D4AF37] text-white font-black text-base flex items-center justify-center shadow-md border-4 border-white transition-all duration-300 group-hover:scale-110">
-                  {step.number || (sidx + 1)}
-                </div>
-
-                <div className="space-y-4 flex-1 flex flex-col items-center pt-3 w-full">
-                  <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight leading-snug">
-                    {step.title || 'Step Title'}
-                  </h3>
-                  
-                  <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed max-w-[250px] font-semibold">
-                    {step.description || 'Step description details.'}
-                  </p>
-
-                  {/* Render High-Fidelity Custom Visual Mockups */}
-                  {renderStepVisualMockup(sidx, step)}
-                </div>
-
-                {/* Render corresponding green checkmarks */}
-                {renderStepCheckmarks(sidx)}
+                <span
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
+                  style={{ backgroundColor: accent }}
+                >
+                  {step.number || sidx + 1}
+                </span>
+                {step.imageUrl && String(step.imageUrl).trim() !== '' && (
+                  <img
+                    src={cleanMediaUrl(step.imageUrl)}
+                    alt={step.title || ''}
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    className="mt-5 h-40 w-full rounded-xl object-cover"
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+                <h3 className="card-title mt-5 text-lg font-semibold text-slate-900">{step.title}</h3>
+                {step.description && <p className="card-desc mt-2 text-sm leading-relaxed text-slate-500">{step.description}</p>}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        {/* Reassurance Objections Grid */}
-        <div className="max-w-6xl mx-auto pt-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_12px_40px_rgba(147,197,253,0.04)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 divide-y sm:divide-y-0 lg:divide-y-0 lg:divide-x divide-slate-100">
-            {/* EASY RETURNS */}
-            <div className="flex items-center gap-4 py-4 sm:py-2 md:px-4 first:pt-0 sm:first:pt-2 justify-center lg:justify-start">
-              <div className="shrink-0 p-3 rounded-xl bg-slate-50 flex items-center justify-center text-slate-800 shadow-2xs">
-                <ShieldCheck className="h-6 w-6 text-slate-800" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                  EASY RETURNS
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal">
-                  No ties, no fuss. You're in control.
-                </p>
-              </div>
-            </div>
-
-            {/* CHANGE ANYTIME */}
-            <div className="flex items-center gap-4 py-4 sm:py-2 md:px-4 lg:pl-6 justify-center lg:justify-start">
-              <div className="shrink-0 p-3 rounded-xl bg-slate-50 flex items-center justify-center text-slate-850 shadow-2xs">
-                <RefreshCw className="h-6 w-6 text-slate-850 animate-spin" style={{ animationDuration: '8s' }} />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                  CHANGE ANYTIME
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal">
-                  Swap plans, brands or flavours.
-                </p>
-              </div>
-            </div>
-
-            {/* SKIP DELIVERIES */}
-            <div className="flex items-center gap-4 py-4 sm:py-2 md:px-4 lg:pl-6 justify-center lg:justify-start">
-              <div className="shrink-0 p-3 rounded-xl bg-slate-50 flex items-center justify-center text-slate-800 shadow-2xs">
-                <Truck className="h-6 w-6 text-slate-800" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                  SKIP DELIVERIES
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal">
-                  Skip, pause or delay anytime.
-                </p>
-              </div>
-            </div>
-
-            {/* NO CONTRACTS */}
-            <div className="flex items-center gap-4 py-4 sm:py-2 md:px-4 lg:pl-6 last:pb-0 justify-center lg:justify-start">
-              <div className="shrink-0 p-3 rounded-xl bg-slate-50 flex items-center justify-center text-slate-800 shadow-2xs">
-                <Lock className="h-6 w-6 text-slate-800" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[11px] font-black tracking-wider text-slate-900 uppercase">
-                  NO CONTRACTS
-                </h4>
-                <p className="text-[11px] text-slate-400 font-bold leading-normal">
-                  No commitments, cancel 1-click.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Conversion Area */}
-        <div className="mt-12 flex flex-col items-center justify-center space-y-4 text-center pb-6">
-          <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Ready to get started?</h4>
+        <div className="flex justify-center">
           <button
             type="button"
-            onClick={() => handleLinkClick('/collections/all')}
-            className="px-8 py-4 bg-[#D4AF37] hover:bg-[#bfa032] active:scale-98 transition-all duration-300 text-white font-extrabold uppercase tracking-[0.2em] text-xs rounded-xl shadow-lg shadow-amber-500/10 cursor-pointer flex items-center gap-2"
+            onClick={() => handleLinkClick(sec.settings.buttonLink || '/shop')}
+            className="section-btn inline-flex items-center gap-2 rounded-lg px-7 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            style={{ backgroundColor: accent }}
           >
-            Shop now
-            <ArrowRight className="h-4 w-4 stroke-[2.5]" />
+            {sec.settings.buttonText || 'Start shopping'}
+            <ArrowRight className="h-4 w-4" />
           </button>
-          
-          {/* Small secure badges */}
-          <div className="flex items-center justify-center gap-3 text-[10px] text-slate-400 font-semibold">
-            <span className="flex items-center gap-1">
-              <Lock className="h-3 w-3 text-slate-400" />
-              Secure checkout
-            </span>
-            <span>•</span>
-            <span>18+ Age Verified</span>
-            <span>•</span>
-            <span>Your data is protected</span>
-          </div>
         </div>
       </div>
     </div>
@@ -564,6 +253,33 @@ interface ClearanceSaleSectionProps {
   onNavigate: (tab: string, arg?: string) => void;
 }
 
+function ProductGridHeader({
+  eyebrow, title, description, headingColor, actionLabel, onAction
+}: {
+  eyebrow?: string; title: string; description?: string; headingColor?: string; actionLabel?: string; onAction?: () => void;
+}) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="space-y-2 max-w-2xl">
+        {eyebrow && <span className="subheading block text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{eyebrow}</span>}
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900" style={{ color: headingColor || undefined }}>
+          {title}
+        </h2>
+        {description && <p className="section-desc text-sm leading-relaxed text-slate-500">{description}</p>}
+      </div>
+      {actionLabel && onAction && (
+        <button
+          type="button"
+          onClick={onAction}
+          className="section-btn inline-flex items-center gap-1.5 self-start md:self-auto rounded-lg border border-slate-900 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-900 transition hover:bg-slate-900 hover:text-white"
+        >
+          {actionLabel} <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ClearanceSaleSection({
   sec,
   allProducts,
@@ -573,161 +289,46 @@ function ClearanceSaleSection({
   onNavigate
 }: ClearanceSaleSectionProps) {
   const selectedIds = sec.settings.selectedProductIds || [];
-  
+
+  // Hand-picked products; without a selection, every product that is on sale.
+  // Prices are always the product's real price — a section never invents a
+  // discount the cart would not honour.
   const displayedProducts = React.useMemo(() => {
-    return allProducts.filter(p => p.status === 'Active' && selectedIds.includes(p.id));
-  }, [allProducts, selectedIds]);
+    const active = allProducts.filter(p => p.status === 'Active');
+    const picked = selectedIds.length
+      ? active.filter(p => selectedIds.includes(p.id))
+      : active.filter(p => Number(p.compareAtPrice) > Number(p.price));
+    return picked.slice(0, sec.settings.itemsCount || 8);
+  }, [allProducts, selectedIds, sec.settings.itemsCount]);
 
   return (
-    <div className="space-y-8 px-4 sm:px-6 py-12 max-w-7xl mx-auto">
-      {/* Top Header section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-rose-100 gap-6 animate-fadeIn">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-duration-1000"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
-              Clearance & Final Stock Event
-            </span>
-          </div>
-          <h2 
-            className="text-3xl md:text-4xl font-black uppercase tracking-tight text-slate-900"
-            style={{ color: sec.settings.headingColor || '#0f172a' }}
-          >
-            {sec.settings.title || 'Clearance Sale'}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-medium">
-            {sec.settings.description || 'Save big on our premium selected stock items. Final clearance, while stocks last!'}
-          </p>
-          <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-bold pt-1">
-            <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-150">UP TO 20% OFF</span>
-            <span>•</span>
-            <span>Pris-match garanti</span>
-            <span>•</span>
-            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">Fast UK Shipping</span>
-          </div>
-        </div>
-        
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end gap-4 w-full md:w-auto shrink-0">
-          <button
-            onClick={() => onNavigate('frontend-shop')}
-            className="bg-red-650 hover:bg-red-700 text-white text-xs font-black py-3 px-6 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-95 text-center w-full sm:w-auto"
-          >
-            <span className="uppercase tracking-widest text-[10px]">Shop All Collections</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
+    <div className="space-y-8 px-4 sm:px-6 py-10 max-w-7xl mx-auto">
+      <ProductGridHeader
+        eyebrow="Sale"
+        title={sec.settings.title || 'On sale now'}
+        description={sec.settings.description || 'Limited-time prices on selected pieces, while stocks last.'}
+        headingColor={sec.settings.headingColor}
+        actionLabel={sec.settings.buttonText || 'Shop all'}
+        onAction={() => onNavigate(sec.settings.buttonLink || 'frontend-shop')}
+      />
 
-      {/* Products Grid */}
       {displayedProducts.length === 0 ? (
-        <div className="py-16 text-center text-slate-400 bg-slate-50 border border-dashed rounded-2xl">
-          <p className="text-sm font-bold">No active clearance products found.</p>
-          <p className="text-xs mt-1">Configure selected clearance items in the admin page-builder section settings.</p>
+        <div className="py-14 text-center text-slate-400 bg-slate-50 border border-dashed rounded-2xl">
+          <p className="text-sm font-semibold">No sale products to show yet.</p>
+          <p className="text-xs mt-1">Set a compare-at price on a product, or pick products for this section in the page builder.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {displayedProducts.map((prod, pIdx) => {
-            const isWishlisted = Boolean(loggedInCustomer?.wishlist && Array.isArray(loggedInCustomer.wishlist) && loggedInCustomer.wishlist.includes(prod.id));
-            const clearancePrice = prod.price * 0.8; // 20% clearance discount
-
-            return (
-              <div 
-                key={`clearance-${prod.id}-${pIdx}`} 
-                onClick={() => onNavigate(`/products/${prod.id}`)}
-                className="bg-white border-2 border-red-50 hover:border-red-400/80 rounded-2xl overflow-hidden p-4 space-y-4 group transition-all duration-300 relative flex flex-col justify-between cursor-pointer hover:-translate-y-2 hover:shadow-2xl hover:shadow-red-100/20"
-              >
-                {/* Clearance Badge */}
-                <span className="absolute top-3.5 left-3.5 text-[8.5px] font-black tracking-wider uppercase py-1 px-2.5 rounded shadow-3xs z-10 bg-red-650 text-white">
-                  CLEARANCE DEALS
-                </span>
-
-                {/* Wishlist triggers */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleWishlist(prod.id);
-                  }}
-                  className="absolute top-3.5 right-3.5 p-2 rounded-full bg-white/95 backdrop-blur-md border border-slate-200 shadow-3xs text-slate-400 hover:text-red-500 hover:scale-105 active:scale-95 transition-all z-10 cursor-pointer"
-                >
-                  <Heart className={`h-4 w-4 ${isWishlisted ? 'text-red-500 fill-red-500' : ''}`} />
-                </button>
-
-                <div className="space-y-4 flex-1 flex flex-col justify-between">
-                  {/* Image */}
-                  <div className="w-full h-56 bg-transparent overflow-hidden relative flex items-center justify-center p-1">
-                    <img
-                      src={cleanMediaUrl(prod.image) || PLACEHOLDER_IMAGE}
-                      className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
-                      alt={prod.title}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    
-                    <span className="absolute bottom-2.5 left-2.5 bg-rose-600 text-white text-[8px] font-black tracking-widest uppercase py-0.5 px-2 rounded">
-                      20% EXTRA OFF
-                    </span>
-                  </div>
-
-                  {/* Brand & title */}
-                  <div className="text-center space-y-1.5 px-1">
-                    <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-red-600 transition-colors uppercase tracking-tight line-clamp-1">
-                      {prod.title.toLowerCase().startsWith(prod.vendor.toLowerCase()) ? prod.title : `${prod.vendor} ${prod.title}`}
-                    </h4>
-                    
-                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-450 font-bold uppercase tracking-wider">
-                      <span className="text-red-600 font-extrabold">{prod.strength || '6mg'}</span>
-                      <span className="text-slate-300 font-normal">•</span>
-                      <span>{prod.tags?.[0] || 'Mint'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pricing & Subscription Savings */}
-                <div className="space-y-3 pt-3 border-t border-red-50">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-base font-black text-red-650 font-mono">₹{clearancePrice.toFixed(2)}</span>
-                      <span className="text-xs line-through text-slate-400 font-mono">₹{prod.price.toFixed(2)}</span>
-                    </div>
-                    <p className="text-[10px] text-emerald-600 font-extrabold mt-0.5">
-                      Immediate Stock Dispatch
-                    </p>
-                  </div>
-
-                  {/* Limited Stock message */}
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onNavigate('frontend-shop');
-                    }}
-                    className="w-full bg-[#FAFAFA] hover:bg-red-50 hover:border-red-200 transition-all border border-slate-100 py-2 px-2.5 rounded-xl flex items-center justify-between text-[9px] text-slate-500 font-bold cursor-pointer font-sans"
-                  >
-                    <span className="text-emerald-700 font-bold">In Stock</span>
-                    <span className="text-slate-700 underline flex items-center gap-0.5 hover:text-red-600 font-extrabold">Final Sale →</span>
-                  </div>
-
-                  {/* Buy Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToCart(prod, 1);
-                    }}
-                    className="w-full bg-red-650 hover:bg-red-700 text-white text-[11px] font-black py-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-300 uppercase tracking-widest shadow-sm active:scale-97"
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    <span>CLAIM DEAL</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-6">
+          {displayedProducts.map(prod => (
+            <ProductCard
+              key={prod.id}
+              product={prod}
+              customer={loggedInCustomer}
+              onOpen={p => onNavigate(`/products/${p.slug || p.id}`)}
+              onAddToCart={onAddToCart}
+              onToggleWishlist={onToggleWishlist}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -744,6 +345,11 @@ interface FeaturedCollectionSectionProps {
   onNavigate: (tab: string, arg?: string) => void;
 }
 
+type FeaturedTab = 'all' | 'new' | 'bestsellers' | 'sale';
+
+const hasTag = (p: Product, re: RegExp) => (p.tags || []).some(t => re.test(String(t)));
+const NEW_TAG = /^new$|new\s*arrival|latest/i;
+
 function FeaturedCollectionSection({
   sec,
   allProducts,
@@ -753,323 +359,84 @@ function FeaturedCollectionSection({
   onToggleWishlist,
   onNavigate
 }: FeaturedCollectionSectionProps) {
-  const [activeTab, setActiveTab] = useState<'All' | 'Mint' | 'Berry' | 'Citrus' | 'Strong' | 'New Arrivals' | 'Bestsellers'>('All');
+  const [activeTab, setActiveTab] = useState<FeaturedTab>('all');
 
   const targetCollectionId = sec.settings.selectedCollectionId;
-  const selectedColl = React.useMemo(() => {
-    return targetCollectionId ? allCollections.find(c => c.id === targetCollectionId) : null;
-  }, [targetCollectionId, allCollections]);
+  const selectedColl = React.useMemo(
+    () => (targetCollectionId ? allCollections.find(c => c.id === targetCollectionId || c.slug === targetCollectionId) || null : null),
+    [targetCollectionId, allCollections]
+  );
 
-  // Filter products by collection and active tab
-  const filteredProducts = React.useMemo(() => {
-    // First, filter by collection
+  const base = React.useMemo(() => {
     let list = allProducts.filter(p => p.status === 'Active');
-    if (targetCollectionId && selectedColl) {
-      list = list.filter(p => (selectedColl.productIds || []).includes(p.id));
-    }
-
-    // Now, filter by active tab
-    if (activeTab === 'Mint') {
-      list = list.filter(p => {
-        const titleL = p.title.toLowerCase();
-        const descL = (p.description || '').toLowerCase();
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        return titleL.includes('mint') || titleL.includes('cool') || titleL.includes('ice') || titleL.includes('peppermint') || titleL.includes('freeze') || descL.includes('mint') || tags.includes('mint') || tags.includes('ice');
-      });
-    } else if (activeTab === 'Berry') {
-      list = list.filter(p => {
-        const titleL = p.title.toLowerCase();
-        const descL = (p.description || '').toLowerCase();
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        return titleL.includes('berry') || titleL.includes('cola') || titleL.includes('strawberry') || titleL.includes('fumi') || titleL.includes('pablo') || titleL.includes('cherry') || titleL.includes('grape') || descL.includes('berry') || tags.includes('berry');
-      });
-    } else if (activeTab === 'Citrus') {
-      list = list.filter(p => {
-        const titleL = p.title.toLowerCase();
-        const descL = (p.description || '').toLowerCase();
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        return titleL.includes('citrus') || titleL.includes('lime') || titleL.includes('lemon') || titleL.includes('orange') || titleL.includes('tangerine') || titleL.includes('grapefruit') || descL.includes('citrus') || tags.includes('citrus');
-      });
-    } else if (activeTab === 'Strong') {
-      list = list.filter(p => {
-        const strengthVal = parseFloat(p.strength || '0');
-        const isStrongTag = (p.tags || []).some(t => t.toLowerCase().includes('strong'));
-        const titleL = p.title.toLowerCase();
-        return strengthVal >= 10 || isStrongTag || titleL.includes('strong') || titleL.includes('extra strong') || titleL.includes('pablo');
-      });
-    } else if (activeTab === 'New Arrivals') {
-      list = list.filter(p => {
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        return tags.includes('new') || tags.includes('latest') || p.vendor === 'VELO' || p.vendor === 'FUMI';
-      });
-    } else if (activeTab === 'Bestsellers') {
-      list = list.filter(p => {
-        const tags = (p.tags || []).map(t => t.toLowerCase());
-        return tags.includes('bestseller') || tags.includes('best') || p.vendor === 'ZYN' || p.vendor === 'VELO' || p.title.toLowerCase().includes('peppermint') || p.title.toLowerCase().includes('cool mint');
-      });
-    }
-
+    if (selectedColl) list = list.filter(p => (selectedColl.productIds || []).includes(p.id));
     return list;
-  }, [activeTab, allProducts, allCollections, sec.settings.selectedCollectionId]);
+  }, [allProducts, selectedColl]);
 
-  // Limit items as specified in section settings, default to 4 (as in screenshot)
-  const itemsCount = sec.settings.itemsCount || 4;
-  const displayedProducts = filteredProducts.slice(0, itemsCount);
+  // Tabs are derived from product data (tags, dates, compare-at prices), so
+  // they work for any catalogue; empty tabs are hidden.
+  const tabs = React.useMemo(() => {
+    const newest = [...base].sort((a, b) => (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0));
+    const all: { id: FeaturedTab; label: string; items: Product[] }[] = [
+      { id: 'all', label: 'All', items: base },
+      { id: 'new', label: 'New arrivals', items: base.some(p => hasTag(p, NEW_TAG)) ? base.filter(p => hasTag(p, NEW_TAG)) : newest },
+      { id: 'bestsellers', label: 'Bestsellers', items: base.filter(p => hasTag(p, /best\s*-?seller|popular|featured/i)) },
+      { id: 'sale', label: 'On sale', items: base.filter(p => Number(p.compareAtPrice) > Number(p.price)) }
+    ];
+    return all.filter(t => t.id === 'all' || t.items.length > 0);
+  }, [base]);
 
-  // Helper to determine the badge for a product card to match the high-fidelity screenshot
-  const getProductBadge = (p: Product) => {
-    const titleL = p.title.toLowerCase();
-    const vendorL = p.vendor.toLowerCase();
-    if (titleL.includes('peppermint') || vendorL.includes('velo')) {
-      return { text: 'BESTSELLER', bg: 'bg-amber-400 text-slate-950 font-black' };
-    }
-    if (titleL.includes('berry') || vendorL.includes('fumi')) {
-      return { text: 'NEW', bg: 'bg-emerald-500 text-white font-black' };
-    }
-    if (vendorL.includes('zyn')) {
-      return { text: 'OFFICIAL', bg: 'bg-slate-900 text-white font-black' };
-    }
-    if (vendorL.includes('pablo') || titleL.includes('cola')) {
-      return { text: 'TRENDING ↗', bg: 'bg-amber-500 text-white font-black' };
-    }
-    return null;
-  };
+  const showTabs = sec.settings.showTabs !== false && tabs.length > 1;
+  const current = tabs.find(t => t.id === activeTab) || tabs[0];
+  const displayedProducts = (current?.items || []).slice(0, sec.settings.itemsCount || 8);
 
   return (
-    <div className="space-y-8 px-4 sm:px-6 py-6 max-w-7xl mx-auto">
-      {/* Top Header section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-6 border-b border-slate-150 gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#f59e0b]">
-              NEW HERE?
-            </span>
-          </div>
-          <h2 
-            className="text-3xl md:text-4xl font-black uppercase tracking-tight text-[#0F172A]"
-            style={{ color: sec.settings.headingColor || '#0f172a' }}
-          >
-            {sec.settings.title || (selectedColl ? selectedColl.title : 'Start With Our Favourites')}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl font-medium">
-            {sec.settings.description || (selectedColl && selectedColl.description ? selectedColl.description : 'Find your favourite flavours before committing to a plan.')}
-          </p>
-          <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-bold pt-1">
-            <span>Fast UK delivery</span>
-            <span>•</span>
-            <span>No commitment</span>
-            <span>•</span>
-            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">18+ only</span>
-          </div>
-        </div>
-        
-        {/* Trust Badges and Browse All Brands button */}
-        <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end gap-4 w-full md:w-auto shrink-0">
-          <button
-            onClick={() => onNavigate('/pages/brands')}
-            className="bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-black py-3 px-6 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-95 text-center w-full sm:w-auto"
-          >
-            <span className="uppercase tracking-widest text-[10px]">Browse All Brands</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+    <div className="space-y-8 px-4 sm:px-6 py-10 max-w-7xl mx-auto">
+      <ProductGridHeader
+        eyebrow={selectedColl ? 'Collection' : 'Featured'}
+        title={sec.settings.title || selectedColl?.title || 'Featured products'}
+        description={sec.settings.description || selectedColl?.description || undefined}
+        headingColor={sec.settings.headingColor}
+        actionLabel={sec.settings.buttonText || 'View all'}
+        onAction={() => onNavigate(sec.settings.buttonLink || (selectedColl ? `/collections/${selectedColl.slug || selectedColl.id}` : 'frontend-shop'))}
+      />
 
-          {/* Mini Trust indicators row */}
-          <div className="flex flex-wrap items-center gap-4 text-[9.5px] text-slate-500 font-bold">
-            <div className="flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-slate-405" />
-              <span>100% Authentic <span className="text-slate-400 font-medium">Official suppliers</span></span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Truck className="h-3.5 w-3.5 text-slate-405" />
-              <span>UK Tracked Delivery <span className="text-slate-400 font-medium">1-2 working days</span></span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <span>Trusted <span className="text-slate-400 font-medium">by 1,000+ UK customers</span></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Categories Tabs row matching the screenshot */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none py-2 px-1 border-b border-slate-100">
-        {[
-          { id: 'All', label: 'All Products', icon: null },
-          { id: 'Mint', label: 'Mint', icon: Snowflake },
-          { id: 'Berry', label: 'Berry', icon: Heart },
-          { id: 'Citrus', label: 'Citrus', icon: Sparkles },
-          { id: 'Strong', label: 'Strong', icon: Zap },
-          { id: 'New Arrivals', label: 'New Arrivals', icon: Sparkles },
-          { id: 'Bestsellers', label: 'Bestsellers', icon: Crown }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
+      {showTabs && (
+        <div className="flex gap-2 overflow-x-auto scrollbar-none border-b border-slate-200 pb-3">
+          {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 py-2 px-4 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
-                isActive 
-                  ? 'bg-[#0F172A] text-white shadow-sm' 
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                current?.id === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />}
-              <span>{tab.label}</span>
+              {tab.label}
             </button>
-          );
-        })}
-      </div>
-
-      {/* Dynamic Products Grid with Hover Animations and Larger Images */}
-      {displayedProducts.length === 0 ? (
-        <div className="py-16 text-center text-slate-400 bg-slate-50 border border-dashed rounded-2xl">
-          <p className="text-sm font-bold">No active products found matching the filter.</p>
-          <p className="text-xs mt-1">Please try choosing another category tab above.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {displayedProducts.map((prod, pIdx) => {
-            const isWishlisted = Boolean(loggedInCustomer?.wishlist && Array.isArray(loggedInCustomer.wishlist) && loggedInCustomer.wishlist.includes(prod.id));
-            const badge = getProductBadge(prod);
-
-            return (
-              <div 
-                key={`feat-${prod.id}-${pIdx}`} 
-                onClick={() => onNavigate(`/products/${prod.id}`)}
-                className="bg-white border border-slate-200/85 rounded-2xl overflow-hidden p-4 space-y-4 group transition-all duration-300 relative flex flex-col justify-between cursor-pointer hover:-translate-y-2 hover:shadow-2xl hover:border-amber-400 hover:shadow-amber-100/10"
-              >
-                {/* Badge (Best Seller, New, etc.) */}
-                {badge && (
-                  <span className={`absolute top-3.5 left-3.5 text-[8.5px] font-black tracking-wider uppercase py-1 px-2.5 rounded shadow-3xs z-10 ${badge.bg}`}>
-                    {badge.text}
-                  </span>
-                )}
-
-                {/* Wishlist triggers */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleWishlist(prod.id);
-                  }}
-                  className="absolute top-3.5 right-3.5 p-2 rounded-full bg-white/95 backdrop-blur-md border border-slate-200 shadow-3xs text-slate-400 hover:text-red-500 hover:scale-105 active:scale-95 transition-all z-10 cursor-pointer"
-                >
-                  <Heart className={`h-4 w-4 ${isWishlisted ? 'text-red-500 fill-red-500' : ''}`} />
-                </button>
-
-                <div className="space-y-4 flex-1 flex flex-col justify-between">
-                  {/* Image takes 55%+ of height, dominates card */}
-                  <div className="w-full h-56 bg-transparent overflow-hidden relative flex items-center justify-center p-1">
-                    <img
-                      src={cleanMediaUrl(prod.image) || PLACEHOLDER_IMAGE}
-                      className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
-                      alt={prod.title}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    
-                    {prod.compareAtPrice > prod.price && (
-                      <span className="absolute bottom-2.5 left-2.5 bg-rose-600 text-white text-[8px] font-black tracking-widest uppercase py-0.5 px-2 rounded">
-                        SALE DISCOUNT
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Reduced Visual Clutter (Flavour & Strength tags only) */}
-                  <div className="text-center space-y-1.5 px-1">
-                    <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight line-clamp-1">
-                      {prod.title.toLowerCase().startsWith(prod.vendor.toLowerCase()) ? prod.title : `${prod.vendor} ${prod.title}`}
-                    </h4>
-                    
-                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-450 font-bold uppercase tracking-wider">
-                      <span className="text-indigo-600 font-extrabold">{prod.strength || '6mg'}</span>
-                      <span className="text-slate-300 font-normal">•</span>
-                      <span>{prod.tags?.[0] || 'Mint'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pricing & Subscription Savings */}
-                <div className="space-y-3 pt-3 border-t border-slate-55">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-base font-black text-slate-900 font-mono">₹{prod.price.toFixed(2)}</span>
-                      <span className="text-[9.5px] text-slate-400 font-semibold uppercase">each</span>
-                    </div>
-                  </div>
-
-                  {/* Dynamic checkout/basket button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToCart(prod, 1);
-                    }}
-                    className="w-full bg-[#0F172A] hover:bg-indigo-600 text-white text-[11px] font-black py-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-300 uppercase tracking-widest shadow-sm active:scale-97"
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    <span>Add to Basket</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          ))}
         </div>
       )}
 
-      {/* Want the best value transition row bar */}
-      <div className="w-full bg-slate-50/80 rounded-2xl p-6 border border-slate-150 flex flex-col md:flex-row items-center justify-between gap-6 mt-8 shadow-3xs">
-        <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          {/* Overlapping circular tins for high fidelity design */}
-          <div className="relative w-24 h-16 shrink-0 flex items-center justify-center select-none">
-            <div className="absolute left-0 w-11 h-11 rounded-full bg-indigo-50 border border-indigo-200 shadow-md flex items-center justify-center overflow-hidden transform rotate-[-12deg]">
-              <img src={PLACEHOLDER_IMAGE} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-            </div>
-            <div className="absolute left-6 w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 shadow-md flex items-center justify-center overflow-hidden transform rotate-[8deg] z-10">
-              <img src={PLACEHOLDER_IMAGE} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-            </div>
-            {/* Save 20% golden badge */}
-            <div className="absolute -right-2 -top-1 w-10 h-10 rounded-full bg-amber-400 border border-white text-slate-950 font-black text-[7.5px] leading-tight flex flex-col items-center justify-center shadow-md transform rotate-[15deg] z-20">
-              <span>Save</span>
-              <span>20%</span>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Want the best value?</h3>
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed font-medium">
-              Free delivery on qualifying orders. Secure checkout with UPI, cards and netbanking.
-            </p>
-          </div>
+      {displayedProducts.length === 0 ? (
+        <div className="py-14 text-center text-slate-400 bg-slate-50 border border-dashed rounded-2xl">
+          <p className="text-sm font-semibold">No products to show yet.</p>
+          <p className="text-xs mt-1">Add active products{selectedColl ? ' to this collection' : ''} in the dashboard and they will appear here.</p>
         </div>
-        
-        {/* Value badges and View Plans Action Button */}
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-slate-500 text-[10px] font-extrabold">
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Free Delivery</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Easy Returns</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Loyalty Rewards</span>
-          </div>
-          
-          <button
-            onClick={() => onNavigate('frontend-shop')}
-            className="bg-amber-500 hover:bg-amber-600 hover:scale-[1.01] active:scale-95 text-white font-black text-xs py-2.5 px-5 rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1 ml-2 uppercase tracking-wider"
-          >
-            <span>Shop All</span>
-            <ArrowRight className="h-3 w-3" />
-          </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-6">
+          {displayedProducts.map(prod => (
+            <ProductCard
+              key={prod.id}
+              product={prod}
+              customer={loggedInCustomer}
+              onOpen={p => onNavigate(`/products/${p.slug || p.id}`)}
+              onAddToCart={onAddToCart}
+              onToggleWishlist={onToggleWishlist}
+            />
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1219,7 +586,7 @@ function ContactFormSection({ sec }: ContactFormSectionProps) {
   const [successNote, setSuccessNote] = useState('');
 
   const title = sec.settings?.title || 'Get in Touch with Our Team';
-  const description = sec.settings?.description || 'Have questions about your order, shipping, or nicotine pouch brands? Fill out the form below or reach us directly. Our customer support team responds within 24 hours.';
+  const description = sec.settings?.description || 'Have a question about an order, delivery or a product? Send us a message and our team will get back to you within one working day.';
   const headingColor = sec.settings?.headingColor || '#0F172A';
   const textColor = sec.settings?.textColor || '#475569';
   const backgroundColor = sec.settings?.backgroundColor || '#FFFFFF';
@@ -1734,7 +1101,7 @@ export default function PageRenderer({
                         <div className="max-w-2xl space-y-4 sm:space-y-6">
                           <div className="inline-flex items-center gap-1.5 bg-indigo-600/90 text-white font-extrabold uppercase tracking-widest text-[8px] sm:text-[9px] py-1 px-3 rounded-full border border-indigo-400/30">
                             <Sparkles className="h-3 w-3 text-amber-300 animate-spin" />
-                            <span>Exclusive Pouch Launch</span>
+                            <span>{sec.settings.badgeText || 'New collection'}</span>
                           </div>
 
                           {sec.settings.title && (
@@ -1863,12 +1230,12 @@ export default function PageRenderer({
                   }
 
                   if (!isYouTube && !videoSource) {
-                    videoSource = 'https://assets.mixkit.co/videos/preview/mixkit-laboratory-test-tubes-40436-large.mp4';
+                    videoSource = '';
                   }
 
                   const cleanedVideoUrl = cleanMediaUrl(videoSource);
-                  const titleInput = sec.settings.title || 'YOUR NICOTINE, ON AUTOPILOT.';
-                  const descInput = sec.settings.description || 'Your favourite brands, delivered to your door.';
+                  const titleInput = sec.settings.title || 'Discover the new collection';
+                  const descInput = sec.settings.description || 'Thoughtfully made pieces, delivered to your door.';
 
                   return (
                     <div className="relative w-full overflow-hidden bg-slate-950 text-white flex flex-col justify-between min-h-[520px] md:min-h-[620px]">
@@ -1885,6 +1252,8 @@ export default function PageRenderer({
                               allowFullScreen
                             />
                           </div>
+                        ) : !cleanedVideoUrl ? (
+                          <div className="w-full h-full bg-gradient-to-br from-slate-800 via-slate-900 to-black" />
                         ) : (
                           <video
                             key={cleanedVideoUrl}
@@ -1998,16 +1367,17 @@ export default function PageRenderer({
 
                       </div>
 
-                      {/* Gold full-width bar at the bottom of the section */}
-                      <div className="w-full bg-[#dfa047] py-4.5 px-4 sm:px-6 z-20 relative border-t border-white/5 shadow-md mt-auto">
+                      {/* Feature bar at the bottom of the section */}
+                      {sec.settings.showFeatureBar !== false && (
+                      <div className="w-full bg-slate-900 py-4.5 px-4 sm:px-6 z-20 relative border-t border-white/5 shadow-md mt-auto">
                         <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 text-white text-center sm:text-left divide-y lg:divide-y-0 lg:divide-x divide-white/15">
                           
                           {/* Item 1 */}
                           <div className="flex flex-col sm:flex-row items-center gap-2.5 justify-center lg:justify-start px-2 py-2 sm:py-0">
                             <Truck className="h-5.5 w-5.5 text-white shrink-0" />
                             <div>
-                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">FREE UK DELIVERY</p>
-                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">On orders ₹40+</p>
+                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">FREE DELIVERY</p>
+                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">On qualifying orders</p>
                             </div>
                           </div>
 
@@ -2015,8 +1385,8 @@ export default function PageRenderer({
                           <div className="flex flex-col sm:flex-row items-center gap-2.5 justify-center lg:justify-start px-4 py-2 sm:py-0 border-white/15">
                             <Calendar className="h-5.5 w-5.5 text-white shrink-0" />
                             <div>
-                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">DELIVERED ON YOUR SCHEDULE</p>
-                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">Weekly, Fortnightly or Monthly</p>
+                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">EASY RETURNS</p>
+                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">Hassle-free returns & exchanges</p>
                             </div>
                           </div>
 
@@ -2024,8 +1394,8 @@ export default function PageRenderer({
                           <div className="flex flex-col sm:flex-row items-center gap-2.5 justify-center lg:justify-start px-4 py-2 sm:py-0 border-white/15">
                             <Award className="h-5.5 w-5.5 text-white shrink-0" />
                             <div>
-                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">LOYALTY REWARDS</p>
-                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">Earn points & exclusive perks</p>
+                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">QUALITY GUARANTEED</p>
+                              <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">Carefully checked before dispatch</p>
                             </div>
                           </div>
 
@@ -2033,13 +1403,14 @@ export default function PageRenderer({
                           <div className="flex flex-col sm:flex-row items-center gap-2.5 justify-center lg:justify-start px-4 py-2 sm:py-0 border-white/15">
                             <Lock className="h-5.5 w-5.5 text-white shrink-0" />
                             <div>
-                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">100% SECURE CHECKOUT</p>
+                              <p className="text-[10.5px] sm:text-[11px] font-black tracking-widest uppercase leading-tight">SECURE CHECKOUT</p>
                               <p className="text-[9.5px] sm:text-[10px] text-white/90 font-bold mt-0.5">Your data is protected</p>
                             </div>
                           </div>
 
                         </div>
                       </div>
+                      )}
 
                     </div>
                   );
@@ -2074,11 +1445,11 @@ export default function PageRenderer({
                         className="text-3xl font-black uppercase tracking-tight leading-tight"
                         style={{ color: sec.settings.headingColor || '#000000' }}
                       >
-                        {sec.settings.title || 'Curate your package'}
+                        {sec.settings.title || 'Image with text'}
                       </h2>
                       
                       <p className="text-sm opacity-90 leading-relaxed text-slate-600">
-                        {sec.settings.description || 'Flexible deliveries straight to your shop or door.'}
+                        {sec.settings.description || 'Pair text with an image to tell your story.'}
                       </p>
 
                       {sec.settings.buttonText && (
@@ -2100,25 +1471,28 @@ export default function PageRenderer({
                 {sec.type === 'Text column with image' && (
                   <div className="space-y-12 px-4 sm:px-6">
                     <div className="text-center max-w-2xl mx-auto space-y-3">
-                      <span className="text-[10px] tracking-widest font-black uppercase text-indigo-600 bg-indigo-50/90 py-1 px-3.5 rounded-full inline-block">Our Foundations</span>
+                      <span className="text-[10px] tracking-widest font-black uppercase text-indigo-600 bg-indigo-50/90 py-1 px-3.5 rounded-full inline-block">{sec.settings.badgeText || 'Why choose us'}</span>
                       <h2 
                         className="text-3xl font-black uppercase tracking-tight"
                         style={{ color: sec.settings.headingColor || '#000000' }}
                       >
-                        {sec.settings.title || 'Laboratory Certified Excellence'}
+                        {sec.settings.title || 'Made to make a difference'}
                       </h2>
-                      <p className="text-xs sm:text-sm text-slate-500">{sec.settings.description || 'Scientifically balanced plant extracts providing rich, uniform strength.'}</p>
+                      <p className="text-xs sm:text-sm text-slate-500">{sec.settings.description || 'Quality, care and service in everything we do.'}</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-                      {[
-                        { title: 'Global Certified Lab Testing', desc: 'Every batch is sourced strictly from laboratory test lines adhering to absolute security and clean protocols.', img: PLACEHOLDER_IMAGE, badge: 'LAB VERIFIED' },
-                        { title: 'Preservative Free Aroma Boost', desc: 'Crafted using pure food-grade crystalline ingredients, delivering rich natural aromas and smooth fresh locks.', img: PLACEHOLDER_IMAGE, badge: '100% TOBACCO-FREE' },
-                        { title: 'Vacuum Sealed Freeze Guard', desc: 'Sealed instantly into high-density polymer canisters ensuring 100% cooling impact remains intact during shipping.', img: PLACEHOLDER_IMAGE, badge: 'FRESHNESS LOCK' }
-                      ].map((col, cIdx) => (
+                      {(Array.isArray(sec.settings.columnItems) && sec.settings.columnItems.length
+                        ? sec.settings.columnItems.map((c: any) => ({ title: c.title || '', desc: c.description || '', img: c.imageUrl || '', badge: c.badge || '', linkUrl: c.linkUrl || '' }))
+                        : [
+                            { title: 'Quality materials', desc: 'Every product is chosen for how well it is made and how long it lasts.', img: '', badge: '', linkUrl: '' },
+                            { title: 'Fast, tracked delivery', desc: 'Orders are packed with care and shipped with tracking to your door.', img: '', badge: '', linkUrl: '' },
+                            { title: 'Friendly support', desc: 'Questions before or after you buy? Our team is happy to help.', img: '', badge: '', linkUrl: '' }
+                          ]
+                      ).map((col: any, cIdx: number) => (
                         <div key={cIdx} className="bg-white border border-slate-100 rounded-2xl overflow-hidden p-4 space-y-4 shadow-sm hover:shadow-xl hover:border-slate-300/60 transition-all group flex flex-col justify-between">
                           <div className="space-y-3">
-                            <div className="relative h-44 w-full rounded-xl overflow-hidden bg-slate-50">
+                            {col.img && (<div className="relative h-44 w-full rounded-xl overflow-hidden bg-slate-50">
                               <img 
                                 src={cleanMediaUrl(col.img)} 
                                 className="h-full w-full object-cover group-hover:scale-102 transition-transform duration-300" 
@@ -2129,16 +1503,14 @@ export default function PageRenderer({
                                   e.currentTarget.style.display = 'none';
                                 }}
                               />
-                              <span className="absolute bottom-2 left-2 bg-slate-900/90 text-white text-[8px] font-bold py-0.5 px-2 rounded tracking-widest">{col.badge}</span>
-                            </div>
-                            <h4 className="font-extrabold text-slate-800 text-sm">{col.title}</h4>
-                            <p className="text-[11px] text-slate-500 leading-relaxed">{col.desc}</p>
+                              {col.badge && <span className="badge-bg badge-text absolute bottom-2 left-2 bg-slate-900/90 text-white text-[8px] font-bold py-0.5 px-2 rounded tracking-widest">{col.badge}</span>}
+                            </div>)}
+                            <h4 className="card-title font-extrabold text-slate-800 text-sm">{col.title}</h4>
+                            <p className="card-desc text-[12px] text-slate-500 leading-relaxed">{col.desc}</p>
                           </div>
-                          
-                          <div className="pt-2 border-t border-slate-50 flex items-center justify-between text-[9px] text-slate-450 font-mono">
-                            <span>ISO STANDARDS COMPLIANT</span>
-                            <span className="text-emerald-600 font-bold">✓ RECONSTRUCTED</span>
-                          </div>
+                          {col.linkUrl && (
+                            <button type="button" onClick={() => handleLinkClick(col.linkUrl)} className="self-start text-xs font-semibold underline underline-offset-4">Learn more</button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2157,7 +1529,7 @@ export default function PageRenderer({
                       className="text-3xl sm:text-4xl font-black uppercase tracking-tight leading-tight"
                       style={{ color: sec.settings.headingColor || '#000000' }}
                     >
-                      {sec.settings.title || 'Rich editorial showcase'}
+                      {sec.settings.title || 'Tell your story'}
                     </h2>
                     
                     <p className="text-xs sm:text-sm leading-relaxed text-slate-500 max-w-2xl mx-auto">
@@ -2179,7 +1551,7 @@ export default function PageRenderer({
 
                 {/* 6. MARQUEE TEXT */}
                 {sec.type === 'Marquee text' && (() => {
-                  const rawText = sec.settings.title || 'FAST DELIVERY // EASY RETURNS // LOYALTY REWARDS // SECURE CHECKOUT // UPI & CARDS ACCEPTED';
+                  const rawText = sec.settings.title || 'FREE DELIVERY ON QUALIFYING ORDERS // EASY RETURNS // SECURE CHECKOUT // UPI & CARDS ACCEPTED';
                   const items = rawText.includes('//') 
                     ? rawText.split('//').map(item => item.trim()).filter(Boolean)
                     : rawText.includes('•')
@@ -2215,7 +1587,7 @@ export default function PageRenderer({
                   <div className="space-y-6 px-4">
                     <div className="flex items-center gap-1.5 justify-center">
                       <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
-                      <h4 className="text-[10px] font-extrabold text-center uppercase tracking-widest text-slate-400">{sec.settings.title || 'Fresh Stock Dispatch Reel'}</h4>
+                      <h4 className="text-[10px] font-extrabold text-center uppercase tracking-widest text-slate-400">{sec.settings.title || 'New in'}</h4>
                     </div>
 
                     {imageList(sec.settings.galleryImages).length > 0 ? (
@@ -2259,7 +1631,7 @@ export default function PageRenderer({
                         className="text-xs font-black uppercase tracking-widest text-slate-400 block"
                         style={{ color: sec.settings.headingColor || '#94A3B8' }}
                       >
-                        {sec.settings.title || 'OFFICIAL LAB PARTNER REGISTER'}
+                        {sec.settings.title || 'Brands we work with'}
                       </h3>
                       {sec.settings.description && (
                         <p className="text-[10px] text-slate-400">{sec.settings.description}</p>
@@ -2274,18 +1646,9 @@ export default function PageRenderer({
                         ))}
                       </div>
                     ) : (
-                    <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
-                      {['77','clew', 'cuba', 'maggie', 'nordic spirit', 'xqs', 'zyn', 'pablo', 'killa', 'fumi', 'velo', 'white fox', 'snu'].map((logo, lIdx) => (
-                        <div 
-                          key={lIdx} 
-                          onClick={() => onNavigate('frontend-brands')}
-                          className="bg-white border border-slate-150 rounded-xl px-5 py-3 shadow-xs hover:border-slate-400 hover:shadow-md transition-all cursor-pointer text-xs font-extrabold tracking-wider text-slate-700 flex items-center gap-1.5"
-                        >
-                          <span className="text-indigo-600">●</span>
-                          <span>{logo}</span>
-                        </div>
-                      ))}
-                    </div>
+                    editor ? (
+                      <p className="text-xs text-slate-400 border border-dashed rounded-xl py-6">Add logo images to this section in the page builder. Without logos it shows only its heading on the store.</p>
+                    ) : null
                     )}
                   </div>
                 )}
@@ -2303,7 +1666,7 @@ export default function PageRenderer({
                            className="text-xs font-black uppercase tracking-widest text-[#0F172A]"
                            style={{ color: sec.settings.headingColor || '#0F172A' }}
                          >
-                           {sec.settings.title || 'EXPLORE BRAND COLLECTIONS'}
+                           {sec.settings.title || 'Shop by category'}
                          </h3>
                          {sec.settings.description && (
                            <p className="text-xs text-slate-500 max-w-md mx-auto">{sec.settings.description}</p>
@@ -2331,12 +1694,12 @@ export default function PageRenderer({
                                    }}
                                  />
                                ) : (
-                                 <span className="text-4xl transform group-hover:scale-108 transition-transform">🥫</span>
+                                 <span className="text-3xl font-semibold text-slate-400">{(col.title || '?').charAt(0).toUpperCase()}</span>
                                )}
                              </div>
                              <div>
                                <h4 className="font-extrabold text-xs text-slate-800 group-hover:text-indigo-650 transition-colors uppercase tracking-wide truncate">{col.title}</h4>
-                               <p className="text-[10px] text-slate-400 mt-1 font-mono">{col.productIds.length} FLAVORS</p>
+                               <p className="text-[10px] text-slate-400 mt-1 font-mono">{(col.productIds || []).length} {(col.productIds || []).length === 1 ? 'product' : 'products'}</p>
                              </div>
                            </div>
                          ))}
@@ -2370,150 +1733,17 @@ export default function PageRenderer({
                   />
                 )}
 
-                {false && sec.type === 'Featured collection' && (
-                  <div className="space-y-8 px-4 sm:px-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end pb-4 border-b border-slate-200">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Direct From Laboratories</span>
-                        </div>
-                        <h2 
-                          className="text-2xl font-black uppercase tracking-tight text-[#0F172A]"
-                          style={{ color: sec.settings.headingColor || '#0f172a' }}
-                        >
-                          {sec.settings.title || 'FEATURED COLLECTION'}
-                        </h2>
-                        {sec.settings.description && (
-                          <p className="text-xs text-slate-500 max-w-xl">
-                            {sec.settings.description}
-                          </p>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={() => onNavigate('frontend-shop')}
-                        className="text-xs font-black text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer pt-3 sm:pt-0 uppercase tracking-widest flex items-center gap-1.5"
-                      >
-                        <span>All Categories</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {(() => {
-                        const targetCollectionId = sec.settings.selectedCollectionId;
-                        const selectedColl = targetCollectionId ? allCollections.find(c => c.id === targetCollectionId) : null;
-                        const filtered = allProducts
-                          .filter(p => p.status === 'Active')
-                          .filter(p => !targetCollectionId || (selectedColl?.productIds && selectedColl.productIds.includes(p.id)));
-                        
-                        return filtered.slice(0, sec.settings.itemsCount || 4).map((prod, pIdx) => {
-                          const isWishlisted = Boolean(loggedInCustomer?.wishlist && Array.isArray(loggedInCustomer.wishlist) && loggedInCustomer.wishlist.includes(prod.id));
-                          return (
-                            <div 
-                              key={`coll-grid-${prod.id}-${pIdx}`} 
-                              onClick={() => onNavigate(`/products/${prod.id}`)}
-                              className="bg-white border border-slate-150 rounded-2xl overflow-hidden p-4 space-y-4 group hover:shadow-xl hover:border-slate-300 transition-all relative flex flex-col justify-between cursor-pointer"
-                            >
-                              {/* Wishlist triggers */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleWishlist(prod.id);
-                                }}
-                                className="absolute top-3 right-3 p-2 rounded-full bg-white/90 backdrop-blur-md border border-slate-200 shadow-sm text-slate-400 hover:text-red-500 transition-colors z-10 cursor-pointer"
-                              >
-                                <Heart className={`h-4 w-4 ${isWishlisted ? 'text-red-500 fill-red-500' : ''}`} />
-                              </button>
-
-                              <div className="space-y-3">
-                                <div className="h-48 bg-slate-50 rounded-xl overflow-hidden border border-slate-100 relative shadow-inner">
-                                  <img
-                                    src={prod.image}
-                                    className="h-full w-full object-cover group-hover:scale-102 transition-transform duration-500"
-                                    alt=""
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <span className="absolute top-2.5 left-2.5 bg-slate-900 text-white text-[8px] font-black tracking-widest uppercase py-0.5 px-2 rounded-md">
-                                    {prod.vendor}
-                                  </span>
-                                  
-                                  {prod.compareAtPrice > prod.price && (
-                                    <span className="absolute bottom-2.5 left-2.5 bg-rose-650 text-white text-[8px] font-black tracking-widest uppercase py-0.5 px-2 rounded">
-                                      SALE DISCOUNT
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-1 text-[8.5px] font-bold text-slate-400 uppercase tracking-widest">
-                                    <span>Suppled Lab Grade</span>
-                                    <span>•</span>
-                                    <span>Fresh Locks</span>
-                                  </div>
-                                  <h4 className="font-extrabold text-xs text-slate-800 truncate uppercase tracking-tight">{prod.title}</h4>
-                                  
-                                  <div className="flex items-center gap-1 text-amber-500 pb-1">
-                                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                                    <span className="text-[9px] text-slate-400 font-mono ml-1 font-bold">5.0 (48)</span>
-                                  </div>
-
-                                  {/* Beautiful medical specification specs list */}
-                                  <div className="bg-slate-50/70 py-1.5 px-2 rounded-lg border border-slate-100 space-y-1">
-                                    <div className="flex justify-between text-[8px] text-slate-450 font-bold uppercase font-mono">
-                                      <span>Strength Aroma</span>
-                                      <span className="text-slate-800 font-black">X-Strong Freeze</span>
-                                    </div>
-                                    <div className="flex justify-between text-[8px] text-slate-450 font-bold uppercase font-mono">
-                                      <span>Dispatch Type</span>
-                                      <span className="text-indigo-650 font-black">Laboratory Fresh</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2 pt-2 border-t border-slate-50">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-wide">Single Tin</span>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-black text-slate-900 font-mono">₹{prod.price.toFixed(2)}</span>
-                                    {prod.compareAtPrice > prod.price && (
-                                      <span className="text-[9.5px] text-slate-405 line-through font-mono">₹{prod.compareAtPrice.toFixed(2)}</span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <button
-                                  onClick={() => onAddToCart(prod, 1)}
-                                  className="w-full bg-slate-900 hover:bg-indigo-600 text-white text-[10px] font-black py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-colors uppercase tracking-widest shadow-xs"
-                                >
-                                  <ShoppingCart className="h-3.5 w-3.5" />
-                                  <span>Add to Cart</span>
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
 
                 {/* 11. IMAGES GALLERY */}
                 {sec.type === 'Images gallery' && (
                   <div className="space-y-8 px-4 sm:px-6">
                     <div className="text-center space-y-2">
-                      <span className="text-[10px] tracking-widest font-black uppercase text-indigo-600 bg-indigo-50/90 py-1 px-3.5 rounded-full inline-block">Visual Verification</span>
+                      <span className="text-[10px] tracking-widest font-black uppercase text-indigo-600 bg-indigo-50/90 py-1 px-3.5 rounded-full inline-block">{sec.settings.badgeText || 'Gallery'}</span>
                       <h3 
                         className="text-center text-2xl font-black uppercase tracking-tight text-[#0F172A]"
                         style={{ color: sec.settings.headingColor || '#0F172A' }}
                       >
-                        {sec.settings.title || 'Laboratory & Dispatch Facility Gallery'}
+                        {sec.settings.title || 'Gallery'}
                       </h3>
                       {sec.settings.description && (
                         <p className="text-xs text-slate-500 max-w-md mx-auto">{sec.settings.description}</p>
@@ -2551,10 +1781,10 @@ export default function PageRenderer({
                                 : (sec.settings.faqItems && sec.settings.faqItems.length > 0) ? sec.settings.faqItems
                                 : null;
                   const faqsToRender = rawList || [
-                    { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon fulfillment lines dispatch.' },
-                    { q: 'Are these pouches 100% tobacco-free?', a: 'Under all current EU & UK reseller regulations, our catalog consists strictly of plant-fiber pouch variants utilizing medical crystalline formats.' },
+                    { q: 'How long does delivery take?', a: 'Most orders arrive within 3–7 working days. You will receive a tracking link by email as soon as your order ships.' },
                     { q: 'Can I return an item?', a: 'Yes. Contact us within the return window in our refund policy and we will arrange it.' },
-                    { q: 'Where are the canisters formulated?', a: 'Formulated in certified European laboratories under strict vacuum sterile protocols, ensuring consistent aroma and maximum flavor lock.' }
+                    { q: 'Which payment methods do you accept?', a: 'We accept major cards, UPI, net banking and popular wallets through our secure checkout.' },
+                    { q: 'How can I contact you?', a: 'Use the contact form on our Contact page and our team will get back to you within one working day.' }
                   ];
 
                   const secKey = sec.id ? `faq-${sec.id}` : `faq-sec-${idx}`;
@@ -2648,23 +1878,28 @@ export default function PageRenderer({
                     ? allBlogs.filter(b => b.status === 'Active')
                     : [];
 
-                  const displayBlogs = activeBlogs.length > 0 
-                    ? activeBlogs 
-                    : [
-                        { id: '1', title: 'Swedish Pouch Manufacturing Regulations', category: 'Standards', date: 'June 19, 2026', image: PLACEHOLDER_IMAGE, excerpt: 'Behind the clinical clean rooms compounding sterile medical fiber pouches under modern Scandinavian compliance.', author: 'Dr. Anders' },
-                        { id: '2', title: 'Why Sterile Medical Fiber is Better', category: 'Science', date: 'June 18, 2026', image: PLACEHOLDER_IMAGE, excerpt: 'Traditional pouches use coarse paper. Our laboratory leverages vacuum plant cellulose fibers for smooth flavor dispersion.', author: 'Sara Storm' },
-                        { id: '3', title: 'Understanding Nicotine Salt Deliveries', category: 'Formulas', date: 'June 17, 2026', image: PLACEHOLDER_IMAGE, excerpt: 'An in-depth breakdown of molecular compounding and how sub-zero cooling agents trigger persistent fresh releases.', author: 'Nils Vance' }
-                      ];
+                  const displayBlogs: any[] = activeBlogs;
+
+                  // No invented articles: without published posts the section is
+                  // hidden on the store and explains itself in the builder.
+                  if (displayBlogs.length === 0) {
+                    return editor ? (
+                      <div className="max-w-3xl mx-auto px-4 py-10 text-center text-slate-400 border border-dashed rounded-2xl my-4">
+                        <p className="text-sm font-semibold">No published blog posts yet</p>
+                        <p className="text-xs mt-1">Publish a post under Content → Blog posts and it will appear here. This section is hidden on the store until then.</p>
+                      </div>
+                    ) : null;
+                  }
 
                   return (
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 py-4">
                       <div className="text-center space-y-2">
-                        <span className="text-[10px] tracking-widest font-black uppercase text-white bg-indigo-600/90 py-1 px-3.5 rounded-full inline-block">Pouch Journal</span>
+                        <span className="text-[10px] tracking-widest font-black uppercase text-white bg-indigo-600/90 py-1 px-3.5 rounded-full inline-block">{sec.settings.badgeText || 'Journal'}</span>
                         <h2 
                           className="text-3xl font-black uppercase tracking-tight text-slate-900"
                           style={{ color: sec.settings.headingColor || '#0F172A' }}
                         >
-                          {sec.settings.title || 'Latest From Our Journal'}
+                          {sec.settings.title || 'From the journal'}
                         </h2>
                         {sec.settings.description && (
                           <p className="text-xs text-slate-500 max-w-2xl mx-auto leading-relaxed">{sec.settings.description}</p>
@@ -2722,13 +1957,13 @@ export default function PageRenderer({
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6 py-4">
                     <div className="text-center space-y-3">
                       <span className="text-[10px] tracking-widest font-black uppercase text-indigo-650 bg-indigo-50 px-3 py-1 rounded-full inline-block font-sans">
-                        Compounding Series Catalog
+                        {sec.settings.badgeText || 'Our brands'}
                       </span>
                       <h2 
                         className="text-3xl md:text-4xl font-extrabold uppercase tracking-tight text-slate-900"
                         style={{ color: sec.settings.headingColor || '#0C1017' }}
                       >
-                        {sec.settings.title || 'Official Brands Directory'}
+                        {sec.settings.title || 'Shop by brand'}
                       </h2>
                       {sec.settings.description && (
                         <p className="text-slate-500 max-w-2xl mx-auto text-xs sm:text-sm leading-relaxed">{sec.settings.description}</p>
@@ -2812,74 +2047,20 @@ export default function PageRenderer({
 
                 {/* 16. ICON WITH TEXT */}
                 {sec.type === 'Icon with text' && (() => {
-                  const items = sec.settings.iconItems || [
-                    { iconName: 'Truck', title: 'Delivered on your schedule', description: 'Flexible delivery, when you need it.', linkUrl: 'frontend-shop' },
-                    { iconName: 'Zap', title: 'Save vs. shop prices', description: 'Better prices than retail stores.', linkUrl: 'frontend-shop' },
-                    { iconName: 'Shield', title: 'Discreet delivery', description: 'Plain, private, and secure packaging.', linkUrl: 'frontend-shop' },
-                    { iconName: 'Clock', title: 'Cancel anytime', description: 'No commitments, full control.', linkUrl: 'frontend-shop' },
-                    { iconName: 'Award', title: 'Loyalty scheme', description: 'Earn rewards on every order.', linkUrl: 'frontend-shop' },
-                    { iconName: 'Package', title: 'Never run out', description: 'Auto-refill and easy reordering.', linkUrl: 'frontend-shop' }
+                  const items = (sec.settings.iconItems && sec.settings.iconItems.length ? sec.settings.iconItems : null) || [
+                    { iconName: 'Truck', title: 'Free delivery', description: 'On qualifying orders, tracked to your door.', linkUrl: '' },
+                    { iconName: 'Shield', title: 'Secure checkout', description: 'Cards, UPI and wallets, fully encrypted.', linkUrl: '' },
+                    { iconName: 'Package', title: 'Easy returns', description: 'Changed your mind? Returns are simple.', linkUrl: '' },
+                    { iconName: 'Heart', title: 'Here to help', description: 'Friendly support before and after you buy.', linkUrl: '' }
                   ];
 
-                  const getPremiumCardDetails = (iconName: string, title: string, description: string) => {
-                    const normIcon = (iconName || '').toLowerCase();
-                    const normTitle = (title || '').toLowerCase();
-
-                    if (normIcon.includes('truck') || normTitle.includes('delivery') || normTitle.includes('schedule')) {
-                      return {
-                        title: 'FLEXIBLE DELIVERY',
-                        desc: 'Delivered on your schedule. Weekly, fortnightly or monthly.',
-                        benefits: ['Change anytime', 'Skip or delay', 'Full control'],
-                        iconName: 'Truck'
-                      };
-                    }
-                    if (normIcon.includes('zap') || normTitle.includes('save') || normTitle.includes('price') || normTitle.includes('month')) {
-                      return {
-                        title: 'SAVE EVERY MONTH',
-                        desc: 'Save up to ₹55/month compared to buying in-store.',
-                        benefits: ['Better prices', 'Big savings', 'More value'],
-                        iconName: 'Zap'
-                      };
-                    }
-                    if (normIcon.includes('shield') || normTitle.includes('discreet') || normTitle.includes('packaging') || normTitle.includes('private')) {
-                      return {
-                        title: 'DISCREET PACKAGING',
-                        desc: 'Plain and private secure packaging for ultimate peace of mind.',
-                        benefits: ['No outer branding', 'Secure seal', 'Private delivery'],
-                        iconName: 'Shield'
-                      };
-                    }
-                    if (normIcon.includes('clock') || normTitle.includes('cancel') || normTitle.includes('commitment') || normTitle.includes('anytime')) {
-                      return {
-                        title: 'EASY RETURNS',
-                        desc: 'Pause, speed up, slow down, or end your plan anytime in one click.',
-                        benefits: ['Zero commitment', 'No hidden fees', 'Instant update'],
-                        iconName: 'Clock'
-                      };
-                    }
-                    if (normIcon.includes('award') || normTitle.includes('loyalty') || normTitle.includes('reward') || normTitle.includes('scheme')) {
-                      return {
-                        title: 'LOYALTY REWARDS',
-                        desc: 'Earn loyalty points on every cycle to redeem exclusive store benefits.',
-                        benefits: ['Free accessories', 'Double points', 'Exclusive status'],
-                        iconName: 'Award'
-                      };
-                    }
-                    if (normIcon.includes('package') || normTitle.includes('never run out') || normTitle.includes('auto')) {
-                      return {
-                        title: 'NEVER RUN OUT',
-                        desc: 'Auto-refill systems lock in your favorite pouches at sub-retail price thresholds.',
-                        benefits: ['Auto-refill', 'Priority stock', 'Price lock-in'],
-                        iconName: 'Package'
-                      };
-                    }
-                    return {
-                      title: title.toUpperCase(),
-                      desc: description,
-                      benefits: ['Premium quality', 'Reliable service', 'Best selection'],
-                      iconName: iconName
-                    };
-                  };
+                  // Always the merchant's own words — never substituted copy.
+                  const getPremiumCardDetails = (iconName: string, title: string, description: string) => ({
+                    title: title || '',
+                    desc: description || '',
+                    benefits: [] as string[],
+                    iconName
+                  });
 
                   return (
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 py-8">
@@ -2905,7 +2086,7 @@ export default function PageRenderer({
                           const details = getPremiumCardDetails(item.iconName, item.title, item.description);
                           
                           const IconComp = (() => {
-                            const iconClass = "h-8 w-8 text-[#071529] transition-transform duration-300 group-hover:scale-115";
+                            const iconClass = "h-8 w-8 transition-transform duration-300 group-hover:scale-115";
                             switch (details.iconName) {
                               case 'Truck': return <Truck className={iconClass} />;
                               case 'Zap': return <Zap className={iconClass} />;
@@ -2926,21 +2107,21 @@ export default function PageRenderer({
                               onClick={() => {
                                 if (item.linkUrl) handleLinkClick(item.linkUrl);
                               }}
-                              className="bg-white border border-slate-100 rounded-2xl p-6 md:p-7 flex flex-col justify-between hover:-translate-y-1 hover:shadow-lg hover:border-[#dfa047]/45 transition-all duration-300 group cursor-pointer shadow-xs select-none"
+                              className={`bg-white border border-slate-100 rounded-2xl p-6 md:p-7 flex flex-col justify-between card-bg hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group shadow-xs select-none ${item.linkUrl ? 'cursor-pointer' : ''}`}
                             >
                               <div className="space-y-5">
                                 {/* Top row with icon, title/desc, and action arrow */}
                                 <div className="flex items-start justify-between gap-4">
                                   <div className="flex items-start gap-4">
                                     {/* Icon with soft gold circle background */}
-                                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-[#faf0e1] flex items-center justify-center shrink-0 shadow-inner border border-[#dfa047]/10 transition-all duration-300 group-hover:bg-[#f9ebd4]">
+                                    <div className="accent-icon w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-slate-100 flex items-center justify-center shrink-0 transition-all duration-300" style={{ color: (sec.settings as any).iconColor || '#0F172A' }}>
                                       {IconComp}
                                     </div>
                                     
                                     {/* Text info */}
                                     <div className="text-left">
                                       <h3 
-                                        className="text-sm sm:text-base font-black uppercase tracking-wider text-[#071529] group-hover:text-[#dfa047] transition-colors duration-250"
+                                        className="card-title text-sm sm:text-base font-bold tracking-wide text-[#071529]"
                                       >
                                         {details.title}
                                       </h3>
@@ -2952,13 +2133,14 @@ export default function PageRenderer({
                                     </div>
                                   </div>
 
-                                  {/* Right side gold circular arrow */}
-                                  <div className="w-8 h-8 rounded-full border border-[#dfa047]/30 flex items-center justify-center text-[#dfa047] transition-all duration-300 group-hover:border-[#dfa047] group-hover:bg-[#dfa047]/15 shrink-0">
+                                  {item.linkUrl && (
+                                  <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 transition-all duration-300 group-hover:border-slate-900 group-hover:text-slate-900 shrink-0">
                                     <ArrowRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
                                   </div>
+                                  )}
                                 </div>
 
-                                {/* Bottom row: divider and benefit bullet checks */}
+                                {details.benefits.length > 0 && (
                                 <div className="pt-4 border-t border-slate-50 flex flex-wrap gap-x-5 gap-y-2 text-left">
                                   {details.benefits.map((benefit, bIdx) => (
                                     <div key={bIdx} className="flex items-center gap-1.5">
@@ -2969,6 +2151,7 @@ export default function PageRenderer({
                                     </div>
                                   ))}
                                 </div>
+                                )}
                               </div>
                             </div>
                           );

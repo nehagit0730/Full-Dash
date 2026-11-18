@@ -533,10 +533,10 @@ export default function CollectionEditor({
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-1 text-left font-serif leading-none select-none max-w-xl">
                   <span className="text-neutral-400 font-sans text-[10.5px] block truncate font-medium">https://yourstore.com/collections/{customSlug || slugify(title || 'untitled')}</span>
                   <span className="text-[#1a0dab] font-sans text-sm block hover:underline cursor-pointer font-extrabold leading-tight">
-                    {seoTitle || title || 'Untitled Custom Pouch Collection'}
+                    {seoTitle || title || 'Untitled collection'}
                   </span>
                   <p className="text-[#3c4043] font-sans text-[11.5px] leading-relaxed pt-1 select-all h-[40px] line-clamp-2">
-                    {seoDescription || description || 'Explore our vacuum-fresh nicotine pouch lines. Choose from various strengths, formats, and premium tastes formulated in Europe.'}
+                    {seoDescription || description || 'Add a description to see how this collection will appear in search results. formulated in Europe.'}
                   </p>
                 </div>
               ) : (
@@ -558,10 +558,10 @@ export default function CollectionEditor({
                   <div className="p-3 bg-[#f2f3f5] space-y-1">
                     <span className="text-[9px] text-slate-450 uppercase tracking-widest block font-bold font-mono">YOURSTORE.COM</span>
                     <h4 className="font-extrabold text-[12px] text-slate-800 line-clamp-1 uppercase tracking-tight">
-                      {seoTitle || title || 'Untitled Custom Pouch Collection'}
+                      {seoTitle || title || 'Untitled collection'}
                     </h4>
                     <p className="text-[10.5px] text-slate-500 line-clamp-2 font-medium leading-relaxed">
-                      {seoDescription || description || 'Explore our vacuum-fresh nicotine pouch lines. Choose from various strengths, formats, and premium tastes formulated in Europe.'}
+                      {seoDescription || description || 'Add a description to see how this collection will appear in search results. formulated in Europe.'}
                     </p>
                   </div>
                 </div>
@@ -590,7 +590,7 @@ export default function CollectionEditor({
                     maxLength={75}
                     value={seoTitle}
                     onChange={(e) => setSeoTitle(e.target.value)}
-                    placeholder="e.g. Paint Collections | Fine Art Pouch Cans"
+                    placeholder="e.g. Summer collection | Your store"
                     className="w-full text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-250 bg-white focus:outline-none focus:ring-2 focus:ring-[#008060]/20 focus:border-[#008060] transition-all"
                   />
                   <p className="text-[9px] text-slate-400 leading-normal mt-1">Recommended title length is between 30 and 60 characters for optimal results in desktop search results.</p>
@@ -785,10 +785,10 @@ export default function CollectionEditor({
                     onChange={(e) => setProductConditions(e.target.value)}
                     className="w-full text-xs font-semibold px-3 py-2 border rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
                   />
-                  <p className="text-[8.5px] text-slate-400">Smart rules matches catalog tags and vendor titles automatically to append active canisters.</p>
+                  <p className="text-[8.5px] text-slate-400">Smart rules matches catalog tags and vendor titles automatically to add matching products.</p>
                 </div>
               ) : (
-                <p className="text-[9.5px] text-slate-450 leading-relaxed font-medium">Add merchandise product canisters one-by-one by clicking "Browse" items to add to manual lists.</p>
+                <p className="text-[9.5px] text-slate-450 leading-relaxed font-medium">Add products one by one by clicking "Browse" items to add to manual lists.</p>
               )}
             </div>
           </div>
@@ -822,9 +822,9 @@ export default function CollectionEditor({
             <div className="p-4 px-5 border-b border-slate-150 flex items-center justify-between bg-slate-50">
               <div className="space-y-0.5">
                 <h3 className="font-black text-slate-850 text-xs sm:text-xs uppercase tracking-wide">
-                  Select Pouch Merchandise Cans
+                  Select products
                 </h3>
-                <p className="text-[10px] text-zinc-400 font-medium">Check which canisters belongs to {title || 'this collection'}.</p>
+                <p className="text-[10px] text-zinc-400 font-medium">Choose which products belong to {title || 'this collection'}.</p>
               </div>
               <button 
                 onClick={() => setShowProductPicker(false)}

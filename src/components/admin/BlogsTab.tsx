@@ -487,7 +487,7 @@ export const BlogsTab: React.FC<BlogsTabProps> = ({
                       <label className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Tags</label>
                       <input
                         type="text"
-                        placeholder="e.g. Science, Organic, Pouch"
+                        placeholder="e.g. Guides, News, Style"
                         value={tagsValue}
                         onChange={(e) => setTagsValue(e.target.value)}
                         className="w-full text-xs font-semibold border border-slate-200 p-2 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"

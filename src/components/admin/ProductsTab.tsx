@@ -58,6 +58,7 @@ export const ProductsTab: React.FC<ProductsTabProps> = ({
         <ProductEditor
           product={editingProduct}
           allCollections={collections}
+          allProducts={products}
           onCancel={() => {
             setEditingProduct(null);
             setShowAddProduct(false);

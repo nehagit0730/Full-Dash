@@ -41,7 +41,7 @@ router.get("/", async (_req, res) => {
     const db = await getConnectionStatus();
     res.json({
       encryptionConfigured: isEncryptionConfigured(),
-      siteUrl: process.env.APP_URL && !/MY_APP_URL/.test(process.env.APP_URL) ? process.env.APP_URL.replace(/\/+$/, "") : null,
+      siteUrl: await (await import("../services/siteUrl")).getSiteUrl(),
       database: { status: db.status, host: db.host || null, database: db.database || null, error: db.error || null },
       integrations
     });

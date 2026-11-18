@@ -1633,10 +1633,10 @@ export async function fetchLayoutSettings(): Promise<any> {
     settingsData = {
       id: "layout_settings",
       headerLogoText: 'ECOMMERCE STORE',
-      headerLogoSubtext: 'Womenswear',
+      headerLogoSubtext: '',
       headerLogoImage: '',
       footerLogoText: 'ECOMMERCE STORE',
-      footerLogoDescription: 'Contemporary womenswear — dresses, ethnic wear and everyday essentials.',
+      footerLogoDescription: 'Quality products, fair prices and friendly service — delivered to your door.',
       footerLogoImage: '',
       menuItems: [
         { id: '1', label: 'Home', tab: 'frontend-home', type: 'tab' },

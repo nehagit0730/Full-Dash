@@ -248,7 +248,8 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
     const resetToken = crypto.randomBytes(24).toString("hex");
-    const appUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+    const { getSiteUrl } = await import("../services/siteUrl");
+    const appUrl = (await getSiteUrl(req)) || "";
     const resetLink = `${appUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(emailTrim)}`;
 
     if (found) {

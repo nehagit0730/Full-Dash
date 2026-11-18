@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { readAdminPath, writeAdminRecord } from '../../lib/adminUrlState';
 import { Search, Download, Upload, Plus, Eye, User, Mail, MapPin, Package, ShoppingBag, X, Check, ArrowRight, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react';
 import { Order, Product } from '../../types';
 import { extractSubscriptionDetails } from '../../utils/subscriptionParser';
@@ -45,7 +46,22 @@ export const CustomersTab: React.FC<CustomersTabProps> = ({
   orders = [],
   products = []
 }) => {
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
+  // The open customer is part of the URL (/admin-dashboard/customers/<id>),
+  // so a reload reopens it and Back closes it.
+  const customerFromUrl = (): CustomerItem | null => {
+    const { section, recordId } = readAdminPath();
+    return section === 'customers' && recordId ? filteredCustomers.find(c => c.id === recordId) || null : null;
+  };
+  const [selectedCustomer, setSelectedCustomerState] = useState<CustomerItem | null>(customerFromUrl);
+  const setSelectedCustomer = (c: CustomerItem | null) => {
+    setSelectedCustomerState(c);
+    writeAdminRecord('customers', c ? c.id : null);
+  };
+  useEffect(() => {
+    const onPop = () => setSelectedCustomerState(customerFromUrl());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [filteredCustomers]);
 
   // Helper to check if an order is a subscription order
   const isSubOrder = (order: Order) => {

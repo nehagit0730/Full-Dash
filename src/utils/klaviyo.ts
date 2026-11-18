@@ -110,7 +110,7 @@ export function trackEvent(eventName: string, properties: KlaviyoEventProperties
 
   const safeProperties = {
     ...properties,
-    event_source: 'pouch_supply_storefront',
+    event_source: 'storefront',
   };
 
   pushKlaviyo(eventName, safeProperties);
@@ -141,7 +141,7 @@ export function trackViewedProduct(product: {
     // Browse-abandonment emails render a product block from these; without URL
     // and Categories the block has no link and the flow cannot be segmented.
     URL: url,
-    Categories: ['Nicotine Pouches', product.brand].filter(Boolean),
+    Categories: [(product as any).category, product.brand].filter(Boolean),
     Brand: product.brand,
     Variant: product.variant,
     recurring: Boolean(product.recurring),
@@ -154,7 +154,7 @@ export function trackViewedProduct(product: {
     window._learnq.push(['trackViewedItem', {
       Title: product.name,
       ItemId: product.id,
-      Categories: ['Nicotine Pouches', product.brand].filter(Boolean),
+      Categories: [(product as any).category, product.brand].filter(Boolean),
       ImageUrl: product.image,
       Url: url,
       Metadata: {
@@ -226,7 +226,7 @@ export function trackStartedCheckout(data: {
       value: total,
       ItemNames: formattedItems.map(i => i.ProductName),
       Items: formattedItems,
-      Categories: ['Nicotine Pouches', 'Storefront'],
+      Categories: ['Storefront'],
       IsSubscription: isRecurring,
       currency: 'INR'
     });
@@ -307,9 +307,9 @@ export function trackOrderCompleted(order: {
     const price = typeof i.price === 'number' ? i.price : parseFloat(i.price) || 0;
     const qty = typeof i.quantity === 'number' ? i.quantity : parseInt(i.quantity) || 1;
     return {
-      ProductID: String(i.productId || i.id || 'pouch-item'),
+      ProductID: String(i.productId || i.id || 'item'),
       SKU: String(i.sku || i.productId || i.id || 'SKU-001'),
-      ProductName: String(i.productTitle || i.title || i.name || 'Nicotine Pouch Pack'),
+      ProductName: String(i.productTitle || i.title || i.name || 'Product'),
       Quantity: qty,
       ItemPrice: price,
       Price: price,
@@ -325,7 +325,7 @@ export function trackOrderCompleted(order: {
     order_id: orderId,
     ItemNames: formattedItems.map(i => i.ProductName),
     Items: formattedItems,
-    Categories: ['Nicotine Pouches', 'Storefront'],
+    Categories: ['Storefront'],
     Destination: order.destination || order.address || 'United Kingdom',
     DeliveryMethod: order.deliveryMethod || 'Standard Delivery',
     DiscountApplied: order.discountApplied || null,

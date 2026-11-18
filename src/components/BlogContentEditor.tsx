@@ -400,21 +400,25 @@ export default function BlogContentEditor({
     setShowAiDropdown(false);
     let generatedHtml = '';
     
+    // Writing scaffolds with [placeholders] to fill in — not generated text.
     if (templateType === 'intro') {
-      generatedHtml = `<p>Welcome to our definitive guide! In the fast-evolving world of premium compounding standards, choosing the correct ingredients and understanding raw chemistry properties is essential for crafting superior, eye-safe, and highly satisfying solutions. Today, we break down the leading hacks that store owners and consumers can utilize immediately.</p>`;
+      generatedHtml = `<p>[Open with the question or problem your reader has.] In this post we look at [topic] and share [what the reader will learn].</p>`;
     } else if (templateType === 'hacks') {
-      generatedHtml = `<h3>Top 3 Hacks For Canister Storage</h3>
-<p>To preserve fresh moisture, taste consistency, and organic strength, proper storage environment parameters are key:</p>
+      generatedHtml = `<h3>[Number] tips for [topic]</h3>
 <ul class="list-disc pl-5 my-2 space-y-1">
-  <li><strong>Hack 1: Maintain tight temperature seals</strong> - Storing canisters away from direct sunlight at steady room temperatures blocks crystallization.</li>
-  <li><strong>Hack 2: Use low-humidity buffer packets</strong> - Incorporating food-safe humidity sheets guards the structural moisture.</li>
-  <li><strong>Hack 3: Rotational stocking</strong> - Implement first-in, first-out stock systems so users enjoy the peak chemical integrity.</li>
+  <li><strong>[Tip one]</strong> – [Why it helps and how to do it.]</li>
+  <li><strong>[Tip two]</strong> – [Why it helps and how to do it.]</li>
+  <li><strong>[Tip three]</strong> – [Why it helps and how to do it.]</li>
 </ul>`;
     } else if (templateType === 'science') {
-      generatedHtml = `<h3>The Science Behind Modern Formulation</h3>
-<p>Analytical laboratory studies demonstrate that food-grade compounds react dynamically to atmosphere conditions. When molecules encounter humidity, they form covalent buffers. Formulators can offset this degradation through pure organic additives, securing a longer shelf-life and pristine product quality.</p>`;
+      generatedHtml = `<h3>How to [do the thing]</h3>
+<ol class="list-decimal pl-5 my-2 space-y-1">
+  <li>[First step.]</li>
+  <li>[Second step.]</li>
+  <li>[Third step.]</li>
+</ol>`;
     } else if (templateType === 'conclusion') {
-      generatedHtml = `<p><strong>Summary:</strong> By implementing these premium compound and storage standards, you secure ultimate product consistency. Subscribe to our monthly journal to keep your laboratory compounds, buying guidelines, and warehouse science fully optimized.</p>`;
+      generatedHtml = `<p><strong>In short:</strong> [Summarise the key takeaway in one or two sentences.] [Invite the reader to shop, subscribe or get in touch.]</p>`;
     }
 
     if (isCodeView) {
@@ -438,7 +442,7 @@ export default function BlogContentEditor({
             type="button" 
             onClick={() => setShowAiDropdown(!showAiDropdown)}
             className={`p-1.5 rounded transition text-slate-500 hover:bg-slate-150 flex items-center gap-1 cursor-pointer ${showAiDropdown ? 'bg-indigo-50 text-indigo-700' : ''}`} 
-            title="Smart AI Copywriter"
+            title="Insert a writing template"
           >
             <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
             <ChevronDown className="h-2.5 w-2.5 text-slate-400" />
@@ -446,35 +450,35 @@ export default function BlogContentEditor({
           {showAiDropdown && (
             <div className="absolute left-0 mt-1.5 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-40 text-left text-[11px] space-y-1">
               <div className="px-2 py-1 font-bold text-slate-450 uppercase tracking-widest text-[8px] border-b border-slate-100">
-                AI COPYWRITER TEMPLATES
+                WRITING TEMPLATES
               </div>
               <button
                 type="button"
                 onClick={() => handleAiWrite('intro')}
                 className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg font-semibold text-slate-700 transition flex items-center gap-1.5 cursor-pointer"
               >
-                <Sparkle className="h-3 w-3 text-indigo-500" /> Write Engaging Intro
+                <Sparkle className="h-3 w-3 text-indigo-500" /> Introduction
               </button>
               <button
                 type="button"
                 onClick={() => handleAiWrite('hacks')}
                 className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg font-semibold text-slate-700 transition flex items-center gap-1.5 cursor-pointer"
               >
-                <Sparkle className="h-3 w-3 text-amber-500" /> Write Tips & Hacks List
+                <Sparkle className="h-3 w-3 text-amber-500" /> Tips list
               </button>
               <button
                 type="button"
                 onClick={() => handleAiWrite('science')}
                 className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg font-semibold text-slate-700 transition flex items-center gap-1.5 cursor-pointer"
               >
-                <Sparkle className="h-3 w-3 text-emerald-500" /> Science & Compounds Review
+                <Sparkle className="h-3 w-3 text-emerald-500" /> How-to steps
               </button>
               <button
                 type="button"
                 onClick={() => handleAiWrite('conclusion')}
                 className="w-full text-left px-2.5 py-1.5 hover:bg-slate-50 rounded-lg font-semibold text-slate-700 transition flex items-center gap-1.5 cursor-pointer"
               >
-                <Sparkle className="h-3 w-3 text-sky-500" /> Write Conclusion Summary
+                <Sparkle className="h-3 w-3 text-sky-500" /> Conclusion
               </button>
             </div>
           )}

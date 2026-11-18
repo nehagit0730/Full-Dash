@@ -911,6 +911,111 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                       />
                     </div>
 
+                    {/* Section-specific options */}
+                    {['Image banner', 'Text column with image', 'Images gallery', 'Blog post', 'Brand list', 'Brands we offer'].includes(currentlyEditingSection.type) && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Small label above the heading</label>
+                        <input
+                          type="text"
+                          value={currentlyEditingSection.settings.badgeText || ''}
+                          onChange={(e) => handleUpdateSectionSettings('badgeText', e.target.value)}
+                          className="w-full text-xs p-2 border rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-650"
+                          placeholder="Leave empty for the default"
+                        />
+                      </div>
+                    )}
+
+                    {currentlyEditingSection.type === 'Featured collection' && (
+                      <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 cursor-pointer">
+                        <span className="text-[11px] font-semibold text-slate-700">Show New / Bestsellers / On sale tabs</span>
+                        <input
+                          type="checkbox"
+                          checked={currentlyEditingSection.settings.showTabs !== false}
+                          onChange={(e) => handleUpdateSectionSettings('showTabs', e.target.checked)}
+                          className="h-4 w-4 accent-slate-900"
+                        />
+                      </label>
+                    )}
+
+                    {currentlyEditingSection.type === 'Video banner' && (
+                      <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 cursor-pointer">
+                        <span className="text-[11px] font-semibold text-slate-700">Show the delivery / returns bar</span>
+                        <input
+                          type="checkbox"
+                          checked={currentlyEditingSection.settings.showFeatureBar !== false}
+                          onChange={(e) => handleUpdateSectionSettings('showFeatureBar', e.target.checked)}
+                          className="h-4 w-4 accent-slate-900"
+                        />
+                      </label>
+                    )}
+
+                    {(currentlyEditingSection.type === 'Clearance Sale' || currentlyEditingSection.type === 'Featured collection') && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Products to show</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={24}
+                          value={currentlyEditingSection.settings.itemsCount || 8}
+                          onChange={(e) => handleUpdateSectionSettings('itemsCount', Math.max(1, Math.min(24, parseInt(e.target.value, 10) || 8)))}
+                          className="w-full text-xs p-2 border rounded-lg bg-slate-50 focus:bg-white focus:outline-none"
+                        />
+                        {currentlyEditingSection.type === 'Clearance Sale' && (
+                          <p className="text-[10px] text-slate-400 mt-1">With no products picked below, every product whose compare-at price is above its price is shown.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {(currentlyEditingSection.type === 'How it works' || currentlyEditingSection.type === 'Icon with text') && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          {currentlyEditingSection.type === 'How it works' ? 'Number & button color' : 'Icon color'}
+                        </label>
+                        <input
+                          type="color"
+                          value={(currentlyEditingSection.type === 'How it works' ? currentlyEditingSection.settings.accentColor : currentlyEditingSection.settings.iconColor) || '#111827'}
+                          onChange={(e) => handleUpdateSectionSettings(currentlyEditingSection.type === 'How it works' ? 'accentColor' : 'iconColor', e.target.value)}
+                          className="h-8 w-16 cursor-pointer rounded border bg-white p-0"
+                        />
+                      </div>
+                    )}
+
+                    {currentlyEditingSection.type === 'Text column with image' && (() => {
+                      const cols: any[] = Array.isArray(currentlyEditingSection.settings.columnItems) ? currentlyEditingSection.settings.columnItems : [];
+                      const setCols = (next: any[]) => handleUpdateSectionSettings('columnItems', next);
+                      const update = (i: number, patch: Record<string, any>) => setCols(cols.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+                      return (
+                        <div className="space-y-2.5 bg-slate-50/90 p-3 rounded-xl border border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Columns</span>
+                            <button
+                              type="button"
+                              onClick={() => setCols([...cols, { title: 'New column', description: '', imageUrl: '', badge: '', linkUrl: '' }])}
+                              className="text-[10px] font-bold text-indigo-700 hover:underline"
+                            >
+                              + Add column
+                            </button>
+                          </div>
+                          {cols.length === 0 && <p className="text-[10px] text-slate-400">No columns yet — three example columns are shown until you add your own.</p>}
+                          {cols.map((c, i) => (
+                            <div key={i} className="space-y-1.5 rounded-lg border border-slate-200 bg-white p-2.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-slate-500">Column {i + 1}</span>
+                                <button type="button" onClick={() => setCols(cols.filter((_, j) => j !== i))} className="text-[10px] text-red-600 hover:underline">Remove</button>
+                              </div>
+                              <input type="text" value={c.title || ''} onChange={(e) => update(i, { title: e.target.value })} placeholder="Heading" className="w-full text-xs p-1.5 border rounded" />
+                              <textarea rows={2} value={c.description || ''} onChange={(e) => update(i, { description: e.target.value })} placeholder="Text" className="w-full text-xs p-1.5 border rounded" />
+                              <ImageUploadInput value={c.imageUrl || ''} onChange={(url) => update(i, { imageUrl: url })} placeholder="Optional image" />
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <input type="text" value={c.badge || ''} onChange={(e) => update(i, { badge: e.target.value })} placeholder="Label (optional)" className="w-full text-xs p-1.5 border rounded" />
+                                <input type="text" value={c.linkUrl || ''} onChange={(e) => update(i, { linkUrl: e.target.value })} placeholder="Link, e.g. /shop" className="w-full text-xs p-1.5 border rounded" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
                     {/* Image / Media Uploads */}
                     {['Image banner', 'Image with text', 'Text column with image'].includes(currentlyEditingSection.type) && (
                       <div>
@@ -1655,21 +1760,12 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                       };
 
                       const handleLoadPresets = () => {
-                        const presets = [
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: '77' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Clew' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Cuba' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Maggie' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Nordic Spirit' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'XQS' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'ZYN' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Pablo' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Killa' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Fumi' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Velo' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'White Fox' },
-                          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Snü' }
-                        ];
+                        // One card per collection: a real starting point, not sample brands.
+                        const presets = (collections || []).slice(0, 12).map(c => ({
+                          imageUrl: c.image || '',
+                          linkUrl: `/collections/${c.slug || c.id}`,
+                          title: c.title
+                        }));
                         handleUpdateSectionSettings('brandItems', presets);
                       };
 
@@ -1792,7 +1888,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                         value={brand.title || ''}
                                         onChange={(e) => handleUpdateBrand(bIdx, 'title', e.target.value)}
                                         className="w-full text-xs p-1.5 border rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-650 font-medium"
-                                        placeholder="e.g. VELO, ZYN"
+                                        placeholder="e.g. Brand name"
                                       />
                                     </div>
                                     <div>

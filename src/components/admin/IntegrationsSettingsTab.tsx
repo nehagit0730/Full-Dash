@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { readQueryParam, writeQueryParam } from '../../lib/adminUrlState';
 import {
   AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Copy, Database, ExternalLink,
   History, Loader2, Plug, RefreshCw, ShieldAlert, XCircle
@@ -72,9 +73,9 @@ const SECTION_TITLES: Record<Section, { title: string; blurb: string; categories
     categories: ['compliance']
   },
   all: {
-    title: 'Integrations',
-    blurb: 'Every external service the store connects to, in one place.',
-    categories: ['payment', 'shipping', 'marketing', 'compliance', 'infrastructure']
+    title: 'API & integrations',
+    blurb: 'Every external service the store uses, in one place. Credentials are encrypted and changes take effect immediately — no redeploy needed.',
+    categories: ['infrastructure', 'customer', 'payment', 'shipping', 'marketing', 'compliance']
   }
 };
 
@@ -82,8 +83,9 @@ const CATEGORY_LABEL: Record<string, string> = {
   payment: 'Payments',
   shipping: 'Shipping & Delivery',
   marketing: 'Marketing & Email',
+  customer: 'Customer accounts & security',
   compliance: 'Compliance',
-  infrastructure: 'Infrastructure'
+  infrastructure: 'Store & media'
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -127,7 +129,16 @@ function IntegrationCard({
   onChanged: (v: IntegrationView) => void;
   onOpenTab?: (tab: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // The expanded card is kept in the URL (?open=<id>) so a reload reopens it.
+  // Unsaved field values are deliberately not persisted: they may be secrets.
+  const [open, setOpenState] = useState(() => readQueryParam('open') === view.id);
+  const setOpen = (next: (o: boolean) => boolean) => {
+    setOpenState(o => {
+      const v = next(o);
+      writeQueryParam('open', v ? view.id : (readQueryParam('open') === view.id ? null : readQueryParam('open')));
+      return v;
+    });
+  };
   const [draft, setDraft] = useState<Record<string, any>>({});
   const [clear, setClear] = useState<string[]>([]);
   const [busy, setBusy] = useState<'save' | 'test' | 'toggle' | 'mode' | null>(null);

@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import { maskSecrets } from '../services/secretFields';
+import { EMAIL_SECRET_KEYS } from '../services/emailService';
 import {
   getEmailSettings,
   saveEmailSettings,
@@ -48,9 +50,9 @@ const router = Router();
 // Sample data generator for template previews and test emails
 function getSampleTemplateData(type: EmailTemplateType, customData?: any): EmailTemplateData {
   const sampleItems = [
-    { productId: 'p1', productTitle: 'VELO Freeze Max Strong 17mg Canister', price: 5.99, quantity: 2 },
-    { productId: 'p2', productTitle: 'PABLO Ice Cold Danger Strong 24mg Canister', price: 6.49, quantity: 1 },
-    { productId: 'p3', productTitle: 'KILLA Cold Mint Extra Strong 16mg Canister', price: 5.49, quantity: 3 }
+    { productId: 'p1', productTitle: 'Classic Cotton T-Shirt — Black / M', price: 5.99, quantity: 2 },
+    { productId: 'p2', productTitle: 'Everyday Denim Jacket', price: 6.49, quantity: 1 },
+    { productId: 'p3', productTitle: 'Canvas Tote Bag', price: 5.49, quantity: 3 }
   ];
 
   const defaultData: EmailTemplateData = {
@@ -77,7 +79,7 @@ function getSampleTemplateData(type: EmailTemplateType, customData?: any): Email
     discountCode: 'WELCOME10',
     supportEmail: '',
     siteUrl: 'https://yourstore.com',
-    planName: 'Monthly Canister Club',
+    planName: 'Monthly Subscription',
     previousAmount: 24.99,
     newAmount: 27.99,
     effectiveFrom: '2026-11-01',
@@ -92,7 +94,7 @@ function getSampleTemplateData(type: EmailTemplateType, customData?: any): Email
 router.get('/settings', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const settings = await getEmailSettings();
-    res.json(settings);
+    res.json(maskSecrets(settings as any, EMAIL_SECRET_KEYS));
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch email settings' });
   }
@@ -102,7 +104,7 @@ router.get('/settings', requireAdmin, async (_req: Request, res: Response) => {
 router.post('/settings', requireAdmin, async (req: Request, res: Response) => {
   try {
     const updated = await saveEmailSettings(req.body);
-    res.json({ success: true, settings: updated });
+    res.json({ success: true, settings: maskSecrets(updated as any, EMAIL_SECRET_KEYS) });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to save email settings' });
   }

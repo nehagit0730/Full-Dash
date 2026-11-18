@@ -74,21 +74,7 @@ import {
   klaviyoTrackPlacedOrder 
 } from './utils/klaviyo';
 
-const ALLOWED_BRANDS = [
-  '77',
-  'clew',
-  'cuba',
-  'maggie',
-  'nordic spirit',
-  'xqs',
-  'zyn',
-  'pablo',
-  'killa',
-  'fumi',
-  'velo',
-  'white fox',
-  'snu'
-];
+
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=80';
 
@@ -234,10 +220,10 @@ export default function App() {
   const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(() => {
     return safeLoadFromLocalStorage<LayoutSettings>('ps_layout_settings', {
       headerLogoText: 'Ecommerce Store',
-      headerLogoSubtext: 'Womenswear',
+      headerLogoSubtext: '',
       headerLogoImage: '',
       footerLogoText: 'ECOMMERCE STORE',
-      footerLogoDescription: 'Contemporary womenswear — dresses, ethnic wear and everyday essentials.',
+      footerLogoDescription: 'Quality products, fair prices and friendly service — delivered to your door.',
       footerLogoImage: '',
       klaviyoPublicKey: '',
       cloudinaryCloudName: '',
@@ -1302,6 +1288,12 @@ export default function App() {
     }
   }, [customers, isInitialLoadDone]);
 
+  // Browser tab title: the store's own name (Header & Footer → Logo text).
+  useEffect(() => {
+    const name = (layoutSettings?.headerLogoText || '').trim() || 'Online store';
+    document.title = isAdminActive ? `Admin · ${name}` : name;
+  }, [layoutSettings?.headerLogoText, isAdminActive]);
+
   // Initialize Klaviyo script on mount and when Company ID / Public Key changes
   useEffect(() => {
     if (layoutSettings.klaviyoPublicKey) {
@@ -1689,49 +1681,36 @@ export default function App() {
   }
 
   if (!isInitialLoadDone) {
+    // Same look as the inline splash in index.html, so there is no visual jump
+    // when React takes over. It disappears the moment the initial data has
+    // loaded; nothing here waits on a timer.
+    const loaderName = layoutSettings?.headerLogoText || '';
     return (
-      <div className="min-h-screen bg-[#f6f6f7] flex flex-col items-center justify-center p-6 select-none" id="app-loading-state">
-        <div className="space-y-6 max-w-md w-full text-center flex flex-col items-center animate-fade-in">
-          {/* Header Logo */}
-          <div className="flex items-center justify-center">
-            {layoutSettings?.headerLogoImage ? (
-              <img 
-                src={cleanMediaUrl(layoutSettings.headerLogoImage)} 
-                className="max-h-16 max-w-[220px] object-contain rounded-lg" 
-                alt={layoutSettings?.headerLogoText || 'Ecommerce Store'} 
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="flex items-center gap-3 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200/80">
-                <div className="w-10 h-10 bg-gradient-to-tr from-[#008060] to-[#00a880] rounded-xl flex items-center justify-center shadow-sm">
-                  <div className="w-4.5 h-4.5 border-2 border-white rounded-md"></div>
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-extrabold text-[#1a1c1d] tracking-tight text-xl leading-none">
-                    {layoutSettings?.headerLogoText || 'Ecommerce Store'}
-                  </span>
-                  <span className="text-[9px] text-[#707579] font-extrabold uppercase tracking-widest mt-1">
-                    {layoutSettings?.headerLogoSubtext || 'Womenswear'}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Loading Button Below Logo */}
-          <div className="flex items-center gap-2.5 px-6 py-2.5 bg-white border border-slate-200 shadow-2xs rounded-full text-slate-700 text-xs font-black uppercase tracking-wider">
-            <span className="w-4 h-4 border-2 border-[#008060] border-t-transparent rounded-full animate-spin shrink-0"></span>
-            <span>Loading...</span>
-          </div>
+      <div className="app-splash" id="app-loading-state" role="status" aria-live="polite">
+        <div className="app-splash__inner">
+          {layoutSettings?.headerLogoImage ? (
+            <img
+              src={cleanMediaUrl(layoutSettings.headerLogoImage)}
+              className="max-h-14 max-w-[200px] object-contain"
+              alt={loaderName || 'Store logo'}
+              referrerPolicy="no-referrer"
+            />
+          ) : loaderName ? (
+            <span className="text-[19px] font-semibold tracking-tight text-slate-900">{loaderName}</span>
+          ) : (
+            <span className="app-splash__mark" aria-hidden="true" />
+          )}
+          <div className="app-splash__bar"><span /></div>
+          <span className="sr-only">Loading the store…</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f6f7] text-slate-800 flex flex-col font-sans">
+    <div className="app-ready min-h-screen bg-[#f6f6f7] text-slate-800 flex flex-col font-sans">
       
-      {isDbOffline && !isAdminActive && (
+      {isDbOffline && !isAdminActive && !!getAdminToken() && (
         <div className="bg-amber-600 text-white px-4 py-2.5 text-center text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-2 relative z-50 shadow-md">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-white animate-ping shrink-0" />
@@ -2242,7 +2221,7 @@ export default function App() {
                         <div className="bg-white border rounded-2xl py-8 px-4 text-center space-y-4">
                           <span className="text-5xl block">🗒️</span>
                           <h4 className="font-bold text-slate-800 text-sm">No Publications Match Filter Criteria</h4>
-                          <p className="text-slate-400 text-xs max-w-sm mx-auto">Try resetting categories or typing a different keyword to browse our research pouch index.</p>
+                          <p className="text-slate-400 text-xs max-w-sm mx-auto">Try clearing the filters or searching for something else.</p>
                           <button
                             onClick={() => {
                               setFrontendBlogQuery('');

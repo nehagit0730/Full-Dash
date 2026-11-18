@@ -25,18 +25,63 @@ export const DEFAULT_PAGES: CustomPage[] = [
           backgroundColor: '#111827',
           headingColor: '#FFFFFF',
           textColor: '#E5E7EB',
-          title: 'Ecommerce Store Storefront',
-          description: 'Start managing your products, collections, and page sections inside the Admin Dashboard.',
-          buttonText: 'View Store Catalog',
-          buttonLink: 'frontend-shop',
+          title: 'New season, new favourites',
+          description: 'Discover our latest arrivals and everyday essentials.',
+          buttonText: 'Shop now',
+          buttonLink: '/shop',
           imageUrl: ''
+        }
+      },
+      {
+        id: 'h-s2',
+        type: 'Featured collection',
+        settings: {
+          fullWidth: false,
+          backgroundColor: '#FFFFFF',
+          headingColor: '#111827',
+          textColor: '#4B5563',
+          title: 'Featured products',
+          description: '',
+          itemsCount: 8
+        }
+      },
+      {
+        id: 'h-s3',
+        type: 'Collection list',
+        settings: {
+          fullWidth: false,
+          backgroundColor: '#F9FAFB',
+          headingColor: '#111827',
+          textColor: '#4B5563',
+          title: 'Shop by category',
+          description: '',
+          itemsCount: 4,
+          selectedCollectionIds: []
+        }
+      },
+      {
+        id: 'h-s4',
+        type: 'Icon with text',
+        settings: {
+          fullWidth: false,
+          backgroundColor: '#FFFFFF',
+          headingColor: '#111827',
+          textColor: '#4B5563',
+          title: 'Why shop with us',
+          iconColor: '#111827',
+          iconItems: [
+            { iconName: 'Truck', title: 'Free delivery', description: 'On qualifying orders, tracked to your door.', linkUrl: '' },
+            { iconName: 'Shield', title: 'Secure checkout', description: 'Cards, UPI and wallets, fully encrypted.', linkUrl: '' },
+            { iconName: 'Package', title: 'Easy returns', description: 'Changed your mind? Returns are simple.', linkUrl: '' },
+            { iconName: 'Heart', title: 'Here to help', description: 'Friendly support before and after you buy.', linkUrl: '' }
+          ]
         }
       }
     ]
   },
   {
     id: 'brands',
-    title: 'Brands Directory',
+    title: 'Collections',
     slug: 'brands',
     visibility: 'Visible',
     updatedAt: 'Jun 23, 2026',
@@ -49,34 +94,22 @@ export const DEFAULT_PAGES: CustomPage[] = [
           backgroundColor: '#FFFFFF',
           headingColor: '#1E293B',
           textColor: '#64748B',
-          title: 'Official Brands Matrix',
-          description: 'Explore our catalog of certified compounding premium brands retrieved directly from our synchronized database.',
+          title: 'Shop by collection',
+          description: 'Browse everything we offer, organised by collection.',
         }
       },
       {
         id: 's3',
-        type: 'Brand list',
+        type: 'Collection list',
         settings: {
           fullWidth: false,
           backgroundColor: '#FFFFFF',
           headingColor: '#0C1017',
           textColor: '#64748B',
-          title: 'Official Brands Directory',
-          description: 'Explore our catalog of certified compounding premium brands.',
-          brandItems: [
-            { title: '77', linkUrl: '/collections/77', imageUrl: '' },
-            { title: 'Cuba', linkUrl: '/collections/cuba', imageUrl: '' },
-            { title: 'Killa', linkUrl: '/collections/killa', imageUrl: '' },
-            { title: 'Pablo', linkUrl: '/collections/pablo', imageUrl: '' },
-            { title: 'Velo', linkUrl: '/collections/velo', imageUrl: '' },
-            { title: 'White Fox', linkUrl: '/collections/white-fox', imageUrl: '' },
-            { title: 'Zyn', linkUrl: '/collections/zyn', imageUrl: '' },
-            { title: 'XQS', linkUrl: '/collections/xqs', imageUrl: '' },
-            { title: 'Nordic Spirit', linkUrl: '/collections/nordic-spirit', imageUrl: '' },
-            { title: 'Clew', linkUrl: '/collections/clew', imageUrl: '' },
-            { title: 'Fumi', linkUrl: '/collections/fumi', imageUrl: '' },
-            { title: 'Snu', linkUrl: '/collections/snu', imageUrl: '' }
-          ]
+          title: 'All collections',
+          description: '',
+          itemsCount: 24,
+          selectedCollectionIds: []
         }
       }
     ]
@@ -96,8 +129,8 @@ export const DEFAULT_PAGES: CustomPage[] = [
           backgroundColor: '#FFFFFF',
           headingColor: '#0F172A',
           textColor: '#475569',
-          title: 'About Ecommerce Store',
-          description: 'We design contemporary womenswear — flowing dresses, festive ethnic wear and everyday essentials — made to be worn and loved, and delivered across India.'
+          title: 'About us',
+          description: 'We are an independent online store bringing you carefully chosen products, fair prices and friendly service — delivered to your door.'
         }
       },
       {
@@ -127,8 +160,8 @@ export const DEFAULT_PAGES: CustomPage[] = [
           backgroundColor: '#FFFFFF',
           headingColor: '#0F172A',
           textColor: '#475569',
-          title: 'Get in Touch with Our Team',
-          description: 'Have questions about your order, shipping, or nicotine pouch brands? Fill out the form below or reach us directly. Our customer support team responds within 24 hours.'
+          title: 'Get in touch',
+          description: 'Have a question about an order, delivery or a product? Send us a message and our team will get back to you within one working day.'
         }
       },
       {

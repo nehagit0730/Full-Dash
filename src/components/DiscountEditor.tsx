@@ -884,7 +884,7 @@ export default function DiscountEditor({
                 <label className="block text-xs font-bold text-slate-700">1. Select Loyalty Reward Type</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
-                    { value: 'B1G1', label: 'Buy 1 Get 1 (B1G1)', desc: 'Free can on next purchase', icon: Tag },
+                    { value: 'B1G1', label: 'Buy 1 Get 1 (B1G1)', desc: 'Free item on next purchase', icon: Tag },
                     { value: 'Percentage Off', label: 'Percentage Off (%)', desc: 'Direct discount on products/order', icon: Percent },
                     { value: 'Reward Points', label: 'Reward Points (★)', desc: 'Award points to customer wallet', icon: Star }
                   ].map((rewardItem) => {
@@ -932,7 +932,7 @@ export default function DiscountEditor({
                           ? 'e.g. 15 (stands for 15% discount)' 
                           : form.loyaltyRewardType === 'Reward Points' 
                             ? 'e.g. 200 (stands for 200 loyalty star points)' 
-                            : 'e.g. Buy 1 Get 1 Free Can'
+                            : 'e.g. Buy 1 Get 1 Free'
                       }
                       className="w-full border border-slate-200 rounded-lg p-2.5 text-xs font-bold focus:ring-1 focus:ring-slate-500 focus:outline-none"
                     />

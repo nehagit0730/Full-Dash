@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { fetchResource, saveResource, fetchLayoutSettings, fetchStoreSetting, saveStoreSetting } from '../../serverDb';
+import { keepUnchangedSecrets, openSecrets, sealSecrets } from './secretFields';
+
+/** Settings fields that are credentials: encrypted at rest, masked in API responses. */
+export const EMAIL_SECRET_KEYS = ['gmailAppPassword', 'smtpPassword', 'resendApiKey'];
 import {
   EmailTemplateData,
   renderOrderConfirmationTemplate,
@@ -14,7 +18,9 @@ import {
   renderPasswordResetTemplate,
   renderEmailVerificationTemplate,
   renderWelcomeTemplate,
-  renderAdminNewOrderTemplate
+  renderAdminNewOrderTemplate,
+  setEmailBrandName,
+  setEmailSiteUrl
 } from './emailTemplates';
 
 export type EmailTemplateType =
@@ -154,7 +160,7 @@ export async function getEmailSettings(): Promise<EmailSettings> {
     }
 
     if (stored && typeof stored === 'object') {
-      const item = Array.isArray(stored) ? stored[0] : stored;
+      const item = openSecrets(Array.isArray(stored) ? stored[0] : stored, EMAIL_SECRET_KEYS);
       return {
         ...DEFAULT_SETTINGS,
         ...item,
@@ -180,7 +186,8 @@ export async function getEmailSettings(): Promise<EmailSettings> {
   return DEFAULT_SETTINGS;
 }
 
-export async function saveEmailSettings(settings: Partial<EmailSettings>): Promise<EmailSettings> {
+export async function saveEmailSettings(incoming: Partial<EmailSettings>): Promise<EmailSettings> {
+  const settings = keepUnchangedSecrets(incoming || {}, EMAIL_SECRET_KEYS);
   const current = await getEmailSettings();
   const updated: EmailSettings = {
     ...current,
@@ -196,8 +203,9 @@ export async function saveEmailSettings(settings: Partial<EmailSettings>): Promi
   if (settings.resendApiKey) process.env.RESEND_API_KEY = settings.resendApiKey;
   if (settings.adminNotificationEmail) process.env.ADMIN_NOTIFICATION_EMAIL = settings.adminNotificationEmail;
 
-  await saveStoreSetting('email_settings', updated);
-  await saveResource('email_settings', [updated]);
+  const sealed = sealSecrets(updated, EMAIL_SECRET_KEYS);
+  await saveStoreSetting('email_settings', sealed);
+  await saveResource('email_settings', [sealed]);
   return updated;
 }
 
@@ -237,7 +245,8 @@ export async function verifyEmailConnection(config?: Partial<EmailSettings>): Pr
   details?: any;
 }> {
   const settings = await getEmailSettings();
-  const merged = { ...settings, ...(config || {}) };
+  // Masked values from the form mean "use the saved secret".
+  const merged = { ...settings, ...keepUnchangedSecrets(config || {}, EMAIL_SECRET_KEYS) };
   const provider = merged.provider || 'gmail';
 
   if (provider === 'gmail') {
@@ -364,17 +373,22 @@ export async function sendEmail(
   }
 
   // 3. Determine subject
-  const subject = customSubject || templateConfig?.subject || `Notification from Ecommerce Store`;
+  const subject = customSubject || templateConfig?.subject || 'Notification about your order';
 
-  // 4. Hydrate header logo
-  if (!data.headerLogoImage && !data.logoUrl) {
-    try {
-      const layout = await fetchLayoutSettings();
-      if (layout?.headerLogoImage) {
-        data.headerLogoImage = layout.headerLogoImage;
-      }
-    } catch (e) {}
-  }
+  // 4. Hydrate header logo and store name from Header & Footer settings
+  let storeName = '';
+  try {
+    const layout = await fetchLayoutSettings();
+    storeName = String(layout?.headerLogoText || '').trim();
+    if (!data.headerLogoImage && !data.logoUrl && layout?.headerLogoImage) {
+      data.headerLogoImage = layout.headerLogoImage;
+    }
+  } catch (e) {}
+  setEmailBrandName(storeName);
+  try {
+    const { getSiteUrl } = await import('./siteUrl');
+    setEmailSiteUrl(await getSiteUrl());
+  } catch (e) {}
 
   // 5. Render HTML
   let html = '';

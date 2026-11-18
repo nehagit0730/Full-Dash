@@ -11,7 +11,7 @@
  * were configured through the environment before this existed keep working.
  */
 
-export type IntegrationCategory = "payment" | "shipping" | "marketing" | "compliance" | "infrastructure";
+export type IntegrationCategory = "payment" | "shipping" | "marketing" | "customer" | "compliance" | "infrastructure";
 export type FieldType = "text" | "secret" | "select" | "boolean" | "number" | "url" | "email";
 
 export interface IntegrationField {
@@ -228,6 +228,62 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
       { key: "cloudName", label: "Cloud name", type: "text", required: true, env: ["CLOUDINARY_CLOUD_NAME"] },
       { key: "apiKey", label: "API key", type: "text", required: true, env: ["CLOUDINARY_API_KEY"] },
       { key: "apiSecret", label: "API secret", type: "secret", secret: true, required: true, env: ["CLOUDINARY_API_SECRET"] }
+    ]
+  },
+
+  {
+    id: "site",
+    name: "Store URL",
+    category: "infrastructure",
+    description:
+      "The public address of your store. Used for links in emails, Google sign-in redirects and payment/shipping webhooks.",
+    supportsTestMode: false,
+    capabilities: ["Used by emails, sign-in and webhooks", "Reachability check"],
+    fields: [
+      { key: "appUrl", label: "Store URL", type: "url", required: true, placeholder: "https://www.yourstore.com", env: ["APP_URL", "NEXTAUTH_URL"], help: "Include https://, no trailing slash." }
+    ]
+  },
+  {
+    id: "google-signin",
+    name: "Google sign-in",
+    category: "customer",
+    description:
+      "Lets customers sign in with their Google account. Create an OAuth client (Web application) in Google Cloud Console → APIs & Services → Credentials.",
+    supportsTestMode: false,
+    docsUrl: "https://developers.google.com/identity/protocols/oauth2/web-server",
+    capabilities: ["Customer sign-in with Google", "Credential test (OAuth token endpoint)"],
+    fields: [
+      { key: "clientId", label: "Client ID", type: "text", required: true, placeholder: "….apps.googleusercontent.com", env: ["GOOGLE_CLIENT_ID", "OAUTH_CLIENT_ID"] },
+      { key: "clientSecret", label: "Client secret", type: "secret", secret: true, required: true, env: ["GOOGLE_CLIENT_SECRET", "OAUTH_CLIENT_SECRET"], help: "In Google Cloud add <Store URL>/auth/google/callback as an authorised redirect URI." }
+    ]
+  },
+  {
+    id: "recaptcha",
+    name: "Google reCAPTCHA v3",
+    category: "customer",
+    description: "Invisible bot protection for sign-up, login, contact and newsletter forms.",
+    supportsTestMode: false,
+    docsUrl: "https://www.google.com/recaptcha/admin",
+    capabilities: ["Form spam protection", "Credential test (siteverify)"],
+    fields: [
+      { key: "siteKey", label: "Site key", type: "text", required: true, env: ["RECAPTCHA_SITE_KEY", "VITE_RECAPTCHA_SITE_KEY"], help: "Public. Sent to the browser." },
+      { key: "secretKey", label: "Secret key", type: "secret", secret: true, required: true, env: ["RECAPTCHA_SECRET_KEY"] },
+      { key: "minScore", label: "Minimum score (0–1)", type: "number", defaultValue: 0.5, help: "Requests scoring below this are rejected. 0.5 suits most stores." }
+    ]
+  },
+  {
+    id: "vercel-analytics",
+    name: "Vercel Analytics",
+    category: "infrastructure",
+    description: "Shows visitor and page-view numbers from Vercel Web Analytics on the dashboard home.",
+    supportsTestMode: false,
+    docsUrl: "https://vercel.com/account/tokens",
+    capabilities: ["Dashboard traffic numbers", "Credential test (project lookup)"],
+    fields: [
+      { key: "apiToken", label: "Access token", type: "secret", secret: true, required: true, env: ["VERCEL_API_TOKEN", "VERCEL_TOKEN"], help: "Vercel → Account settings → Tokens. Read-only scope is enough." },
+      { key: "projectId", label: "Project ID", type: "text", required: true, env: ["VERCEL_PROJECT_ID", "VERCEL_ANALYTICS_PROJECT_ID"], help: "Project → Settings → General." },
+      { key: "teamId", label: "Team ID", type: "text", env: ["VERCEL_TEAM_ID"], help: "Only for projects owned by a team." },
+      { key: "teamSlug", label: "Team slug", type: "text", env: ["VERCEL_TEAM_SLUG"] }
     ]
   },
 

@@ -11,6 +11,8 @@ import { cleanMediaUrl } from '../utils/mediaUtils';
 interface ProductEditorProps {
   product: Product | null; // null if creating a new one
   allCollections: Collection[];
+  /** Existing products, used to suggest vendors and product types. */
+  allProducts?: Product[];
   onSave: (updatedProduct: Product, selectedCollectionIds: string[]) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
@@ -19,6 +21,7 @@ interface ProductEditorProps {
 export default function ProductEditor({
   product,
   allCollections,
+  allProducts = [],
   onSave,
   onCancel,
   onDelete
@@ -38,7 +41,7 @@ export default function ProductEditor({
   const [weightUnit, setWeightUnit] = useState<'g' | 'kg' | 'oz' | 'lb'>('g');
   const [isPhysicalProduct, setIsPhysicalProduct] = useState(true);
   const [inventoryTracked, setInventoryTracked] = useState(true);
-  const [flavour, setFlavour] = useState('Mint');
+  const [flavour, setFlavour] = useState('');
 
   // Tags & Collections State
   const [tags, setTags] = useState<string[]>([]);
@@ -68,8 +71,10 @@ export default function ProductEditor({
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
 
   // Preset vendors/categories for smart search options
-  const defaultVendors: string[] = [];
-  const defaultCategories = ['Dresses', 'Ethnic Wear', 'Tops', 'Bottoms', 'Outerwear', 'Accessories'];
+  const uniqueSorted = (vals: (string | undefined)[]) =>
+    Array.from(new Set(vals.map(v => (v || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const defaultVendors = uniqueSorted(allProducts.map(p => p.vendor));
+  const defaultCategories = uniqueSorted(allProducts.map(p => p.category));
 
   // Helper to generate combination names from option dimensions
   const generateCombinations = (options: ProductVariant[]): string[] => {
@@ -101,7 +106,7 @@ export default function ProductEditor({
       setInventory(product.inventory || 0);
       setSku(product.sku || '');
       setBarcode(product.barcode || '');
-      setCategory(product.category || 'Nicotine Pouches');
+      setCategory(product.category || '');
       setVendor(product.vendor || '');
       setStatus(product.status || 'Active');
       setWeight(product.weight || 0);
@@ -111,7 +116,7 @@ export default function ProductEditor({
       setVariantsList(product.variants || []);
       setConcreteVariantsList(product.concreteVariants || []);
       setCustomSlug(product.slug || product.id || '');
-      setFlavour(product.flavour || 'Mint');
+      setFlavour(product.flavour || '');
       setSeoTitle(product.seoTitle || product.title || '');
       setSeoDescription(product.seoDescription || product.description.slice(0, 155) || '');
 
@@ -129,7 +134,7 @@ export default function ProductEditor({
       setInventory(0);
       setSku(`PCH-${100000 + Math.floor(Math.random() * 900000)}`);
       setBarcode('');
-      setCategory('Nicotine Pouches');
+      setCategory('');
       setVendor('');
       setStatus('Active');
       setWeight(24);
@@ -139,7 +144,7 @@ export default function ProductEditor({
       setVariantsList([]);
       setConcreteVariantsList([]);
       setCustomSlug('');
-      setFlavour('Mint');
+      setFlavour('');
       setSeoTitle('');
       setSeoDescription('');
       setSelectedColIds(['all']);
@@ -181,7 +186,7 @@ export default function ProductEditor({
             inventory: 0,
             description: '',
             images: [],
-            flavour: flavour || 'Mint'
+            ...(flavour ? { flavour } : {})
           };
         }
       });
@@ -426,7 +431,7 @@ export default function ProductEditor({
         inventory !== (product.inventory || 0) ||
         sku !== (product.sku || '') ||
         barcode !== (product.barcode || '') ||
-        category !== (product.category || 'Nicotine Pouches') ||
+        category !== (product.category || '') ||
         vendor !== (product.vendor || '') ||
         status !== (product.status || 'Active') ||
         weight !== (product.weight || 0) ||
@@ -499,8 +504,9 @@ export default function ProductEditor({
       seoDescription: seoDescription.trim() || description.trim().slice(0, 155),
       createdAt: product?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      flavour: flavour,
-      strength: (title.match(/(\d+(?:\.\d+)?)\s*mg/i) ? title.match(/(\d+(?:\.\d+)?)\s*mg/i)![1] + 'mg' : '') || product?.strength || ''
+      // Legacy fields: kept when a product already has them, never invented.
+      ...(flavour ? { flavour } : {}),
+      ...(product?.strength ? { strength: product.strength } : {})
     };
 
     onSave(cleanProduct, selectedColIds);
@@ -531,7 +537,7 @@ export default function ProductEditor({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-slate-400 font-mono text-xs">📦 / products /</span>
             <h1 className="text-lg md:text-xl font-black text-slate-950 tracking-tight lowercase">
-              {title || 'untitled-canister'}
+              {title || 'untitled-product'}
             </h1>
             
             <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
@@ -606,7 +612,7 @@ export default function ProductEditor({
               <input
                 id="prod-edit-title"
                 type="text"
-                placeholder="e.g. CUBA Double Fresh Mint 20mg"
+                placeholder="e.g. Classic cotton t-shirt"
                 required
                 value={title}
                 onChange={handleTitleChange}
@@ -707,7 +713,7 @@ export default function ProductEditor({
                 </div>
                 <textarea
                   id="prod-edit-desc"
-                  placeholder="Insert premium copy highlights. Formulate sensory properties, strength levels, pouch size, and flavor releases..."
+                  placeholder="Describe the product: materials, fit or size, care instructions and what makes it special…"
                   value={description}
                   onChange={handleDescriptionChange}
                   className="w-full text-xs font-semibold px-4 py-3 bg-white focus:outline-none h-44 resize-y leading-relaxed text-slate-750"
@@ -987,7 +993,7 @@ export default function ProductEditor({
                     {variantsList.length} Option Dimension(s)
                   </span>
                 </h3>
-                <p className="text-[10px] text-zinc-400 mt-0.5">Define variable properties such as canister bulk sizing, nicotine mg strengths, or specific flavor profiles.</p>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Define options such as size, color or material, then set price and stock per combination profiles.</p>
               </div>
 
               <button
@@ -1034,7 +1040,7 @@ export default function ProductEditor({
                         </label>
                         <input
                           type="text"
-                          placeholder="e.g. Size, Color, Taste, Nicotine Strength"
+                          placeholder="e.g. Size, Color, Material"
                           value={variant.name}
                           onChange={(e) => handleUpdateVariantOptionName(variant.id, e.target.value)}
                           className={`w-full text-xs font-semibold px-3 py-2 rounded-lg border bg-white focus:outline-none focus:ring-1 transition-all ${
@@ -1120,7 +1126,7 @@ export default function ProductEditor({
             ) : (
               <div className="py-7 border border-dashed border-slate-250 rounded-xl bg-slate-50/50 text-center space-y-1 p-4">
                 <Info className="h-5 w-5 mx-auto text-slate-400 mb-1" />
-                <p className="text-[10px] font-black text-slate-700 uppercase tracking-wider">This canister has zero discrete configurations</p>
+                <p className="text-[10px] font-black text-slate-700 uppercase tracking-wider">This product has no option combinations yet</p>
                 <p className="text-[9px] text-slate-450 leading-relaxed max-w-sm mx-auto">Products are saved with single standard pricing and weights by default. Add variants to allow dropdown menus on customer screens.</p>
               </div>
             )}
@@ -1175,7 +1181,7 @@ export default function ProductEditor({
 
                       {/* Right Side: Inputs for price, stock, and description */}
                       <div className="md:col-span-7 space-y-3.5">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div>
                             <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Price (₹ INR)</label>
                             <input
@@ -1195,24 +1201,6 @@ export default function ProductEditor({
                               className="w-full text-xs font-bold px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             />
                           </div>
-                          <div>
-                            <label className="block text-slate-550 font-bold uppercase tracking-wider text-[9px] mb-1.5">Flavour</label>
-                            <select
-                              value={variant.flavour || 'Mint'}
-                              onChange={(e) => handleUpdateConcreteVariant(vIdx, { flavour: e.target.value })}
-                              className="w-full text-xs font-bold px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-                            >
-                              <option value="Mint">Mint</option>
-                              <option value="Berry">Berry</option>
-                              <option value="Citrus">Citrus</option>
-                              <option value="Fruit">Fruit</option>
-                              <option value="Cola">Cola</option>
-                              <option value="Coffee">Coffee</option>
-                              <option value="Sweet">Sweet</option>
-                              <option value="Tea">Tea</option>
-                              <option value="Other">Other</option>
-                            </select>
-                          </div>
                         </div>
 
                         <div>
@@ -1221,7 +1209,7 @@ export default function ProductEditor({
                             rows={2}
                             value={variant.description}
                             onChange={(e) => handleUpdateConcreteVariant(vIdx, { description: e.target.value })}
-                            placeholder="Enter description specific to this flavor/combination..."
+                            placeholder="Optional description for this combination…"
                             className="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder-slate-400"
                           />
                         </div>
@@ -1257,10 +1245,10 @@ export default function ProductEditor({
             <div className="bg-slate-50 border border-slate-205 p-4 rounded-xl space-y-1 text-left font-serif leading-none select-none max-w-xl">
               <span className="text-neutral-400 font-sans text-[10px] block truncate font-medium">https://yourstore.com/products/{customSlug || slugify(title || 'untitled')}</span>
               <span className="text-[#1a0dab] font-sans text-xs sm:text-sm block hover:underline cursor-pointer font-extrabold leading-tight">
-                {seoTitle || title || 'Untitled Nicotine Pouch Can'}
+                {seoTitle || title || 'Untitled product'}
               </span>
               <p className="text-[#3c4043] font-sans text-[11px] leading-relaxed pt-1 select-all h-[40px] line-clamp-2">
-                {seoDescription || description || 'Discover the freshest European nicotine pouch canisters available. Ultra-fast UK shipping and wholesale options.'}
+                {seoDescription || description || 'Add a description to see how this product will appear in search results.'}
               </p>
               <span className="text-emerald-700 font-sans text-[10px] block pt-1 font-bold">🛒 Prices start from ₹{price ? price.toFixed(2) : '4.99'} INR</span>
             </div>
@@ -1357,20 +1345,24 @@ export default function ProductEditor({
                 Vendor
               </label>
               <div className="relative">
-                <select
+                <input
+                  type="text"
+                  list="product-vendor-options"
                   value={vendor}
                   onChange={(e) => setVendor(e.target.value)}
-                  className="w-full text-xs font-bold pl-3.5 pr-8 py-2.5 border border-slate-350 bg-white rounded-xl focus:outline-none cursor-pointer appearance-none uppercase tracking-wider"
-                >
+                  placeholder="e.g. Your brand name"
+                  className="w-full text-xs font-bold pl-3.5 pr-8 py-2.5 border border-slate-350 bg-white rounded-xl focus:outline-none"
+                />
+                <datalist id="product-vendor-options">
                   {defaultVendors.map(v => (
-                    <option key={v} value={v}>{v}</option>
+                    <option key={v} value={v} />
                   ))}
-                </select>
+                </datalist>
                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500">
                   <ChevronDown className="h-3.5 w-3.5" />
                 </div>
               </div>
-              <p className="text-[8px] text-slate-400 font-medium">Categorization matching catalog sorting filters on collection sidebars.</p>
+              <p className="text-[8px] text-slate-400 font-medium">Type a new vendor or pick one you already use.</p>
             </div>
 
             {/* Category selection */}
@@ -1379,48 +1371,25 @@ export default function ProductEditor({
                 Type
               </label>
               <div className="relative">
-                <select
+                <input
+                  type="text"
+                  list="product-type-options"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full text-xs font-bold pl-3.5 pr-8 py-2.5 border border-slate-350 bg-white rounded-xl focus:outline-none cursor-pointer appearance-none"
-                >
+                  placeholder="e.g. T-shirts"
+                  className="w-full text-xs font-bold pl-3.5 pr-8 py-2.5 border border-slate-350 bg-white rounded-xl focus:outline-none"
+                />
+                <datalist id="product-type-options">
                   {defaultCategories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat} />
                   ))}
-                </select>
+                </datalist>
                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
                   <ChevronDown className="h-3.5 w-3.5" />
                 </div>
               </div>
             </div>
 
-            {/* Flavour selection */}
-            <div className="space-y-1.5">
-              <label className="block text-[#475569] font-bold uppercase tracking-wider text-[9px]">
-                Flavour
-              </label>
-              <div className="relative">
-                <select
-                  value={flavour}
-                  onChange={(e) => setFlavour(e.target.value)}
-                  className="w-full text-xs font-bold pl-3.5 pr-8 py-2.5 border border-slate-350 bg-white rounded-xl focus:outline-none cursor-pointer appearance-none"
-                >
-                  <option value="Mint">Mint</option>
-                  <option value="Berry">Berry</option>
-                  <option value="Citrus">Citrus</option>
-                  <option value="Fruit">Fruit</option>
-                  <option value="Cola">Cola</option>
-                  <option value="Coffee">Coffee</option>
-                  <option value="Sweet">Sweet</option>
-                  <option value="Tea">Tea</option>
-                  <option value="Other">Other</option>
-                </select>
-                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </div>
-              </div>
-              <p className="text-[8px] text-slate-400 font-medium">Select primary flavour to match catalog filters.</p>
-            </div>
 
             {/* Collection Select check list */}
             <div className="space-y-2">

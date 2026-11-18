@@ -12,7 +12,7 @@ export const STORE_DEFAULT_NAME = 'Ecommerce Store';
 /** The store name an admin set in Header & Footer settings, or the generic default. */
 export function storeName(layout?: Partial<LayoutSettings> | null): string {
   const raw = String(layout?.headerLogoText || '').trim();
-  return raw && !/pouch\s*supply/i.test(raw) ? raw : STORE_DEFAULT_NAME;
+  return raw || STORE_DEFAULT_NAME;
 }
 
 /**
@@ -147,7 +147,7 @@ export function ProductCard({
             className="flex w-full items-center justify-center gap-2 bg-white/95 py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-ink shadow-sm transition hover:bg-ink hover:text-white cursor-pointer disabled:opacity-50"
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            {needsOptionChoice(product) ? 'Choose size' : added ? 'Added' : 'Add to bag'}
+            {needsOptionChoice(product) ? 'Choose options' : added ? 'Added' : 'Add to bag'}
           </button>
         </div>
       </div>

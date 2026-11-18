@@ -4,6 +4,8 @@ import { LayoutSettings, CustomPage } from '../../types';
 import ImageUploadInput from '../ImageUploadInput';
 
 interface LayoutTabProps {
+  /** Navigates to another dashboard section. */
+  onOpenTab?: (tab: string) => void;
   localLayoutSettings: LayoutSettings;
   setLocalLayoutSettings: (settings: LayoutSettings) => void;
   onUpdateLayoutSettings?: (settings: LayoutSettings) => void;
@@ -33,6 +35,7 @@ interface LayoutTabProps {
 }
 
 export const LayoutTab: React.FC<LayoutTabProps> = ({
+  onOpenTab,
   localLayoutSettings,
   setLocalLayoutSettings,
   onUpdateLayoutSettings,
@@ -142,7 +145,7 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                   value={localLayoutSettings.headerLogoSubtext}
                   onChange={(e) => setLocalLayoutSettings({ ...localLayoutSettings, headerLogoSubtext: e.target.value })}
                   className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="e.g. Womenswear"
+                  placeholder="e.g. Since 2020 (optional)"
                 />
               </div>
             </div>
@@ -200,209 +203,20 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
             </div>
           </div>
 
-          {/* 3. KLAVIYO INTEGRATION CARD */}
-          <div className="bg-white border border-slate-200 shadow-xs rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-orange-50 text-orange-600 rounded-lg">
-                  <Mail className="h-4 w-4" />
-                </div>
-                <span className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Klaviyo Marketing Integration</span>
-              </div>
-              {localLayoutSettings.klaviyoPublicKey ? (
-                <span className="text-[8px] font-black uppercase bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-150 flex items-center gap-1">
-                  <span className="h-1 w-1 bg-emerald-500 rounded-full animate-ping" />
-                  Connected
-                </span>
-              ) : (
-                <span className="text-[8px] font-black uppercase bg-slate-100 text-slate-400 px-2 py-0.5 rounded border border-slate-150">
-                  Not Configured
-                </span>
-              )}
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-              Unlock automated ecommerce marketing flows. Connecting your Klaviyo Site ID (Public API Key) automatically tracks: 
-              <span className="block mt-1 font-mono text-[9px] text-indigo-600 leading-normal">
-                • Active on Site (Visitor Page View)<br />
-                • Viewed Product (Catalog Detail Click)<br />
-                • Added to Cart (Shopping cart logs)<br />
-                • Started Checkout (Initiate checkout events)<br />
-                • Placed Order (Successful conversion metrics)<br />
-                • Subscribed to Newsletter (Footer sign-up capture)
-              </span>
+          {/* Credentials live in one place: Settings → API & integrations. */}
+          <div className="bg-white border border-slate-200 shadow-xs rounded-2xl p-5 space-y-3">
+            <span className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Media & marketing connections</span>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Cloudinary (image hosting) and Klaviyo (email marketing) are configured with your other services, where their keys are stored encrypted and can be tested.
             </p>
-
-            <div>
-              <label className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Klaviyo Site ID / Public API Key</label>
-              <input
-                type="text"
-                value={localLayoutSettings.klaviyoPublicKey || ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const updated = { ...localLayoutSettings, klaviyoPublicKey: val };
-                  setLocalLayoutSettings(updated);
-                  if (onUpdateLayoutSettings) onUpdateLayoutSettings(updated);
-                }}
-                className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-orange-500"
-                placeholder="e.g. AB12CD"
-              />
-              <p className="text-[8.5px] text-slate-400 mt-1.5">
-                Your 6-to-8 character public API key. Find this in your <a href="https://www.klaviyo.com/app/settings/api-keys" target="_blank" rel="noreferrer" className="text-orange-600 hover:underline font-bold">Klaviyo Account Settings</a>.
-              </p>
-            </div>
-          </div>
-
-          {/* 4. CLOUDINARY MEDIA CDN INTEGRATION CARD */}
-          <div className="bg-white border border-slate-200 shadow-xs rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-50 text-blue-650 rounded-lg">
-                  <Cloud className="h-4 w-4" />
-                </div>
-                <span className="font-extrabold text-slate-900 uppercase tracking-wider text-xs">Cloudinary Media CDN</span>
-              </div>
-              {localLayoutSettings.cloudinaryCloudName ? (
-                <span className="text-[8px] font-black uppercase bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-150 flex items-center gap-1">
-                  <span className="h-1 w-1 bg-emerald-500 rounded-full animate-ping" />
-                  CDN Active
-                </span>
-              ) : (
-                <span className="text-[8px] font-black uppercase bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded border border-amber-150">
-                  MDB Fallback
-                </span>
-              )}
-            </div>
-
-            <p className="text-[10px] text-slate-500 font-semibold leading-relaxed">
-              Connect your storefront with <strong>Cloudinary CDN</strong>. It provides <strong>lightning-fast global image & video hosting with native support for smooth video streaming and fast loading times</strong>.
-              When configured, any product visuals, brand logo banners, or active section background videos you upload will be permanently hosted on Cloudinary, connected with your Neon PostgreSQL database.
-            </p>
-
-            {/* Quick Paste Connection String Box */}
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
-              <label className="block text-indigo-700 font-extrabold text-[9.5px] uppercase tracking-wider">
-                ⚡ Quick Auto-Fill: Paste CLOUDINARY_URL
-              </label>
-              <input
-                type="text"
-                placeholder="Paste e.g. CLOUDINARY_URL=cloudinary://123456:abcdef@qfoxl8ia"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val.trim()) {
-                    const parsed = parseCloudinaryInput(val, '', '');
-                    if (parsed.cName && parsed.aKey && parsed.aSecret) {
-                      const updated = {
-                        ...localLayoutSettings,
-                        cloudinaryCloudName: parsed.cName,
-                        cloudinaryApiKey: parsed.aKey,
-                        cloudinaryApiSecret: parsed.aSecret
-                      };
-                      setLocalLayoutSettings(updated);
-                      if (onUpdateLayoutSettings) onUpdateLayoutSettings(updated);
-                    }
-                  }
-                }}
-                className="w-full text-xs font-mono border border-indigo-200 p-2 rounded-lg bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-              <p className="text-[8.5px] text-slate-500">
-                Pasting your connection string automatically extracts your Cloud Name (<code>qfoxl8ia</code>), API Key, and API Secret instantly.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Cloudinary Cloud Name</label>
-                <input
-                  type="text"
-                  value={localLayoutSettings.cloudinaryCloudName || ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = parseCloudinaryInput(val, localLayoutSettings.cloudinaryApiKey, localLayoutSettings.cloudinaryApiSecret);
-                    const updated = {
-                      ...localLayoutSettings,
-                      cloudinaryCloudName: parsed.cName || val,
-                      cloudinaryApiKey: parsed.aKey || localLayoutSettings.cloudinaryApiKey,
-                      cloudinaryApiSecret: parsed.aSecret || localLayoutSettings.cloudinaryApiSecret
-                    };
-                    setLocalLayoutSettings(updated);
-                    if (onUpdateLayoutSettings) onUpdateLayoutSettings(updated);
-                  }}
-                  className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                  placeholder="e.g. qfoxl8ia"
-                />
-                <p className="text-[8.5px] text-slate-400 mt-1">
-                  Your unique cloud identifier (e.g. <code>qfoxl8ia</code>).
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Cloudinary API Key</label>
-                <input
-                  type="text"
-                  value={localLayoutSettings.cloudinaryApiKey || ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const updated = { ...localLayoutSettings, cloudinaryApiKey: val };
-                    setLocalLayoutSettings(updated);
-                    if (onUpdateLayoutSettings) onUpdateLayoutSettings(updated);
-                  }}
-                  className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                  placeholder="e.g. 123456789012345"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Cloudinary API Secret</label>
-                <input
-                  type="password"
-                  value={localLayoutSettings.cloudinaryApiSecret || ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const updated = { ...localLayoutSettings, cloudinaryApiSecret: val };
-                    setLocalLayoutSettings(updated);
-                    if (onUpdateLayoutSettings) onUpdateLayoutSettings(updated);
-                  }}
-                  className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                  placeholder="e.g. *********************************"
-                />
-              </div>
-            </div>
-
-            <div className="pt-1 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={handleTestCloudinary}
-                disabled={testingCloudinary}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
-              >
-                {testingCloudinary ? (
-                  <>
-                    <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Testing Connection...
-                  </>
-                ) : (
-                  <>
-                    <Cloud className="h-3.5 w-3.5" />
-                    Test Cloudinary Connection
-                  </>
-                )}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => onOpenTab?.('integrations')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
+                Open API &amp; integrations
+              </button>
+              <button type="button" onClick={() => onOpenTab?.('email')} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
+                Open Email &amp; marketing
               </button>
             </div>
-
-            {cloudinaryTestResult && (
-              <div className={`p-2.5 rounded-lg text-xs font-semibold leading-relaxed border ${
-                cloudinaryTestResult.success 
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                  : 'bg-rose-50 text-rose-800 border-rose-200'
-              }`}>
-                {cloudinaryTestResult.message}
-              </div>
-            )}
-
-            <p className="text-[8.5px] text-slate-400 mt-1.5 leading-normal">
-              Credentials are saved securely. You can also specify them as environment variables (<code>CLOUDINARY_CLOUD_NAME</code>, etc.). Register for free at <a href="https://cloudinary.com/" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold">cloudinary.com</a>.
-            </p>
           </div>
 
         </div>
@@ -449,7 +263,7 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                     required
                     value={newMenuItemLabel}
                     onChange={(e) => setNewMenuItemLabel(e.target.value)}
-                    placeholder="e.g. Swedish Pouches"
+                    placeholder="e.g. New arrivals"
                     className="w-full text-xs font-semibold border border-slate-250 p-2 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
@@ -493,7 +307,7 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
                         <option value="frontend-shop">Shop Now grid</option>
                         <option value="frontend-brands">All Sweden Brands</option>
                         <option value="about">About us info</option>
-                        <option value="blogs">Pouch Journal / Blogs</option>
+                        <option value="blogs">Blog</option>
                       </optgroup>
                       {localPages.length > 0 && (
                         <optgroup label="Custom Builder Pages">

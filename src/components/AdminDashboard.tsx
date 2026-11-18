@@ -28,6 +28,9 @@ import BlogsTab from './admin/BlogsTab';
 import LayoutTab from './admin/LayoutTab';
 import PagesTab from './admin/PagesTab';
 import ThemesTab from './admin/ThemesTab';
+import AdminSidebar, { AdminSection, SECTION_LABELS } from './admin/AdminSidebar';
+import { Menu } from 'lucide-react';
+import { readAdminPath, readQueryParam, useUrlParam, writeAdminRecord } from '../lib/adminUrlState';
 import { Palette } from 'lucide-react';
 import DevelopmentTab from './admin/DevelopmentTab';
 import { DiagnosticsTab } from './admin/DiagnosticsTab';
@@ -37,28 +40,114 @@ import IntegrationsSettingsTab from './admin/IntegrationsSettingsTab';
 import { Activity } from 'lucide-react';
 
 export const AVAILABLE_SECTION_TEMPLATES = [
-  { type: 'Image banner', label: 'Image Banner', desc: 'Hero banner with centered headline overlay & CTA buttons', icon: 'ImageIcon' },
-  { type: 'Image with text', label: 'Image with Text', desc: 'Beautifully-aligned structural image with side description', icon: 'Columns' },
-  { type: 'Text column with image', label: 'Text Column with Image', desc: 'Three-column display grid showing core brand standards', icon: 'Grid' },
-  { type: 'Featured collection', label: 'Featured Collection', desc: 'Interactive storefront product card grid with live data', icon: 'ShoppingBag' },
-  { type: 'Collection list', label: 'Collection List', desc: 'Display all available categorized nicotine canister series', icon: 'FolderHeart' },
-  { type: 'Slideshow', label: 'Slideshow', desc: 'Smooth horizontal multi-slide sliding carousel banner', icon: 'PlaySquare' },
-  { type: 'Video banner', label: 'Video Banner', desc: 'Cinematic YouTube player showcasing laboratory workflows', icon: 'Video' },
-  { type: 'Rich text', label: 'Rich Text', desc: 'Focussed header with spacious text for brand newsletters', icon: 'FileText' },
-  { type: 'Marquee text', label: 'Marquee Text', desc: 'Fast, animated horizontal news marquee with key notices', icon: 'Sparkles' },
-  { type: 'Marquee images', label: 'Marquee Images', desc: 'Dynamic ticker reel demonstrating recently stocked canisters', icon: 'Layers' },
-  { type: 'Logo list', label: 'Logo List', desc: 'Official partnered distributors and reseller banners', icon: 'Award' },
-  { type: 'Images gallery', label: 'Images Gallery', desc: 'Scenic four-column gallery of clean compounding rooms', icon: 'Layout' },
-  { type: 'FAQs', label: 'FAQs', desc: 'Collapsible answered support questions', icon: 'HelpCircle' },
-  { type: 'Blog post', label: 'Blog Post', desc: 'Display a beautiful list/grid of live Pouch Journal articles with columns control', icon: 'BookOpen' },
-  { type: 'Brand list', label: 'Brand List', desc: 'Scenic brand logo matrix with interactive links to collections', icon: 'LayoutGrid' },
-  { type: 'Icon with text', label: 'Icon with Text', desc: 'Six-item feature display grid with customizable icons and colors', icon: 'Sparkles' },
-  { type: 'Brands we offer', label: 'Brands we offer', desc: 'Infinite running marquee of brand logo images with live upload option', icon: 'Layers' },
-  { type: 'How it works', label: 'How it works', desc: 'Dynamic timeline workflow steps with custom images & layouts', icon: 'Compass' },
-  { type: 'Trust badges', label: 'Trust Badges', desc: 'Elegant horizontal grid displaying core store guarantees like authenticity and premium quality', icon: 'Award' },
-  { type: 'Clearance Sale', label: 'Clearance Sale', desc: 'Display selected clearance products with layouts like shop now grid', icon: 'Flame' },
-  { type: 'Contact Form', label: 'Contact Form', desc: 'Interactive customer inquiry form with name, email, subject, message, and Resend email connection', icon: 'Mail' }
+  { type: 'Image banner', label: 'Image banner', desc: 'A large hero image with a heading, text and buttons.', icon: 'ImageIcon' },
+  { type: 'Slideshow', label: 'Slideshow', desc: 'Rotating full-width slides, each with its own image and call to action.', icon: 'PlaySquare' },
+  { type: 'Video banner', label: 'Video banner', desc: 'A muted, looping background video (MP4 or YouTube) with a heading and button.', icon: 'Video' },
+  { type: 'Featured collection', label: 'Featured collection', desc: 'A product grid from one collection, with New / Bestsellers / On sale tabs.', icon: 'ShoppingBag' },
+  { type: 'Collection list', label: 'Collection list', desc: 'Cards that link to your collections.', icon: 'FolderHeart' },
+  { type: 'Clearance Sale', label: 'Sale products', desc: 'Products on sale (or hand-picked), shown at their real prices.', icon: 'Flame' },
+  { type: 'Image with text', label: 'Image with text', desc: 'An image beside a heading, text and button.', icon: 'Columns' },
+  { type: 'Text column with image', label: 'Multicolumn', desc: 'Three columns of short text, each with an optional image.', icon: 'Grid' },
+  { type: 'Rich text', label: 'Rich text', desc: 'A heading, paragraph and optional button.', icon: 'FileText' },
+  { type: 'Icon with text', label: 'Icon with text', desc: 'Icons with short headings — delivery, returns, guarantees.', icon: 'Sparkles' },
+  { type: 'Trust badges', label: 'Trust badges', desc: 'A row of store guarantees.', icon: 'Award' },
+  { type: 'How it works', label: 'How it works', desc: 'Numbered steps explaining how buying from you works.', icon: 'Compass' },
+  { type: 'Marquee text', label: 'Scrolling text', desc: 'A continuously scrolling strip of short messages.', icon: 'Sparkles' },
+  { type: 'Marquee images', label: 'Image reel', desc: 'A horizontal reel of images (or your latest products).', icon: 'Layers' },
+  { type: 'Images gallery', label: 'Image gallery', desc: 'A grid of images.', icon: 'Layout' },
+  { type: 'Logo list', label: 'Logo list', desc: 'A row of partner or press logos.', icon: 'Award' },
+  { type: 'Brand list', label: 'Brand list', desc: 'Image cards for brands, each linking to a collection.', icon: 'LayoutGrid' },
+  { type: 'Brands we offer', label: 'Brand carousel', desc: 'A scrolling carousel of brand cards.', icon: 'Layers' },
+  { type: 'Blog post', label: 'Blog posts', desc: 'Your latest published blog posts.', icon: 'BookOpen' },
+  { type: 'FAQs', label: 'FAQ', desc: 'Expandable questions and answers.', icon: 'HelpCircle' },
+  { type: 'Contact Form', label: 'Contact form', desc: 'A contact form; messages arrive in your dashboard and by email.', icon: 'Mail' }
 ] as const;
+
+/**
+ * Starting content for a newly added section: neutral copy any store can
+ * keep or overwrite. Image slots start empty (the renderer shows a tidy
+ * placeholder) so no stock photo or demo video ends up live by accident.
+ */
+export function defaultSectionSettings(type: PageSection['type']): PageSection['settings'] {
+  const fullWidth = type === 'Image banner' || type === 'Slideshow' || type === 'Marquee text' || type === 'Video banner';
+  const base: PageSection['settings'] = {
+    fullWidth,
+    backgroundColor: type === 'Marquee text' ? '#111827' : '#FFFFFF',
+    headingColor: '#111827',
+    textColor: type === 'Marquee text' ? '#FFFFFF' : '#4B5563'
+  };
+  const brandItems = [1, 2, 3, 4].map(i => ({ imageUrl: '', linkUrl: '/shop', title: `Brand ${i}` }));
+
+  switch (type) {
+    case 'Image banner':
+      return { ...base, title: 'New season, new favourites', description: 'Discover our latest arrivals.', buttonText: 'Shop now', buttonLink: '/shop', imageUrl: '' };
+    case 'Slideshow':
+      return { ...base, slides: [
+        { title: 'New arrivals', description: 'Fresh styles, just landed.', imageUrl: '', buttonText: 'Shop new in', buttonLink: '/shop' },
+        { title: 'Bestsellers', description: 'The pieces our customers love most.', imageUrl: '', buttonText: 'Shop bestsellers', buttonLink: '/shop' }
+      ] };
+    case 'Video banner':
+      return { ...base, title: 'Discover the new collection', description: 'Add an MP4 or YouTube link in the section settings.', buttonText: 'Shop now', buttonLink: '/shop', videoUrl: '', videoMp4Url: '' };
+    case 'Image with text':
+      return { ...base, title: 'Image with text', description: 'Pair text with an image to focus on a product, collection or your story.', buttonText: 'Learn more', buttonLink: '/shop', imageUrl: '' };
+    case 'Text column with image':
+      return { ...base, title: 'Why shop with us', description: 'Quality, care and service in everything we do.' };
+    case 'Rich text':
+      return { ...base, title: 'Talk about your brand', description: 'Share what makes your store special.', buttonText: 'Shop now', buttonLink: '/shop' };
+    case 'Featured collection':
+      return { ...base, title: 'Featured products', description: '', itemsCount: 8 };
+    case 'Collection list':
+      return { ...base, title: 'Shop by category', description: '', itemsCount: 4 };
+    case 'Clearance Sale':
+      return { ...base, title: 'On sale now', description: 'Limited-time prices while stocks last.', selectedProductIds: [] };
+    case 'Marquee text':
+      return { ...base, title: 'FREE DELIVERY ON QUALIFYING ORDERS // EASY RETURNS // SECURE CHECKOUT' };
+    case 'Marquee images':
+      return { ...base, title: 'New in', itemsCount: 6 };
+    case 'Images gallery':
+      return { ...base, title: 'Gallery', description: '' };
+    case 'Logo list':
+      return { ...base, title: 'As featured in', description: '' };
+    case 'FAQs': {
+      const faqs = [
+        { q: 'How long does delivery take?', a: 'Most orders arrive within 3–7 working days, with tracking.' },
+        { q: 'Can I return an item?', a: 'Yes. Contact us within the return window in our refund policy and we will arrange it.' },
+        { q: 'Which payment methods do you accept?', a: 'Cards, UPI, net banking and popular wallets.' }
+      ].map(x => ({ ...x, question: x.q, answer: x.a }));
+      return { ...base, title: 'Frequently asked questions', description: 'Quick answers about delivery, returns and payments.', faqItems: faqs, faqs };
+    }
+    case 'Blog post':
+      return { ...base, title: 'From the journal', description: '', columnsDesktop: 3, columnsMobile: 1 };
+    case 'Brand list':
+      return { ...base, title: 'Shop by brand', description: '', brandItems };
+    case 'Brands we offer':
+      return { ...base, title: 'Brands we offer', description: '', brandItems };
+    case 'Icon with text':
+      return { ...base, title: 'Why shop with us', description: '', iconColor: '#111827', iconItems: [
+        { iconName: 'Truck', title: 'Free delivery', description: 'On qualifying orders, tracked to your door.', linkUrl: '' },
+        { iconName: 'Shield', title: 'Secure checkout', description: 'Cards, UPI and wallets, fully encrypted.', linkUrl: '' },
+        { iconName: 'Package', title: 'Easy returns', description: 'Changed your mind? Returns are simple.', linkUrl: '' },
+        { iconName: 'Heart', title: 'Here to help', description: 'Friendly support before and after you buy.', linkUrl: '' }
+      ] };
+    case 'How it works':
+      return { ...base, title: 'Shopping made simple', description: '', stepItems: [
+        { number: '1', title: 'Browse the collection', description: 'Find what you love across our range.', imageUrl: '' },
+        { number: '2', title: 'Check out securely', description: 'Pay with cards, UPI or wallets in a few taps.', imageUrl: '' },
+        { number: '3', title: 'Delivered to your door', description: 'Tracked shipping with updates along the way.', imageUrl: '' }
+      ] };
+    case 'Trust badges':
+      return { ...base, trustBadges: [
+        { iconType: 'shield', title: 'SECURE CHECKOUT', description: 'Encrypted, trusted payments.' },
+        { iconType: 'badge', title: 'QUALITY CHECKED', description: 'Every order inspected before dispatch.' },
+        { iconType: 'globe', title: 'TRACKED DELIVERY', description: 'Follow your order to the door.' },
+        { iconType: 'tag', title: 'FAIR PRICES', description: 'Great value, every day.' }
+      ] };
+    case 'Contact Form':
+      return { ...base, title: 'Get in touch', description: 'Questions about an order or a product? We reply within one working day.' };
+    default:
+      return { ...base, title: String(type), description: '' };
+  }
+}
 
 export const getSectionLabel = (type: string): string => {
   const found = AVAILABLE_SECTION_TEMPLATES.find(t => t.type === type);
@@ -121,460 +210,6 @@ interface AdminDashboardProps {
   onLogoutAdmin?: () => void;
 }
 
-interface BrandsWeOfferSectionAdminProps {
-  sec: PageSection;
-}
-
-function BrandsWeOfferSectionAdmin({ sec }: BrandsWeOfferSectionAdminProps) {
-  const items = (sec.settings.brandItems || []).filter(b => b.imageUrl && b.imageUrl.trim() !== '');
-  const [activeDot, setActiveDot] = useState(0);
-  const sliderRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = () => {
-    if (!sliderRef.current) return;
-    const { scrollLeft, clientWidth, scrollWidth } = sliderRef.current;
-    const totalWidth = scrollWidth - clientWidth;
-    if (totalWidth <= 0) return;
-    const percentage = Math.max(0, Math.min(1, scrollLeft / totalWidth));
-    const dotCount = Math.min(items.length, 6);
-    const idx = Math.min(Math.floor(percentage * dotCount), dotCount - 1);
-    setActiveDot(idx);
-  };
-
-  const scrollToDot = (idx: number) => {
-    if (!sliderRef.current) return;
-    const { scrollWidth, clientWidth } = sliderRef.current;
-    const totalWidth = scrollWidth - clientWidth;
-    if (totalWidth <= 0) return;
-    const dotCount = Math.min(items.length, 6);
-    const targetScrollLeft = (idx / (dotCount - 1)) * totalWidth;
-    sliderRef.current.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
-    setActiveDot(idx);
-  };
-
-  const scrollLeft = () => {
-    if (!sliderRef.current) return;
-    sliderRef.current.scrollBy({ left: -200, behavior: 'smooth' });
-  };
-
-  const scrollRight = () => {
-    if (!sliderRef.current) return;
-    sliderRef.current.scrollBy({ left: 200, behavior: 'smooth' });
-  };
-
-  return (
-    <div className="py-4 bg-white w-full overflow-hidden border border-slate-100 rounded-2xl shadow-xs my-2 text-center animate-fade-in">
-      <div className="max-w-2xl mx-auto px-4 text-center space-y-1.5 mb-6">
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-8 h-[1px] bg-[#D4AF37]" />
-          <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">
-            THE BRANDS YOU LOVE
-          </span>
-          <div className="w-8 h-[1px] bg-[#D4AF37]" />
-        </div>
-        <h3 
-          className="text-lg font-black uppercase tracking-tight text-slate-900 leading-none animate-fade-in"
-          style={{ color: sec.settings.headingColor || '#0C1017' }}
-        >
-          {sec.settings.title || 'Brands we offer'}
-        </h3>
-        {sec.settings.description && (
-          <p 
-            className="text-[10px] max-w-md mx-auto leading-relaxed text-slate-400 font-medium opacity-85"
-            style={{ color: sec.settings.textColor || '#64748B' }}
-          >
-            {sec.settings.description}
-          </p>
-        )}
-      </div>
-
-      <div className="relative px-8">
-        {/* Left Arrow Button */}
-        {items.length > 0 && (
-          <button 
-            type="button"
-            onClick={scrollLeft} 
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full border border-[#D4AF37] bg-white flex items-center justify-center text-[#D4AF37] hover:bg-amber-50/50 shadow-xs transition-all cursor-pointer"
-          >
-            <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
-          </button>
-        )}
-
-        {/* Brand Slider Container */}
-        <div 
-          ref={sliderRef}
-          onScroll={handleScroll}
-          className="flex gap-4 overflow-x-auto scrollbar-none py-4 px-2 scroll-smooth"
-        >
-          {items.map((b, idx) => (
-            <div 
-              key={idx} 
-              className="group flex flex-col items-center justify-center shrink-0 w-32 aspect-square bg-white rounded-2xl p-4 shadow-[0_6px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_rgba(0,0,0,0.08)] border border-slate-50/50 transition-all duration-300 transform hover:-translate-y-1 select-none cursor-pointer"
-            >
-              {b.imageUrl ? (
-                <img 
-                  src={b.imageUrl} 
-                  className="max-h-16 max-w-[90px] object-contain transition-transform duration-300 group-hover:scale-105" 
-                  alt={b.title || 'Brand'} 
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className="text-xs font-black text-slate-800 uppercase tracking-tight truncate max-w-full group-hover:scale-105 transition-transform duration-300">
-                  {b.title || 'Brand'}
-                </span>
-              )}
-            </div>
-          ))}
-          {items.length === 0 && (
-            <div className="text-slate-400 italic text-center py-4 w-full text-[10px]">
-              No brands found. Go to sidebar settings to upload brands!
-            </div>
-          )}
-        </div>
-
-        {/* Right Arrow Button */}
-        {items.length > 0 && (
-          <button 
-            type="button"
-            onClick={scrollRight} 
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full border border-[#D4AF37] bg-white flex items-center justify-center text-[#D4AF37] hover:bg-amber-50/50 shadow-xs transition-all cursor-pointer"
-          >
-            <ChevronRight className="h-4 w-4 stroke-[2.5]" />
-          </button>
-        )}
-      </div>
-
-      {/* Dot Indicators */}
-      {items.length > 1 && (
-        <div className="flex justify-center items-center gap-1.5 mt-4">
-          {Array.from({ length: Math.min(items.length, 6) }).map((_, dIdx) => (
-            <button
-              key={dIdx}
-              type="button"
-              onClick={() => scrollToDot(dIdx)}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                dIdx === activeDot ? 'bg-[#D4AF37] w-3' : 'bg-slate-200 hover:bg-slate-300'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface HowItWorksSectionAdminProps {
-  sec: PageSection;
-}
-
-function HowItWorksSectionAdmin({ sec }: HowItWorksSectionAdminProps) {
-  const steps = (sec.settings.stepItems && sec.settings.stepItems.length > 0) 
-    ? sec.settings.stepItems 
-    : [
-        { number: 1, title: 'Choose Your Plan', description: 'Pick the plan that suits you best. Flexible. Simple. No commitment.' },
-        { number: 2, title: 'Pick Your Favourite Brands', description: 'Mix and match from 20+ premium brands, flavours and strengths.' },
-        { number: 3, title: 'Relax, We Handle The Rest', description: 'We pack and deliver to your door, automatically. You focus on life.' }
-      ];
-
-  const renderStepVisualMockup = (sidx: number, step: any) => {
-    if (step.imageUrl && step.imageUrl.trim() !== '') {
-      return (
-        <div className="w-full my-4 flex items-center justify-center overflow-hidden rounded-xl">
-          <img 
-            src={step.imageUrl} 
-            className="w-full max-h-48 object-contain filter drop-shadow-md" 
-            alt={step.title} 
-            referrerPolicy="no-referrer"
-          />
-        </div>
-      );
-    }
-
-    if (sidx === 0) {
-      return (
-        <div className="w-full bg-slate-50/50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center my-4">
-          <div className="grid grid-cols-4 gap-1 w-full">
-            {/* LITE */}
-            <div className="bg-white rounded-lg border border-slate-200/60 p-1 flex flex-col items-center justify-between text-center shadow-2xs h-24">
-              <span className="text-[6px] font-black tracking-wider text-slate-400">LITE</span>
-              <div className="my-0.5 text-center">
-                <span className="block text-[8px] font-black text-slate-800 leading-tight">5 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹27.99</span>
-                <span className="text-[5px] text-slate-400 block -mt-0.5">per month</span>
-              </div>
-            </div>
-            
-            {/* CORE */}
-            <div className="bg-white rounded-lg border border-slate-200/60 p-1 flex flex-col items-center justify-between text-center shadow-2xs h-24">
-              <span className="text-[6px] font-black tracking-wider text-slate-450">CORE</span>
-              <div className="my-0.5 text-center">
-                <span className="block text-[8px] font-black text-slate-800 leading-tight">8 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹35.99</span>
-                <span className="text-[5px] text-slate-400 block -mt-0.5">per month</span>
-              </div>
-            </div>
-
-            {/* PRO */}
-            <div className="bg-[#0C1017] rounded-lg border border-[#D4AF37] p-1 flex flex-col items-center justify-between text-center shadow-sm h-24 relative overflow-hidden transform scale-105 z-10">
-              <div className="absolute top-0 left-0 right-0 bg-[#D4AF37] text-[4px] font-black text-slate-950 py-0.5 uppercase tracking-wider text-center">
-                MOST POPULAR
-              </div>
-              <span className="text-[6px] font-black tracking-wider text-white mt-1">PRO</span>
-              <div className="my-0.5 text-center">
-                <span className="block text-[8px] font-black text-white leading-tight">10 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹40.99</span>
-                <span className="text-[5px] text-slate-350 block -mt-0.5">per month</span>
-              </div>
-            </div>
-
-            {/* ULTIMATE */}
-            <div className="bg-white rounded-lg border border-[#D4AF37]/50 p-1 flex flex-col items-center justify-between text-center shadow-2xs h-24">
-              <span className="text-[6px] font-black tracking-wider text-slate-450">ULTIMATE</span>
-              <div className="my-0.5 text-center">
-                <span className="block text-[8px] font-black text-slate-800 leading-tight">12 Cans</span>
-                <span className="block text-[7px] font-bold text-[#D4AF37] leading-tight">₹46.99</span>
-                <span className="text-[5px] text-slate-400 block -mt-0.5">per month</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (sidx === 1) {
-      return (
-        <div className="w-full h-32 relative my-4 flex items-center justify-center overflow-hidden">
-          <div className="relative w-full max-w-[200px] h-full flex items-center justify-center">
-            {/* CAN 1: ZYN */}
-            <div className="absolute left-1 top-2 w-[48px] h-[48px] rounded-full bg-white border border-slate-200 shadow-md flex flex-col items-center justify-center p-0.5 transform -rotate-12 z-10">
-              <div className="w-[42px] h-[42px] rounded-full border border-sky-400/30 flex flex-col items-center justify-center bg-sky-50/20">
-                <span className="text-[7px] font-extrabold text-sky-600 tracking-tight leading-none">ZYN</span>
-              </div>
-            </div>
-
-            {/* CAN 2: VELO */}
-            <div className="absolute right-1 top-2 w-[48px] h-[48px] rounded-full bg-white border border-slate-200 shadow-md flex flex-col items-center justify-center p-0.5 transform rotate-12 z-10">
-              <div className="w-[42px] h-[42px] rounded-full border border-blue-500/30 flex flex-col items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600">
-                <span className="text-[7px] font-extrabold text-white tracking-tight leading-none">VELO</span>
-              </div>
-            </div>
-
-            {/* CAN 5: 77 */}
-            <div className="absolute left-[50%] top-1 w-[52px] h-[52px] rounded-full bg-white border border-slate-200 shadow-lg flex flex-col items-center justify-center p-0.5 transform -translate-x-1/2 -rotate-3 z-30">
-              <div className="w-[46px] h-[46px] rounded-full border border-slate-900 flex flex-col items-center justify-center bg-[#0C1017]">
-                <span className="text-[10px] font-black text-white tracking-tighter leading-none">77</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (sidx === 2) {
-      return (
-        <div className="w-full h-32 relative my-4 flex items-center justify-center">
-          <div className="w-36 h-20 bg-[#0C1017] rounded-xl border border-slate-800 shadow-md relative overflow-hidden flex flex-col justify-between p-2 select-none">
-            <div className="mt-1 space-y-0.5 text-left">
-              <span className="block text-[8px] font-black tracking-[0.12em] text-[#D4AF37] leading-none">POUCH</span>
-              <span className="block text-[8px] font-black tracking-[0.12em] text-[#D4AF37] leading-none">SUPPLY</span>
-            </div>
-            <div className="border-t border-slate-800/65 pt-1 flex items-center justify-between">
-              <span className="text-[3px] font-bold text-slate-450 uppercase tracking-[0.18em]">NICOTINE ON AUTOPILOT</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-4 w-24 h-24 flex items-center justify-center bg-slate-50 rounded-xl p-2 shrink-0 border border-slate-100">
-        {step.imageUrl ? (
-          <img 
-            src={step.imageUrl} 
-            className="max-h-20 max-w-full object-contain" 
-            alt={step.title} 
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span className="text-[10px] font-bold text-slate-450">No Image</span>
-        )}
-      </div>
-    );
-  };
-
-  const renderStepCheckmarks = (sidx: number) => {
-    const checkmarks = sidx === 0 
-      ? ["Weekly, Fortnightly or Monthly", "Change anytime"]
-      : sidx === 1 
-      ? ["Change brands or flavours anytime"]
-      : ["Automatic deliveries", "Skip or pause anytime"];
-
-    return (
-      <div className="mt-2 space-y-1 w-full text-left">
-        {checkmarks.map((text, cidx) => (
-          <div key={cidx} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-850 justify-center">
-            <div className="w-3 h-3 rounded-full bg-amber-50 border border-amber-250 text-[#D4AF37] flex items-center justify-center shrink-0">
-              <Check className="h-2 w-2 stroke-[3]" />
-            </div>
-            <span className="text-[10px] text-slate-650 font-extrabold">{text}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <div 
-      className="py-8 w-full font-sans transition-all duration-300 overflow-hidden"
-      style={{ backgroundColor: sec.settings.backgroundColor || '#F8FAFC' }}
-    >
-      <div className="max-w-7xl mx-auto px-4 space-y-10 relative">
-        {/* Section Header */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto flex flex-col items-center">
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-8 h-[1px] bg-[#D4AF37]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#D4AF37]">
-              HOW IT WORKS
-            </span>
-            <div className="w-8 h-[1px] bg-[#D4AF37]" />
-          </div>
-          
-          <h2 
-            className="text-2xl md:text-3xl font-black uppercase tracking-tight text-[#0C1017] leading-none"
-            style={{ color: sec.settings.headingColor || '#0C1017' }}
-          >
-            {sec.settings.title || 'Get Started In Under 60 Seconds'}
-          </h2>
-          
-          {sec.settings.description && (
-            <p className="text-[10px] leading-relaxed text-slate-500 font-semibold opacity-90">
-              {sec.settings.description}
-            </p>
-          )}
-
-          {/* Reassuring timing badge */}
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50/75 border border-amber-100 text-[#D4AF37] text-[10px] font-black">
-            <Clock className="h-3 w-3 stroke-[2.5]" />
-            <span>Takes less than 60 seconds</span>
-          </div>
-        </div>
-
-        {/* Steps Grid */}
-        <div className="relative max-w-6xl mx-auto pt-4">
-          {/* Gold Connecting Dotted Line */}
-          <div className="absolute top-[140px] left-[15%] right-[15%] h-[2px] border-t-2 border-dashed border-[#D4AF37]/45 hidden md:block z-0" />
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-            {steps.map((step, sidx) => (
-              <div 
-                key={sidx}
-                className="bg-white rounded-[20px] border border-slate-100 p-6 flex flex-col items-center justify-between text-center shadow-[0_10px_30px_rgba(147,197,253,0.08)] min-h-[360px] group relative"
-              >
-                {/* Gold step circle overlapping border */}
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-[#D4AF37] text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white">
-                  {step.number || (sidx + 1)}
-                </div>
-
-                <div className="space-y-3 flex-1 flex flex-col items-center pt-2 w-full">
-                  <h3 className="text-base font-black text-slate-900 tracking-tight leading-snug">
-                    {step.title || 'Step Title'}
-                  </h3>
-                  
-                  <p className="text-[10px] text-slate-500 leading-relaxed max-w-[200px] font-semibold">
-                    {step.description || 'Step description details.'}
-                  </p>
-
-                  {/* Render High-Fidelity Custom Visual Mockups */}
-                  {renderStepVisualMockup(sidx, step)}
-                </div>
-
-                {/* Render corresponding green checkmarks */}
-                {renderStepCheckmarks(sidx)}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Reassurance Objections Grid */}
-        <div className="max-w-6xl mx-auto pt-2">
-          <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-[0_10px_30px_rgba(147,197,253,0.03)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 divide-y sm:divide-y-0 lg:divide-y-0 lg:divide-x divide-slate-100">
-            {/* EASY RETURNS */}
-            <div className="flex items-center gap-3 py-2 justify-center lg:justify-start">
-              <div className="shrink-0 p-2 rounded-lg bg-slate-50 flex items-center justify-center text-slate-800">
-                <ShieldCheck className="h-5 w-5 text-slate-800" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[9px] font-black tracking-wider text-slate-900 uppercase">
-                  EASY RETURNS
-                </h4>
-                <p className="text-[9px] text-slate-400 font-bold leading-none">
-                  No ties, no fuss.
-                </p>
-              </div>
-            </div>
-
-            {/* CHANGE ANYTIME */}
-            <div className="flex items-center gap-3 py-2 justify-center lg:justify-start">
-              <div className="shrink-0 p-2 rounded-lg bg-slate-50 flex items-center justify-center text-slate-850">
-                <RefreshCw className="h-5 w-5 text-slate-850 animate-spin" style={{ animationDuration: '8s' }} />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[9px] font-black tracking-wider text-slate-900 uppercase">
-                  CHANGE ANYTIME
-                </h4>
-                <p className="text-[9px] text-slate-400 font-bold leading-none">
-                  Swap plans or brands.
-                </p>
-              </div>
-            </div>
-
-            {/* SKIP DELIVERIES */}
-            <div className="flex items-center gap-3 py-2 justify-center lg:justify-start">
-              <div className="shrink-0 p-2 rounded-lg bg-slate-50 flex items-center justify-center text-slate-800">
-                <Truck className="h-5 w-5 text-slate-800" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[9px] font-black tracking-wider text-slate-900 uppercase">
-                  SKIP DELIVERIES
-                </h4>
-                <p className="text-[9px] text-slate-400 font-bold leading-none">
-                  Skip or delay anytime.
-                </p>
-              </div>
-            </div>
-
-            {/* NO CONTRACTS */}
-            <div className="flex items-center gap-3 py-2 justify-center lg:justify-start">
-              <div className="shrink-0 p-2 rounded-lg bg-slate-50 flex items-center justify-center text-slate-800">
-                <Lock className="h-5 w-5 text-slate-800" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[9px] font-black tracking-wider text-slate-900 uppercase">
-                  NO CONTRACTS
-                </h4>
-                <p className="text-[9px] text-slate-400 font-bold leading-none">
-                  No commitments, 1-click.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Conversion Area */}
-        <div className="mt-8 flex flex-col items-center justify-center space-y-3 text-center pb-4">
-          <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Ready to get started?</h4>
-          <button
-            type="button"
-            className="px-6 py-3 bg-[#D4AF37] text-white font-extrabold uppercase tracking-[0.2em] text-[10px] rounded-lg shadow-md cursor-pointer flex items-center gap-1.5"
-          >
-            Shop now
-            <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 type SidebarTab = 'analytics' | 'orders' | 'collections' | 'products' | 'pages' | 'themes' | 'blogs' | 'files' | 'customers' | 'discounts' | 'email' | 'layout' | 'development' | 'diagnostics' | 'recycle-bin' | 'payments' | 'delivery' | 'age-verification' | 'integrations';
 
@@ -689,6 +324,7 @@ export default function AdminDashboard({
   };
 
   const [activeTab, setActiveTab] = useState<SidebarTab>(getInitialTab);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Sync state to URL
   useEffect(() => {
@@ -936,10 +572,10 @@ export default function AdminDashboard({
   const [localLayoutSettings, setLocalLayoutSettings] = useState<LayoutSettings>(() => {
     return layoutSettings || {
       headerLogoText: 'Ecommerce Store',
-      headerLogoSubtext: 'Womenswear',
+      headerLogoSubtext: '',
       headerLogoImage: '',
       footerLogoText: 'ECOMMERCE STORE',
-      footerLogoDescription: 'Contemporary womenswear — dresses, ethnic wear and everyday essentials.',
+      footerLogoDescription: 'Quality products, fair prices and friendly service — delivered to your door.',
       footerLogoImage: '',
       klaviyoPublicKey: '',
       cloudinaryCloudName: '',
@@ -1041,7 +677,7 @@ export default function AdminDashboard({
       }
     }
 
-    if (cName.toLowerCase() === 'pouch' || cName.toLowerCase() === 'ecommerce store') {
+    if (cName.toLowerCase() === 'ecommerce store') {
       cName = '';
     }
 
@@ -1484,11 +1120,11 @@ export default function AdminDashboard({
   const blogs = localBlogs;
 
   // Search, filter, edit states
-  const [orderQuery, setOrderQuery] = useState('');
+  const [orderQuery, setOrderQuery] = useUrlParam('q', '', activeTab === 'orders');
 
   // Blog Post management states
-  const [blogQuery, setBlogQuery] = useState('');
-  const [blogStatusFilter, setBlogStatusFilter] = useState<'All' | 'Active' | 'Draft' | 'Archived'>('All');
+  const [blogQuery, setBlogQuery] = useUrlParam('q', '', activeTab === 'blogs');
+  const [blogStatusFilter, setBlogStatusFilter] = useUrlParam<'All' | 'Active' | 'Draft' | 'Archived'>('status', 'All', activeTab === 'blogs');
   const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [showAddBlog, setShowAddBlog] = useState(false);
   const [newBlogForm, setNewBlogForm] = useState<Partial<BlogPost>>({
@@ -1497,7 +1133,7 @@ export default function AdminDashboard({
     publishedAt: '', readTime: '5 min read', tags: []
   });
   const [blogTagsInput, setBlogTagsInput] = useState('');
-  const [orderStatusFilter, setOrderStatusFilter] = useState<'All' | 'Unfulfilled' | 'Fulfilled'>('All');
+  const [orderStatusFilter, setOrderStatusFilter] = useUrlParam<'All' | 'Unfulfilled' | 'Fulfilled'>('status', 'All', activeTab === 'orders');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // ---------------------------------------------------------------
@@ -1519,12 +1155,7 @@ export default function AdminDashboard({
     }
 
     try {
-      const targetUrl = selectedOrder
-        ? `/admin-dashboard/orders/${encodeURIComponent(String(selectedOrder.id))}`
-        : '/admin-dashboard/orders';
-      if (window.location.pathname !== targetUrl) {
-        window.history.pushState({}, '', targetUrl);
-      }
+      writeAdminRecord('orders', selectedOrder ? String(selectedOrder.id) : null);
     } catch (e) {
       console.warn('[AdminDashboard] Failed to sync order URL:', e);
     }
@@ -1558,7 +1189,7 @@ export default function AdminDashboard({
   const [timelineComment, setTimelineComment] = useState('');
   const [timelineComments, setTimelineComments] = useState<Record<string, {text: string, date: string}[]>>({});
 
-  const [productQuery, setProductQuery] = useState('');
+  const [productQuery, setProductQuery] = useUrlParam('q', '', activeTab === 'products');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProductForm, setNewProductForm] = useState<Partial<Product>>({
@@ -1569,7 +1200,7 @@ export default function AdminDashboard({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [showAddCollection, setShowAddCollection] = useState(false);
-  const [collectionQuery, setCollectionQuery] = useState('');
+  const [collectionQuery, setCollectionQuery] = useUrlParam('q', '', activeTab === 'collections');
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
   const [newCollectionForm, setNewCollectionForm] = useState<Partial<Collection>>({
     title: '', description: '', type: 'Manual', image: '', productIds: []
@@ -1638,17 +1269,17 @@ export default function AdminDashboard({
     window.open(url, '_blank');
   };
 
-  const [fileQuery, setFileQuery] = useState('');
+  const [fileQuery, setFileQuery] = useUrlParam('q', '', activeTab === 'files');
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
   const [showAddFile, setShowAddFile] = useState(false);
   const [newFileForm, setNewFileForm] = useState({ fileName: '', altText: '', url: '' });
   const fileManagerInputRef = useRef<HTMLInputElement>(null);
 
-  const [customerQuery, setCustomerQuery] = useState('');
+  const [customerQuery, setCustomerQuery] = useUrlParam('q', '', activeTab === 'customers');
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({ name: '', email: '', location: '', subscriptionStatus: 'Not subscribed' as any });
 
-  const [discountQuery, setDiscountQuery] = useState('');
+  const [discountQuery, setDiscountQuery] = useUrlParam('q', '', activeTab === 'discounts');
   const [showAddDiscount, setShowAddDiscount] = useState(false);
   const [newDiscountForm, setNewDiscountForm] = useState<Partial<Discount>>({
     title: '', type: 'Amount off order', details: '', eligibility: 'All customers', status: 'Active'
@@ -1657,6 +1288,144 @@ export default function AdminDashboard({
   const [selectedDiscountType, setSelectedDiscountType] = useState<'Amount off products' | 'Buy X get Y' | 'Amount off order' | 'Free shipping' | 'Loyalty Reward' | null>(null);
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
   const [isDiscountEditorOpen, setIsDiscountEditorOpen] = useState(false);
+
+  // Reloading or closing the tab with unsaved edits asks first (the browser
+  // shows its own standard confirmation).
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasUnsavedChanges]);
+
+  // ── Refresh-safe editors ─────────────────────────────────────────────────
+  // Whatever is open inside a section is mirrored to /admin-dashboard/<section>/<record>,
+  // so a reload reopens it and Back closes it. Orders are handled above.
+  const openRecord = useMemo((): string | null => {
+    switch (activeTab) {
+      case 'products':
+        if (editingProduct) return localProducts.some(p => p.id === editingProduct.id) ? editingProduct.id : 'new';
+        return showAddProduct ? 'new' : null;
+      case 'collections':
+        if (!editingCollection) return null;
+        return localCollections.some(c => c.id === editingCollection.id) ? editingCollection.id : 'new';
+      case 'discounts':
+        if (!isDiscountEditorOpen) return null;
+        return editingDiscount ? editingDiscount.id : 'new';
+      case 'blogs':
+        if (selectedBlog) return selectedBlog.id;
+        return showAddBlog ? 'new' : null;
+      case 'pages':
+        return selectedBuilderPageId;
+      default:
+        return null;
+    }
+  }, [activeTab, editingProduct, showAddProduct, editingCollection, isDiscountEditorOpen, editingDiscount, selectedBlog, showAddBlog, selectedBuilderPageId, localProducts, localCollections]);
+
+  // URL → state: on first load and on Back/Forward.
+  const applyRecordFromUrl = useCallback(() => {
+    const { section, recordId } = readAdminPath();
+    const tab = pathToTabMap[section];
+    if (!tab) return;
+    switch (tab) {
+      case 'products': {
+        if (recordId === 'new') { setEditingProduct(null); setShowAddProduct(true); break; }
+        const p = recordId ? localProducts.find(x => x.id === recordId || x.slug === recordId) : null;
+        setEditingProduct(p || null);
+        setShowAddProduct(false);
+        break;
+      }
+      case 'collections': {
+        if (recordId === 'new') {
+          setEditingCollection({ id: 'new_temp_draft_col', title: '', description: '', type: 'Manual', image: '', productIds: [] } as any);
+          break;
+        }
+        setEditingCollection(recordId ? localCollections.find(c => c.id === recordId || c.slug === recordId) || null : null);
+        break;
+      }
+      case 'discounts': {
+        if (recordId === 'new') {
+          setEditingDiscount(null);
+          setSelectedDiscountType((readQueryParam('type') as any) || 'Amount off products');
+          setIsDiscountEditorOpen(true);
+          break;
+        }
+        const d = recordId ? localDiscounts.find(x => x.id === recordId) : null;
+        setEditingDiscount(d || null);
+        if (d) setSelectedDiscountType(d.type as any);
+        setIsDiscountEditorOpen(Boolean(d));
+        break;
+      }
+      case 'blogs': {
+        if (recordId === 'new') { setSelectedBlog(null); setShowAddBlog(true); break; }
+        setSelectedBlog(recordId ? localBlogs.find(b => b.id === recordId || b.slug === recordId) || null : null);
+        setShowAddBlog(false);
+        break;
+      }
+      case 'pages': {
+        const page = recordId ? localPages.find(p => p.id === recordId || p.slug === recordId) : null;
+        setSelectedBuilderPageId(page ? page.id : null);
+        setSelectedBuilderSectionId(page ? readQueryParam('section') : null);
+        break;
+      }
+    }
+  }, [localProducts, localCollections, localDiscounts, localBlogs, localPages]);
+
+  // Restore once on mount (the data is already loaded when the dashboard mounts).
+  const recordRestored = useRef(false);
+  useEffect(() => {
+    if (recordRestored.current) return;
+    recordRestored.current = true;
+    applyRecordFromUrl();
+  }, [applyRecordFromUrl]);
+
+  useEffect(() => {
+    window.addEventListener('popstate', applyRecordFromUrl);
+    return () => window.removeEventListener('popstate', applyRecordFromUrl);
+  }, [applyRecordFromUrl]);
+
+  // State → URL. The first run is skipped: on mount the restored state has not
+  // landed yet, and writing now would strip the record out of a deep link.
+  // Afterwards, a state that already matches the URL makes this a no-op.
+  const recordUrlMounted = useRef(false);
+  useEffect(() => {
+    if (!recordUrlMounted.current) {
+      recordUrlMounted.current = true;
+      return;
+    }
+    if (activeTab === 'orders') return;
+    const section = tabToPathMap[activeTab];
+    const { section: urlSection } = readAdminPath();
+    // A tab switch is pushed by the tab effect; only adjust the record part.
+    if (urlSection !== section) return;
+    writeAdminRecord(section, openRecord);
+  }, [openRecord, activeTab]);
+
+  // Remember which page-builder section is selected (?section=…).
+  useEffect(() => {
+    if (activeTab !== 'pages' || !selectedBuilderPageId) return;
+    const params = new URLSearchParams(window.location.search);
+    const current = params.get('section');
+    const next = selectedBuilderSectionId || null;
+    if (current === next) return;
+    if (next) params.set('section', next); else params.delete('section');
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, '', window.location.pathname + (qs ? `?${qs}` : ''));
+  }, [activeTab, selectedBuilderPageId, selectedBuilderSectionId]);
+
+  // A new discount's type lives in ?type=… so a reload reopens the same form.
+  useEffect(() => {
+    if (activeTab !== 'discounts') return;
+    const params = new URLSearchParams(window.location.search);
+    const want = isDiscountEditorOpen && !editingDiscount && selectedDiscountType ? String(selectedDiscountType) : null;
+    if (params.get('type') === want) return;
+    if (want) params.set('type', want); else params.delete('type');
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, '', window.location.pathname + (qs ? `?${qs}` : ''));
+  }, [activeTab, isDiscountEditorOpen, editingDiscount, selectedDiscountType]);
 
   // Calculate high-fidelity partner portal metrics
   const stats = useMemo(() => {
@@ -1890,7 +1659,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(products, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_products_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_products_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -1949,20 +1718,24 @@ export default function AdminDashboard({
             if (rowObj.title || rowObj.id) {
               const id = rowObj.id || `prod-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
               const title = rowObj.title || "Untitled Product";
-              const price = parseFloat(rowObj.price) || 4.99;
+              // Only what the file says: a missing price or stock is never
+              // invented, and a product without a price stays a draft.
+              const parsedPrice = parseFloat(rowObj.price);
+              const price = Number.isFinite(parsedPrice) ? parsedPrice : 0;
               const compareAtPrice = rowObj.compareatprice ? parseFloat(rowObj.compareatprice) : undefined;
-              const inventory = parseInt(rowObj.inventory, 10) || 100;
-              const sku = rowObj.sku || `SKU-${id.toUpperCase()}`;
-              const category = rowObj.category || "Nicotine Pouches";
-              const vendor = rowObj.vendor || "Premium Brand";
-              const status = (rowObj.status && ['Active', 'Draft'].includes(rowObj.status)) ? rowObj.status : 'Active';
-              const image = rowObj.image || "";
-              const description = rowObj.description || `Premium compounding high-grade portion from ${vendor}.`;
-              const weight = parseFloat(rowObj.weight) || 15;
-              const weightUnit = rowObj.weightunit || "g";
-              const strength = rowObj.strength || "10 mg";
-              const flavour = rowObj.flavour || "Original";
-              
+              const parsedInventory = parseInt(rowObj.inventory, 10);
+              const inventory = Number.isFinite(parsedInventory) ? parsedInventory : 0;
+              const sku = rowObj.sku || '';
+              const category = rowObj.category || '';
+              const vendor = rowObj.vendor || '';
+              const requestedStatus = (rowObj.status && ['Active', 'Draft'].includes(rowObj.status)) ? rowObj.status : 'Active';
+              const status = price > 0 ? requestedStatus : 'Draft';
+              const image = rowObj.image || '';
+              const description = rowObj.description || '';
+              const weight = parseFloat(rowObj.weight) || 0;
+              const weightUnit = rowObj.weightunit || 'g';
+              const parseJson = (v: string) => { try { return v ? JSON.parse(v) : undefined; } catch { return undefined; } };
+
               importedList.push({
                 id,
                 title,
@@ -1977,12 +1750,12 @@ export default function AdminDashboard({
                 image,
                 weight,
                 weightUnit,
-                tags: rowObj.tags ? rowObj.tags.split('|').map((t: string) => t.trim()) : [vendor, flavour],
+                tags: rowObj.tags ? rowObj.tags.split('|').map((t: string) => t.trim()).filter(Boolean) : [],
                 slug: rowObj.slug || id,
-                strength,
-                flavour,
-                variants: rowObj.variants ? JSON.parse(rowObj.variants) : [{ id: `var-opt-${id}`, name: "Strength", values: [strength] }],
-                concreteVariants: rowObj.concretevariants ? JSON.parse(rowObj.concretevariants) : [{ id: `var-det-${id}`, name: `${flavour} (${strength})`, price, inventory, description, images: [image], flavour }]
+                ...(rowObj.strength ? { strength: rowObj.strength } : {}),
+                ...(rowObj.flavour ? { flavour: rowObj.flavour } : {}),
+                variants: parseJson(rowObj.variants) || [],
+                concreteVariants: parseJson(rowObj.concretevariants) || []
               });
             }
           }
@@ -2022,7 +1795,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(collections, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_collections_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_collections_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2087,7 +1860,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pagesToExport, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_pages_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_pages_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2175,7 +1948,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(orders, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_orders_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_orders_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2230,7 +2003,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customers, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_customers_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_customers_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2285,7 +2058,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(discounts, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_discounts_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_discounts_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2340,7 +2113,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(blogs, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_blogs_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_blogs_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2395,7 +2168,7 @@ export default function AdminDashboard({
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localFiles, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `pouch_supply_files_backup_${Date.now()}.json`);
+      downloadAnchor.setAttribute("download", `store_files_backup_${Date.now()}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -2622,113 +2395,7 @@ export default function AdminDashboard({
     const newSection: PageSection = {
       id: `sec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: sectionType,
-      settings: {
-        fullWidth: isFullWidthByDefault,
-        backgroundColor: sectionType === 'Marquee text' ? '#E8BE74' : '#FFFFFF',
-        headingColor: '#1E293B',
-        textColor: sectionType === 'Marquee text' ? '#1A1C1D' : '#64748B',
-        title: sectionType === 'Image banner' ? 'Exclusive Pouch Launch' 
-             : sectionType === 'Image with text' ? 'Curate Your Premium Package'
-             : sectionType === 'Text column with image' ? 'Our Laboratory Certified Foundations'
-             : sectionType === 'Featured collection' ? 'Featured Collection Highlights'
-             : sectionType === 'Collection list' ? 'Explore Brand Collections'
-             : sectionType === 'Images gallery' ? 'Laboratory & Dispatch Facility Gallery'
-             : sectionType === 'Marquee text' ? 'FAST DELIVERY // EASY RETURNS // LOYALTY REWARDS // SECURE CHECKOUT // UPI & CARDS ACCEPTED'
-             : sectionType === 'Marquee images' ? 'Fresh Stock Dispatch Reel'
-             : sectionType === 'Logo list' ? 'Official Lab Partner Register'
-             : sectionType === 'FAQs' ? 'Frequently Answered Questions'
-             : sectionType === 'Blog post' ? 'Latest From Our Journal'
-             : sectionType === 'Brand list' ? 'Shop Premium Brands'
-             : sectionType === 'Brands we offer' ? 'Brands we offer'
-             : sectionType === 'Icon with text' ? 'Why shop with us?'
-             : sectionType === 'Video banner' ? 'Watch Our Laboratory Showcase'
-             : sectionType === 'Clearance Sale' ? 'Clearance Sale Event'
-             : `Custom ${sectionType}`,
-        description: sectionType === 'Image with text' ? 'Our plant-fiber formulations are packed under sterile medical conditions for persistent, smooth boosts.'
-                 : sectionType === 'Text column with image' ? 'Every single canister batch is vacuum-sealed inside high-density polymer tubes guaranteeing pristine flavor locks.'
-                 : sectionType === 'Featured collection' ? 'Sourced cleanly from European chemical compounding centers with direct-to-door courier dispatch.'
-                 : sectionType === 'Collection list' ? 'Select from your favorite pouch strengths, cooling impacts, or specific lab series.'
-                 : sectionType === 'FAQs' ? 'Quick answers about delivery, returns and payments.'
-                 : sectionType === 'Blog post' ? 'Scientific reports, dosage guides, and news bulletins straight from Scandinavia.'
-                 : sectionType === 'Brand list' ? 'Check our collection of premium, laboratory-certified brand canisters.'
-                 : sectionType === 'Brands we offer' ? 'Explore our curated roster of premium nicotine pouches and global compounding series.'
-                 : sectionType === 'Icon with text' ? 'Explore exclusive rewards and reliable logistics built directly into our ecosystem.'
-                  : sectionType === 'Video banner' ? 'Witness the clinical sterile compounding process behind our sub-zero cooling pouches.'
-                  : sectionType === 'Clearance Sale' ? 'Save big on our premium selected stock items. Final clearance, while stocks last!'
-                 : 'Edit option elements inside options sidebar',
-        columnsDesktop: sectionType === 'Blog post' ? 3 : undefined,
-        columnsMobile: sectionType === 'Blog post' ? 1 : undefined,
-        brandItems: (sectionType === 'Brand list' || sectionType === 'Brands we offer') ? [
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: '77' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Clew' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Cuba' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Maggie' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Nordic Spirit' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'XQS' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'ZYN' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Pablo' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Killa' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Fumi' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Velo' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'White Fox' },
-          { imageUrl: PLACEHOLDER_IMAGE, linkUrl: 'frontend-shop', title: 'Snü' }
-        ] : undefined,
-        buttonText: (sectionType === 'Image banner' || sectionType === 'Image with text' || sectionType === 'Rich text' || sectionType === 'Video banner') ? 'Purchase Packs' : undefined,
-        buttonLink: (sectionType === 'Image banner' || sectionType === 'Image with text' || sectionType === 'Rich text' || sectionType === 'Video banner') ? 'frontend-shop' : undefined,
-        marqueeSpeed: 3,
-        itemsCount: (sectionType === 'Featured collection' || sectionType === 'Marquee images' || sectionType === 'Collection list') ? 4 : undefined,
-        selectedProductIds: sectionType === 'Clearance Sale' ? localProducts.filter(p => p.status === 'Active').slice(0, 4).map(p => p.id) : undefined,
-        videoUrl: sectionType === 'Video banner' ? '' : undefined,
-        videoMp4Url: sectionType === 'Video banner' ? 'https://assets.mixkit.co/videos/preview/mixkit-laboratory-test-tubes-40436-large.mp4' : undefined,
-        imageUrl: (sectionType === 'Image banner' || sectionType === 'Image with text') ? PLACEHOLDER_IMAGE : undefined,
-        slides: sectionType === 'Slideshow' ? [
-          {
-            title: 'Precision-Engineered Pouch Purity',
-            description: 'Sourced directly from certified laboratories utilizing medical-grade plant fiber and vacuum-fresh locks.',
-            imageUrl: PLACEHOLDER_IMAGE,
-            buttonText: 'View Laboratory Journal',
-            buttonLink: 'blogs'
-          },
-          {
-            title: 'Extreme Mint Cryo Freeze',
-            description: 'Sub-zero locking technology delivering an immediate, absolute sensory refreshing experience.',
-            imageUrl: PLACEHOLDER_IMAGE,
-            buttonText: 'Explore Sub-Zero Bundles',
-            buttonLink: 'frontend-shop'
-          }
-        ] : undefined,
-        iconColor: sectionType === 'Icon with text' ? '#4F46E5' : undefined,
-        iconItems: sectionType === 'Icon with text' ? [
-          { iconName: 'Truck', title: 'Delivered on your schedule', description: 'Flexible delivery, when you need it.', linkUrl: 'frontend-shop' },
-          { iconName: 'Zap', title: 'Save vs. shop prices', description: 'Better prices than retail stores.', linkUrl: 'frontend-shop' },
-          { iconName: 'Shield', title: 'Discreet delivery', description: 'Plain, private, and secure packaging.', linkUrl: 'frontend-shop' },
-          { iconName: 'Clock', title: 'Cancel anytime', description: 'No commitments, full control.', linkUrl: 'frontend-shop' },
-          { iconName: 'Award', title: 'Loyalty scheme', description: 'Earn rewards on every order.', linkUrl: 'frontend-shop' },
-          { iconName: 'Package', title: 'Never run out', description: 'Auto-refill and easy reordering.', linkUrl: 'frontend-shop' }
-        ] : undefined,
-        stepItems: sectionType === 'How it works' ? [
-          { number: '1', title: 'Choose your products', description: 'Browse the catalogue and add what you like to your cart', imageUrl: PLACEHOLDER_IMAGE },
-          { number: '2', title: 'Choose your pouches', description: 'Mix and match your favourite brands, flavours and strengths. (these can be changed at anytime)', imageUrl: PLACEHOLDER_IMAGE },
-          { number: '3', title: 'We handle the rest', description: 'Delivered automatically to your door hassle free weekly, Bi-weekly or monthly', imageUrl: PLACEHOLDER_IMAGE }
-        ] : undefined,
-        trustBadges: sectionType === 'Trust badges' ? [
-          { iconType: 'badge', title: '100% AUTHENTIC', description: 'Direct from official suppliers.' },
-          { iconType: 'shield', title: 'PREMIUM QUALITY', description: 'Only trusted, proven brands.' },
-          { iconType: 'globe', title: 'GLOBAL SELECTION', description: 'The best from around the world.' },
-          { iconType: 'tag', title: 'MEMBER PRICING', description: 'Better prices, always.' }
-        ] : undefined,
-        faqItems: sectionType === 'FAQs' ? [
-          { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.', question: 'Is delivery fully tracked?', answer: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.' },
-          { q: 'Are these pouches tobacco-free?', a: 'Formulated completely on plant fiber with medical pure crystalline extract.', question: 'Are these pouches tobacco-free?', answer: 'Formulated completely on plant fiber with medical pure crystalline extract.' },
-          { q: 'Can I return an item?', a: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.', question: 'Can I return an item?', answer: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.' }
-        ] : undefined,
-        faqs: sectionType === 'FAQs' ? [
-          { q: 'Is delivery fully tracked?', a: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.', question: 'Is delivery fully tracked?', answer: 'Yes, all orders over shipping thresholds generate functional, real-time courier tracking codes emailed instantly upon dispatch.' },
-          { q: 'Are these pouches tobacco-free?', a: 'Formulated completely on plant fiber with medical pure crystalline extract.', question: 'Are these pouches tobacco-free?', answer: 'Formulated completely on plant fiber with medical pure crystalline extract.' },
-          { q: 'Can I return an item?', a: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.', question: 'Can I return an item?', answer: 'Yes. Contact us within the return window shown in our refund policy and we will arrange it.' }
-        ] : undefined,
-
-      }
+      settings: defaultSectionSettings(sectionType)
     };
 
     const pageMatchesSelected = (p: CustomPage) => {
@@ -3075,7 +2742,7 @@ export default function AdminDashboard({
       location: newCustomerForm.location || 'United Kingdom',
       ordersCount: 0,
       amountSpent: 0.00,
-      addresses: [newCustomerForm.location || 'United Kingdom'],
+      addresses: newCustomerForm.location ? [newCustomerForm.location] : [],
       wishlist: []
     };
 
@@ -3267,413 +2934,86 @@ export default function AdminDashboard({
   return (
     <div id="partner-admin-scaffold" className="flex flex-col lg:flex-row min-h-screen bg-[#f6f6f7] text-slate-800 font-sans">
       
-      {/* Left sidebar Navigation */}
       {!selectedBuilderPageId && (
-        <aside className="w-full lg:w-60 bg-[#ebebeb] text-[#4a4d50] shrink-0 border-r border-[#e1e3e5] p-3.5 flex flex-col justify-between">
-          <div className="space-y-6">
-            
-            {/* Dashboard Head */}
-            <div className="flex items-center gap-3 pb-4 border-b border-[#e1e3e5]">
-              <div className="w-8 h-8 bg-[#1c2d50] rounded flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-white rounded-sm"></div>
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-[#1a1c1d]">Ecommerce Store</h2>
-                <span className="bg-gray-100 text-[9px] px-1.5 py-0.5 rounded border border-gray-200 text-gray-500 uppercase font-bold tracking-tighter">Admin</span>
-              </div>
-            </div>
+        <AdminSidebar
+          active={activeTab as AdminSection}
+          onNavigate={(section) => {
+            setActiveTab(section as SidebarTab);
+            setSelectedBuilderPageId(null);
+          }}
+          storeName={localLayoutSettings.headerLogoText || ''}
+          unfulfilledOrders={orders.filter(o => o.fulfillmentStatus === 'Unfulfilled').length}
+          recycleBinCount={recycleBinCount}
+          onSignOut={onLogoutAdmin}
+          mobileOpen={mobileNavOpen}
+          onCloseMobile={() => setMobileNavOpen(false)}
+        />
+      )}
 
-            {/* Nav Links */}
-            <nav className="space-y-1 block">
-              {[
-                { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-                { id: 'orders', label: 'Orders', icon: Package, badge: orders.filter(o => o.fulfillmentStatus === 'Unfulfilled').length },
-                { id: 'collections', label: 'Collections', icon: Building },
-                { id: 'products', label: 'Products', icon: ShoppingBag },
-                { id: 'pages', label: 'Page Builder', icon: FileCode },
-                { id: 'themes', label: 'Themes', icon: Palette },
-                { id: 'blogs', label: 'Blog Posts', icon: Layout },
-                { id: 'files', label: 'Files Manager', icon: HardDrive },
-                { id: 'customers', label: 'Customers', icon: Users },
-                { id: 'discounts', label: 'Discounts', icon: Percent },
-                { id: 'payments', label: 'Payments', icon: Percent },
-                { id: 'delivery', label: 'Shipping & Delivery', icon: Truck },
-                { id: 'age-verification', label: 'Age Verification', icon: Activity },
-                { id: 'integrations', label: 'Integrations', icon: Settings },
-                { id: 'email', label: 'Email & Marketing', icon: Mail },
-                { id: 'layout', label: 'Header & Footer', icon: Settings },
-                { id: 'development', label: 'Development Mode', icon: Terminal },
-                { id: 'diagnostics', label: 'DB Diagnostics', icon: Activity },
-                { id: 'recycle-bin', label: 'Recycle Bin', icon: Trash2, badge: recycleBinCount },
-              ].map(item => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveTab(item.id as SidebarTab);
-                      setSelectedBuilderPageId(null);
-                    }}
-                    className={`w-full flex items-center justify-between p-2 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
-                      isActive 
-                        ? 'bg-[#edeeef] text-[#1a1c1d] font-semibold shadow-xs' 
-                        : 'hover:bg-[#edeeef] text-[#4a4d50]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 rounded select-none">
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-[#1a1c1d]' : 'text-slate-500'}`} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="bg-[#e8ecf4] text-[#1c2d50] font-bold text-[10px] py-0.5 px-2 rounded-full border border-slate-200">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* Neon PostgreSQL Connection Button */}
-            <div className="pt-2 border-t border-[#e1e3e5]/65 mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDbDetailsModal(true);
-                  fetchDbDetails();
-                }}
-                className="w-full flex items-center justify-between p-2 rounded-md text-[12px] font-bold text-slate-800 hover:bg-slate-100 transition-all cursor-pointer bg-white border border-slate-200 shadow-xs"
-              >
-                <div className="flex items-center gap-2 rounded select-none text-left">
-                  <Database className="h-3.5 w-3.5 text-[#1c2d50] shrink-0 animate-pulse" />
-                  <span>Neon PostgreSQL</span>
-                </div>
-                <span className="w-2 h-2 rounded-full bg-[#1c2d50] block shrink-0 animate-pulse ml-1" />
-              </button>
-            </div>
-
-            {/* View Online Store main button */}
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 w-full flex items-center justify-center gap-2 bg-[#1c2d50] hover:bg-[#152340] px-3.5 py-2.5 rounded-xl text-white font-black text-[11px] uppercase tracking-wider shadow-sm transition-colors cursor-pointer select-none text-center"
+      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Top bar */}
+      {!selectedBuilderPageId && (
+        <header className="sticky top-0 z-40 h-14 shrink-0 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center gap-3 px-4 md:px-6">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            className="lg:hidden -ml-1 h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <h1 className="text-[15px] font-semibold text-slate-900 truncate">
+            {SECTION_LABELS[activeTab as AdminSection] || 'Dashboard'}
+          </h1>
+          <div className="flex-1" />
+          <span className={`hidden sm:inline-flex items-center gap-1.5 text-[12px] ${hasUnsavedChanges ? 'text-amber-700' : 'text-slate-500'}`}>
+            <span className={`h-2 w-2 rounded-full ${hasUnsavedChanges ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+            {hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved'}
+          </span>
+          {hasUnsavedChanges && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Discard all unsaved changes? This cannot be undone.')) handleGlobalDiscard();
+              }}
+              className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
             >
-              <Globe className="h-4 w-4 shrink-0" />
-              <span>View Online Store</span>
-            </a>
-
-            {onLogoutAdmin && (
-              <button
-                type="button"
-                onClick={onLogoutAdmin}
-                className="mt-2 w-full flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl text-rose-700 font-bold text-[11px] uppercase tracking-wider shadow-2xs transition-colors cursor-pointer select-none text-center"
-              >
-                <LogOut className="h-4 w-4 shrink-0" />
-                <span>Sign Out Admin</span>
-              </button>
-            )}
-          </div>
-
-          {/* Foot of sidebar */}
-          <div className="pt-4 border-t border-[#e1e3e5] text-[10px] text-[#707579]">
-            <p>Running: Merchant v4.12</p>
-            <p className="mt-1">Cloud Engine Active</p>
-          </div>
-        </aside>
+              Discard
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleGlobalSave}
+            disabled={!hasUnsavedChanges || isSaving}
+            className={`h-9 rounded-lg px-4 text-[13px] font-semibold flex items-center gap-1.5 transition ${
+              hasUnsavedChanges && !isSaving ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            {isSaving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {isSaving ? 'Saving…' : 'Save'}
+          </button>
+        </header>
       )}
 
       {/* Main Panel space */}
-      <main className={selectedBuilderPageId ? "w-full p-4 lg:p-6" : "flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-x-hidden"}>
-        
-        {/* Global panel header with stats glance info */}
-        {!selectedBuilderPageId && (
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-250">
-            <div>
-              <span className="text-[10px] text-indigo-600 bg-indigo-50 font-black uppercase py-1 px-3 rounded-full border border-indigo-100">Ecommerce Store Partner Portal</span>
-              <h1 className="text-2xl font-black text-slate-900 mt-2 capitalize flex items-center gap-2">
-                {activeTab} Management Panel
-              </h1>
-            </div>
-            
-            {/* Quick Metrics display */}
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              {/* Draft Status Indicator */}
-              <div className="flex items-center gap-2 bg-white border border-slate-250 px-4 py-2.5 rounded-xl shadow-xs">
-                <span className={`h-2.5 w-2.5 rounded-full ${hasUnsavedChanges ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-                <span className="font-extrabold text-[10px] text-slate-700 uppercase tracking-widest whitespace-nowrap">
-                  {hasUnsavedChanges ? 'Unsaved Edits Present' : 'All Changes Saved'}
-                </span>
-              </div>
+      <main className={selectedBuilderPageId ? "w-full p-4 lg:p-6" : "flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-x-hidden"}>
 
-              {/* Save changes button */}
-              <button
-                onClick={handleGlobalSave}
-                disabled={!hasUnsavedChanges || isSaving}
-                className={`py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all shadow-xs border ${
-                  isSaving
-                    ? 'bg-slate-700 text-white border-slate-700 cursor-wait'
-                    : hasUnsavedChanges
-                    ? 'bg-[#1c2d50] hover:bg-[#152340] text-white border-[#1c2d50] cursor-pointer ring-4 ring-slate-400/30 animate-pulse font-extrabold shadow-md'
-                    : 'bg-slate-100 text-slate-350 border-slate-200 cursor-not-allowed select-none'
-                }`}
-              >
-                {isSaving ? (
-                  <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 shrink-0" />
-                )}
-                <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-              </button>
-
-              {/* Discard button */}
-              {hasUnsavedChanges && (
-                <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to discard all unsaved edits made during this session? This action cannot be undone.")) {
-                      handleGlobalDiscard();
-                    }
-                  }}
-                  className="py-2.5 px-3.5 bg-red-50 text-red-700 hover:bg-red-100 border border-red-150 rounded-xl text-[10px] uppercase font-black tracking-widest transition-all cursor-pointer"
-                  title="Discard All Draft Changes"
-                >
-                  Discard
-                </button>
-              )}
-
-              {/* View Online Store Button */}
-              <a
-                href="/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-4 bg-white hover:bg-slate-150 text-[#1c2d50] border border-slate-250 hover:border-slate-350 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all shadow-xs cursor-pointer select-none"
-                title="Open Customer Online Store in new tab"
-              >
-                <Globe className="h-4 w-4 shrink-0 text-[#1c2d50]" />
-                <span>View Online Store</span>
-              </a>
-
-              <div className="bg-white border border-slate-250 px-4 py-2.5 rounded-xl shadow-xs">
-                <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Gross Sales</span>
-                <span className="font-extrabold text-slate-950 text-sm">₹{stats.totalSales.toFixed(2)}</span>
-              </div>
-              <div className="bg-white border border-slate-250 px-4 py-2.5 rounded-xl shadow-xs">
-                <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider">Unfulfilled</span>
-                <span className="font-extrabold text-amber-500 text-sm">{orders.filter(o => o.fulfillmentStatus === 'Unfulfilled').length} Orders</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Database Integration & IP Whitelisting Diagnosis Banner */}
-        {dbStatus && (
-          <div className="w-full space-y-4">
-            {dbStatus.status === 'not-configured' && (
-              <div className="bg-amber-50/40 border border-amber-200 rounded-xl p-5 shadow-xs space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-amber-100/30">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-amber-600 animate-pulse" />
-                      Offline-Safe Mode Enabled (Memory Cache & LocalStorage)
-                    </p>
-                    <p className="text-[10px] text-amber-800 leading-relaxed max-w-3xl">
-                      Configure a <code className="font-mono bg-amber-100/60 px-1 py-0.5 rounded font-bold text-amber-950">DATABASE_URL</code> below to persist layout, images, categories, and inventory securely in your own Neon PostgreSQL database.
-                    </p>
-                  </div>
-                  <div className="shrink-0">
-                    <span className="text-[9px] font-mono font-black border border-amber-200 bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg uppercase tracking-wider">
-                      Fallback Cache Online
-                    </span>
-                  </div>
-                </div>
-
-                {/* Secure Configuration Input Form */}
-                <div className="bg-white/80 border border-amber-200 rounded-xl p-4 space-y-3 shadow-3xs">
-                  <div>
-                    <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1">Enter your Neon PostgreSQL Connection String (DATABASE_URL):</span>
-                    <form onSubmit={handleUpdateUriSubmit} className="flex flex-col sm:flex-row gap-2">
-                      <div className="relative flex-1 flex items-center">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="postgresql://user:password@ep-xyz.neon.tech/neondb?sslmode=require"
-                          value={customUriInput}
-                          onChange={(e) => setCustomUriInput(e.target.value)}
-                          className="w-full text-xs font-mono border border-slate-200 p-2.5 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-505 bg-white font-bold"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 text-slate-400 hover:text-slate-600 p-1"
-                          title={showPassword ? "Hide Connection String" : "Show Connection String"}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={uriUpdating}
-                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg cursor-pointer transition-colors shrink-0 flex items-center justify-center gap-1"
-                      >
-                        {uriUpdating ? (
-                          <>
-                            <RefreshCw className="h-3 w-3 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          "Save & Connect"
-                        )}
-                      </button>
-                    </form>
-                    {uriUpdateResult && (
-                      <p className={`text-[11px] font-bold mt-2 ${uriUpdateResult.success ? 'text-emerald-600' : 'text-pink-600'}`}>
-                        {uriUpdateResult.message}
-                      </p>
-                    )}
-
-                    {/* Environment Variable Guide Callout */}
-                    <div className="mt-3 p-3 bg-indigo-50 border border-indigo-150 rounded-lg text-[10.5px] leading-relaxed text-indigo-950 font-semibold flex items-start gap-2.5">
-                      <div className="mt-0.5 text-xs text-indigo-600 font-bold select-none">💡</div>
-                      <div>
-                        <span className="font-extrabold text-indigo-905 block uppercase tracking-wider text-[9px] mb-0.5">Production Deployments note:</span>
-                        To persist your database permanently, set the environment variable <code className="font-mono bg-indigo-100/80 text-indigo-900 px-1 py-0.5 rounded text-[9.5px]">DATABASE_URL</code> to your Neon PostgreSQL connection string.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {dbStatus.status === 'error' && (
-              <div className="space-y-4">
-                {/* Clean, compact, non-intrusive status alert */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-3xs">
-                  <div className="flex items-center gap-3">
-                    <div className="h-6 w-6 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-650" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold text-slate-800">
-                        Neon PostgreSQL Connection Inactive (Local fallback cache active)
-                      </p>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
-                        Your database is offline or unable to resolve. Data will be saved locally so you don't lose anything: <code className="font-mono text-slate-600 bg-slate-100/80 px-1 py-0.5 rounded text-[9.5px] select-all">{dbStatus.error ? dbStatus.error.slice(0, 150) + '...' : 'Connection Error'}</code>
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to clear the custom Database URI?")) {
-                        setCustomUriInput('');
-                        fetch('/api/update-db-uri', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ uri: '' })
-                        }).then(() => {
-                          setDbStatus({ status: 'not-configured' });
-                        });
-                      }
-                    }}
-                    className="text-[9px] hover:bg-rose-50 text-rose-600 border border-rose-200 px-2 py-1 rounded font-bold uppercase tracking-wider transition-colors whitespace-nowrap self-start sm:self-center cursor-pointer"
-                  >
-                    Clear URI
-                  </button>
-                </div>
-
-                {/* Neon PostgreSQL Connection Information */}
-                <div className="bg-gradient-to-r from-indigo-50/50 to-purple-50/50 border border-indigo-150 rounded-xl p-5 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center select-none shrink-0 text-white font-bold text-xs ring-4 ring-indigo-100">
-                      ?
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-indigo-950 uppercase tracking-wide">Neon PostgreSQL Database Configuration</h4>
-                      <p className="text-[10px] text-indigo-700 font-semibold">Server-side connection managed via Prisma ORM.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                    <div className="bg-white/90 border border-slate-150 p-3.5 rounded-lg space-y-2">
-                      <span className="text-[9px] font-black uppercase text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Database</span>
-                      <p className="text-[10.5px] text-slate-700 leading-relaxed font-medium">
-                        Operates on serverless Neon PostgreSQL with auto-scaling and pooled connections.
-                      </p>
-                    </div>
-                    <div className="bg-white/90 border border-slate-150 p-3.5 rounded-lg space-y-2">
-                      <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">ORM</span>
-                      <p className="text-[10.5px] text-slate-700 leading-relaxed font-medium">
-                        Prisma Client handles strongly typed schema definitions, indexing, and migration pipelines.
-                      </p>
-                    </div>
-                    <div className="bg-white/90 border border-slate-150 p-3.5 rounded-lg space-y-2">
-                      <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Storage</span>
-                      <p className="text-[10.5px] text-slate-700 leading-relaxed font-semibold">
-                        All products, orders, collections, customers, discounts, and page layouts are synced.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Secure Configuration Input Form */}
-                <div className="bg-white/80 border border-slate-205 rounded-xl p-4 space-y-3 shadow-3xs">
-                  <span className="text-[10px] font-extrabold text-slate-605 uppercase tracking-wider block">Update Neon DATABASE_URL Connection String:</span>
-                  <form onSubmit={handleUpdateUriSubmit} className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1 flex items-center">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="postgresql://user:password@ep-xyz.neon.tech/neondb?sslmode=require"
-                        value={customUriInput}
-                        onChange={(e) => setCustomUriInput(e.target.value)}
-                        className="w-full text-xs font-mono border border-slate-202 p-2.5 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-505 bg-white font-bold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 text-slate-400 hover:text-slate-650 p-1"
-                        title={showPassword ? "Hide Connection String" : "Show Connection String"}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={uriUpdating}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg cursor-pointer transition-colors shrink-0 flex items-center justify-center gap-1"
-                    >
-                      {uriUpdating ? (
-                        <>
-                          <RefreshCw className="h-3 w-3 animate-spin" />
-                          Testing Connection...
-                        </>
-                      ) : (
-                        "Save & Retry"
-                      )}
-                    </button>
-                  </form>
-                  {uriUpdateResult && (
-                    <p className={`text-[11px] font-bold mt-2 ${uriUpdateResult.success ? 'text-emerald-600' : 'text-pink-600'}`}>
-                      {uriUpdateResult.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      window.location.reload();
-                    }}
-                    className="flex items-center gap-2 bg-indigo-650 hover:bg-indigo-750 transition-colors text-white text-[10px] font-black uppercase tracking-wider py-2.5 px-4 rounded-xl shadow-xs cursor-pointer"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    <span>Retry Sync Connection</span>
-                  </button>
-                  <span className="text-[10px] text-slate-500 font-semibold italic">
-                    (Currently operating safely on full-fidelity backup Server Mode memory cache)
-                  </span>
-                </div>
-              </div>
-            )}
+        {/* Database status: one line, with the details on the Database page */}
+        {!selectedBuilderPageId && dbStatus && (dbStatus.status === 'not-configured' || dbStatus.status === 'error') && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">
+              {dbStatus.status === 'not-configured'
+                ? <>The database is not connected, so changes cannot be stored permanently. Set <code className="font-mono text-[12px]">DATABASE_URL</code> in your hosting environment and redeploy.</>
+                : <>The database is unreachable right now; recent changes are held temporarily and synced once it is back.</>}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('diagnostics'); setSelectedBuilderPageId(null); }}
+              className="self-start sm:self-auto shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[12px] font-semibold hover:bg-amber-100"
+            >
+              View details
+            </button>
           </div>
         )}
 
@@ -3950,6 +3290,7 @@ export default function AdminDashboard({
     {/* 10. LAYOUT / HEADER FOOTER SETTINGS BLOCK */}
     {activeTab === 'layout' && (
       <LayoutTab
+        onOpenTab={(tab) => { setActiveTab(tab as SidebarTab); setSelectedBuilderPageId(null); }}
         localLayoutSettings={localLayoutSettings}
         setLocalLayoutSettings={setLocalLayoutSettings}
         onUpdateLayoutSettings={onUpdateLayoutSettings}
@@ -4230,6 +3571,7 @@ export default function AdminDashboard({
         )}
 
       </main>
+      </div>
 
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useUrlParam } from '../../lib/adminUrlState';
 import { 
   Search, HardDrive, Download, Upload, Plus, Trash2, Edit3, Eye, Copy, Check, 
   Film, FileText, Image as ImageIcon, ExternalLink, RefreshCw, AlertTriangle, 
@@ -38,8 +39,8 @@ export const FilesTab: React.FC<FilesTabProps> = ({
   handleDeleteFile,
   onRefreshFiles,
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video' | 'doc'>('all');
+  const [viewMode, setViewMode] = useUrlParam<'grid' | 'table'>('view', 'grid', true);
+  const [mediaTypeFilter, setMediaTypeFilter] = useUrlParam<'all' | 'image' | 'video' | 'doc'>('type', 'all', true);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);

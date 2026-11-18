@@ -42,7 +42,17 @@ export interface EmailTemplateData {
   billingInterval?: string;
 }
 
-const BRAND_NAME = "Ecommerce Store";
+/**
+ * The store name shown in emails. Set from Header & Footer settings by the
+ * email service immediately before a template is rendered (rendering is
+ * synchronous, so concurrent sends cannot interleave).
+ */
+let BRAND_NAME = "Our store";
+export function setEmailBrandName(name?: string | null): void {
+  const clean = String(name || '').trim();
+  BRAND_NAME = (clean || 'Our store')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 const BRAND_HEADER_BG = "#e7e7e7";
 const BRAND_PRIMARY = "#071d37";
 const BRAND_ACCENT = "#008060";
@@ -58,11 +68,17 @@ const SUPPORT_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "support@example.c
 // Deliberately not NEXTAUTH_URL: that is an auth callback host (currently the
 // vercel.app deployment URL) and would put a stranger's domain in front of every
 // customer. The apex 308-redirects to www, so www is the form that fetches clean.
-const EMAIL_ASSET_BASE_URL = (
+let EMAIL_ASSET_BASE_URL = (
   process.env.EMAIL_ASSET_BASE_URL ||
   process.env.APP_URL ||
-  'https://www.yourstore.com'
+  ''
 ).trim().replace(/\/+$/, '');
+
+/** Set from Settings → Store URL before rendering (see setEmailBrandName). */
+export function setEmailSiteUrl(url?: string | null): void {
+  const v = String(process.env.EMAIL_ASSET_BASE_URL || url || '').trim().replace(/\/+$/, '');
+  if (v) EMAIL_ASSET_BASE_URL = v;
+}
 
 function resolveEmailLogoSrc(raw?: string): string {
   const url = (raw || '').trim();
@@ -120,8 +136,7 @@ function renderBaseHeader(title: string, subtitle?: string, data?: EmailTemplate
                 </div>
               </td>
               <td style="vertical-align: middle; text-align: left;">
-                <div style="font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #071d37; text-transform: uppercase; line-height: 1.1;">ECOMMERCE STORE</div>
-                <div style="font-size: 10px; font-weight: 700; color: #008060; letter-spacing: 2px; text-transform: uppercase;">PREMIUM CANISTERS</div>
+                <div style="font-size: 20px; font-weight: 900; letter-spacing: 1px; color: #071d37; text-transform: uppercase; line-height: 1.1;">${BRAND_NAME}</div>
               </td>
             </tr>
           </table>
@@ -140,7 +155,7 @@ function renderBaseFooter(): string {
       </div>
       <div class="footer">
         <p style="margin: 0 0 8px 0; font-weight: 700; color: #ffffff;">${BRAND_NAME}</p>
-        <p style="margin: 0 0 12px 0;">Contemporary womenswear, delivered across India</p>
+        
         <p style="margin: 0;">Need support? Email us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
         <p style="margin-top: 16px; font-size: 10px; color: #64748b;">© ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
       </div>

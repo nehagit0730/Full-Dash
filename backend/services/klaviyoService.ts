@@ -1,4 +1,7 @@
 import { fetchResource, saveResource, fetchStoreSetting, saveStoreSetting, fetchLayoutSettings } from '../../serverDb';
+import { keepUnchangedSecrets, openSecrets, sealSecrets } from './secretFields';
+
+export const KLAVIYO_SECRET_KEYS = ['apiKey'];
 
 export interface KlaviyoSettings {
   enabled: boolean;
@@ -31,8 +34,8 @@ export interface KlaviyoEventLog {
 const DEFAULT_KLAVIYO_SETTINGS: KlaviyoSettings = {
   enabled: true,
   apiKey: process.env.KLAVIYO_API_KEY || '',
-  siteId: process.env.KLAVIYO_SITE_ID || process.env.KLAVIYO_PUBLIC_KEY || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || 'VPbY66',
-  publicKey: process.env.KLAVIYO_SITE_ID || process.env.KLAVIYO_PUBLIC_KEY || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || 'VPbY66',
+  siteId: process.env.KLAVIYO_SITE_ID || process.env.KLAVIYO_PUBLIC_KEY || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || '',
+  publicKey: process.env.KLAVIYO_SITE_ID || process.env.KLAVIYO_PUBLIC_KEY || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || '',
   listId: '',
   trackEvents: {
     customerSignup: true,
@@ -55,10 +58,11 @@ export async function getKlaviyoSettings(): Promise<KlaviyoSettings> {
         stored = legacy[0];
       }
     }
+    if (stored && typeof stored === 'object' && !Array.isArray(stored)) stored = openSecrets(stored, KLAVIYO_SECRET_KEYS);
 
     const layoutStored: any = await fetchLayoutSettings().catch(() => null);
 
-    const siteIdVal = stored?.siteId || stored?.publicKey || layoutStored?.klaviyoPublicKey || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || process.env.NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY || process.env.KLAVIYO_SITE_ID || 'VPbY66';
+    const siteIdVal = stored?.siteId || stored?.publicKey || layoutStored?.klaviyoPublicKey || process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID || process.env.NEXT_PUBLIC_KLAVIYO_PUBLIC_KEY || process.env.KLAVIYO_SITE_ID || '';
     const apiKeyVal = stored?.apiKey || layoutStored?.klaviyoApiKey || process.env.KLAVIYO_API_KEY || '';
 
     if (stored && typeof stored === 'object') {
@@ -93,9 +97,10 @@ function DEFAULT_SETTINGS_MERGED(item: any, apiKeyVal: string, siteIdVal: string
   };
 }
 
-export async function saveKlaviyoSettings(settings: Partial<KlaviyoSettings>): Promise<KlaviyoSettings> {
+export async function saveKlaviyoSettings(incoming: Partial<KlaviyoSettings>): Promise<KlaviyoSettings> {
+  const settings = keepUnchangedSecrets(incoming || {}, KLAVIYO_SECRET_KEYS);
   const current = await getKlaviyoSettings();
-  const siteIdVal = settings.siteId || settings.publicKey || current.siteId || 'VPbY66';
+  const siteIdVal = settings.siteId || settings.publicKey || current.siteId || '';
   const apiKeyVal = (settings.apiKey !== undefined ? settings.apiKey : current.apiKey) || '';
 
   const updated: KlaviyoSettings = {
@@ -119,8 +124,9 @@ export async function saveKlaviyoSettings(settings: Partial<KlaviyoSettings>): P
     process.env.NEXT_PUBLIC_KLAVIYO_COMPANY_ID = siteIdVal;
   }
 
-  await saveStoreSetting('klaviyo_settings', updated);
-  await saveResource('klaviyo_settings', [updated]);
+  const sealed = sealSecrets(updated, KLAVIYO_SECRET_KEYS);
+  await saveStoreSetting('klaviyo_settings', sealed);
+  await saveResource('klaviyo_settings', [sealed]);
   return updated;
 }
 
@@ -628,7 +634,7 @@ export async function trackCheckoutStarted(
     return {
       ProductID: String(i.productId || i.id || 'prod-generic'),
       SKU: String(i.sku || i.productId || i.id || 'SKU-001'),
-      ProductName: String(i.productTitle || i.title || i.name || 'Nicotine Pouch Pack'),
+      ProductName: String(i.productTitle || i.title || i.name || 'Product'),
       Quantity: qtyNum,
       ItemPrice: priceNum,
       RowTotal: parseFloat((priceNum * qtyNum).toFixed(2)),
@@ -645,7 +651,7 @@ export async function trackCheckoutStarted(
     $value: totalValue,
     ItemNames: formattedItems.map(i => i.ProductName),
     Items: formattedItems,
-    Categories: ['Nicotine Pouches', 'Storefront'],
+    Categories: ['Storefront'],
     IsSubscription: options.recurring ?? formattedItems.some(i => i.IsSubscription)
   }, {
     first_name: nameParts[0] || undefined,
@@ -669,7 +675,7 @@ export async function trackPurchaseCompleted(order: any) {
     return {
       ProductID: String(i.productId || i.id || 'prod-generic'),
       SKU: String(i.sku || i.productId || i.id || 'SKU-001'),
-      ProductName: String(i.productTitle || i.title || i.name || 'Nicotine Pouch Pack'),
+      ProductName: String(i.productTitle || i.title || i.name || 'Product'),
       Quantity: qtyNum,
       ItemPrice: priceNum,
       Price: priceNum,
@@ -713,7 +719,7 @@ export async function trackPurchaseCompleted(order: any) {
     order_id: orderIdStr,
     ItemNames: itemNames,
     Items: formattedItems,
-    Categories: ['Nicotine Pouches', 'Storefront'],
+    Categories: ['Storefront'],
     IsSubscription: isSubscriptionOrder,
     IsRenewal: isRenewal,
     OrderType: isSubscriptionOrder ? (isRenewal ? 'Subscription Renewal' : 'Subscription') : 'One-off',

@@ -157,7 +157,25 @@ export async function getIntegrationCredentials(id: string, opts: { requireEnabl
     );
   }
   if (opts.requireEnabled && !enabled) throw new Error(`${def.name} is disabled.`);
-  return { definition: def, values, mode, enabled };
+  return { definition: def, values, mode, enabled, savedInDashboard: Boolean(row) };
+}
+
+/**
+ * The values an adapter should use right now, or null when the integration is
+ * off. Saved in the dashboard → used only while switched on there.
+ * Not saved (environment variables only) → used as before, so deployments
+ * configured through the environment keep working.
+ */
+export async function getActiveIntegrationValues(id: string): Promise<Record<string, any> | null> {
+  try {
+    const { values, mode, enabled, savedInDashboard, definition } = await getIntegrationCredentials(id);
+    if (savedInDashboard && !enabled) return null;
+    if (missingRequired(definition, values, mode).length) return null;
+    return values;
+  } catch (err: any) {
+    console.warn(`[Integrations] ${id} unavailable:`, err?.message || err);
+    return null;
+  }
 }
 
 /** True when the integration is switched on and has every required credential. */

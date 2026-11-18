@@ -21,17 +21,17 @@ interface PremiumSlideshowProps {
 
 const DEFAULT_SLIDES: Slide[] = [
   {
-    title: 'Precision-Engineered Pouch Purity',
-    description: 'Sourced directly from certified laboratories utilizing medical-grade plant fiber and vacuum-fresh locks.',
+    title: 'New arrivals',
+    description: 'Fresh styles, just landed.',
     imageUrl: PLACEHOLDER_IMAGE,
-    buttonText: 'View Laboratory Journal',
-    buttonLink: 'blogs'
+    buttonText: 'Shop new in',
+    buttonLink: 'frontend-shop'
   },
   {
-    title: 'Extreme Mint Cryo Freeze',
-    description: 'Sub-zero locking technology delivering an immediate, absolute sensory refreshing experience.',
+    title: 'Bestsellers',
+    description: 'The pieces our customers love most.',
     imageUrl: PLACEHOLDER_IMAGE,
-    buttonText: 'Explore Sub-Zero Bundles',
+    buttonText: 'Shop bestsellers',
     buttonLink: 'frontend-shop'
   }
 ];

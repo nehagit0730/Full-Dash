@@ -185,7 +185,7 @@ export interface Customer {
 export interface FreeCanSelection {
   productId: string;
   productTitle: string;
-  vendor: string; // Brand, e.g. "velo"
+  vendor: string; // Brand
   variantName: string; // Flavour/variant, e.g. "Watermelon ice"
   variantId?: string;
   image: string;

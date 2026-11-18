@@ -601,6 +601,15 @@ export async function createExpressApp() {
   app.get("/api/layoutsettings", async (req, res) => {
     try {
       const data = await fetchLayoutSettings();
+      // The storefront's Klaviyo onsite script needs the public company id.
+      // It is configured under Email & marketing; older stores kept it here.
+      if (data && typeof data === "object" && !data.klaviyoPublicKey) {
+        try {
+          const { getKlaviyoSettings } = await import("./backend/services/klaviyoService");
+          const k = await getKlaviyoSettings();
+          if (k.enabled !== false && (k.siteId || k.publicKey)) data.klaviyoPublicKey = k.siteId || k.publicKey;
+        } catch (_e) {}
+      }
       // Public endpoint (the storefront header/footer read it), but the same
       // record holds the Cloudinary API secret. Only an admin gets secrets back.
       let isAdmin = false;

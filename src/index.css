@@ -224,3 +224,18 @@ body {
   .store-fade-up { animation: storeFadeUp 0.7s ease both; }
 }
 @keyframes storeFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ── App loading splash (shared with the inline copy in index.html) ── */
+.app-splash { position: fixed; inset: 0; display: grid; place-items: center; background: #ffffff; z-index: 100; }
+.app-splash__inner { display: flex; flex-direction: column; align-items: center; gap: 22px; animation: app-splash-in .3s ease-out both; }
+.app-splash__mark { width: 40px; height: 40px; border-radius: 12px; background: #0f172a; }
+.app-splash__bar { width: 148px; height: 3px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+.app-splash__bar > span { display: block; width: 40%; height: 100%; border-radius: 999px; background: #0f172a; animation: app-splash-bar 1.1s cubic-bezier(.4,0,.2,1) infinite; }
+@keyframes app-splash-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+@keyframes app-splash-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.app-ready { animation: app-ready-in .25s ease-out both; }
+@keyframes app-ready-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-splash__bar > span { animation-duration: 2.4s; }
+  .app-splash__inner, .app-ready { animation: none; }
+}

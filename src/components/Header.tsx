@@ -229,7 +229,7 @@ export default function Header({
                 ref={searchInput}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search dresses, tops, sarees…"
+                placeholder="Search products…"
                 className="flex-1 bg-transparent text-lg outline-none placeholder:text-stone/70"
                 aria-label="Search products"
               />

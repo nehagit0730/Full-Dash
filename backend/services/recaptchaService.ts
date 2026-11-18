@@ -21,6 +21,25 @@ export const DEFAULT_RECAPTCHA_SETTINGS: RecaptchaSettings = {
 };
 
 export async function getRecaptchaSettings(): Promise<RecaptchaSettings> {
+  // Settings → API & integrations → Google reCAPTCHA. Once saved there, its
+  // on/off switch is authoritative.
+  try {
+    const { getIntegrationCredentials } = await import('./integrations/store');
+    const { values, enabled, savedInDashboard } = await getIntegrationCredentials('recaptcha');
+    if (savedInDashboard) {
+      const ready = Boolean(values.siteKey && values.secretKey);
+      return {
+        ...DEFAULT_RECAPTCHA_SETTINGS,
+        enabled: enabled && ready,
+        siteKey: String(values.siteKey || ''),
+        secretKey: String(values.secretKey || ''),
+        minScore: Number.isFinite(Number(values.minScore)) ? Number(values.minScore) : 0.5
+      };
+    }
+  } catch (err: any) {
+    console.warn('[RecaptchaService] Could not read Integrations settings:', err?.message || err);
+  }
+
   try {
     const list = await fetchResource('recaptcha_settings');
     if (Array.isArray(list) && list.length > 0 && list[0]) {

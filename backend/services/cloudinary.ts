@@ -25,7 +25,14 @@ export function isCloudinaryConfigured(): boolean {
 export async function ensureCloudinaryConfigured(): Promise<boolean> {
   try {
     const { getIntegrationCredentials } = await import('./integrations/store');
-    const { values } = await getIntegrationCredentials('cloudinary');
+    const { values, enabled, savedInDashboard } = await getIntegrationCredentials('cloudinary');
+    if (savedInDashboard && !enabled) {
+      // Switched off in the dashboard: uploads fall back to local storage.
+      delete process.env.CLOUDINARY_CLOUD_NAME;
+      delete process.env.CLOUDINARY_API_KEY;
+      delete process.env.CLOUDINARY_API_SECRET;
+      return false;
+    }
     const cloudName = String(values.cloudName || '').trim();
     const apiKey = String(values.apiKey || '').trim();
     const apiSecret = String(values.apiSecret || '').trim();

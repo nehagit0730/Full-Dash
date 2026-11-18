@@ -67,6 +67,29 @@ export function readConfig(): { ok: true; config: VercelAnalyticsConfig } | { ok
   };
 }
 
+/**
+ * Settings → API & integrations → Vercel Analytics first; environment
+ * variables otherwise (the hub already falls back to them per field).
+ */
+export async function readConfigAsync(): Promise<ReturnType<typeof readConfig>> {
+  try {
+    const { getActiveIntegrationValues } = await import("./integrations/store");
+    const v = await getActiveIntegrationValues("vercel-analytics");
+    if (v?.apiToken && v?.projectId) {
+      return {
+        ok: true,
+        config: {
+          token: String(v.apiToken).trim(),
+          projectId: String(v.projectId).trim(),
+          teamId: String(v.teamId || "").trim() || undefined,
+          teamSlug: String(v.teamSlug || "").trim() || undefined
+        }
+      };
+    }
+  } catch {}
+  return readConfig();
+}
+
 export function isConfigured(): boolean {
   return readConfig().ok;
 }
@@ -283,7 +306,7 @@ let cache: { key: string; at: number; value: VercelAnalyticsResult } | null = nu
 export async function fetchWebAnalytics(rangeDays = DEFAULT_RANGE_DAYS): Promise<VercelAnalyticsResult> {
   const days = Math.max(1, Math.min(365, Math.floor(rangeDays) || DEFAULT_RANGE_DAYS));
 
-  const cfg = readConfig();
+  const cfg = await readConfigAsync();
   if (cfg.ok === false) return { configured: false, missing: cfg.missing };
 
   const cacheKey = `${days}:${cfg.config.projectId}`;

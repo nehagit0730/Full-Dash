@@ -1,4 +1,7 @@
 import { Router, Request, Response } from 'express';
+import { maskSecrets } from '../services/secretFields';
+import { isMaskPlaceholder } from '../services/integrations/crypto';
+import { KLAVIYO_SECRET_KEYS } from '../services/klaviyoService';
 import {
   getKlaviyoSettings,
   saveKlaviyoSettings,
@@ -36,7 +39,7 @@ router.get('/lists', requireAdmin, async (req: Request, res: Response) => {
 router.get('/settings', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const settings = await getKlaviyoSettings();
-    res.json(settings);
+    res.json(maskSecrets(settings as any, KLAVIYO_SECRET_KEYS));
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch Klaviyo settings' });
   }
@@ -46,7 +49,7 @@ router.get('/settings', requireAdmin, async (_req: Request, res: Response) => {
 router.post('/settings', requireAdmin, async (req: Request, res: Response) => {
   try {
     const updated = await saveKlaviyoSettings(req.body);
-    res.json({ success: true, settings: updated });
+    res.json({ success: true, settings: maskSecrets(updated as any, KLAVIYO_SECRET_KEYS) });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to save Klaviyo settings' });
   }
@@ -55,7 +58,9 @@ router.post('/settings', requireAdmin, async (req: Request, res: Response) => {
 // GET & POST /api/klaviyo/verify - Verify Klaviyo Private API Key
 const handleVerify = async (req: Request, res: Response) => {
   try {
-    const apiKey = req.body?.apiKey || req.query?.apiKey as string | undefined;
+    const rawKey = req.body?.apiKey || req.query?.apiKey as string | undefined;
+    // A masked value from the form means "test the saved key".
+    const apiKey = rawKey && !isMaskPlaceholder(rawKey) ? rawKey : undefined;
     const settings = await getKlaviyoSettings();
     let keyToTest = (apiKey || settings.apiKey || process.env.KLAVIYO_API_KEY || '').trim();
     if (keyToTest.toLowerCase().startsWith('klaviyo-api-key ')) {

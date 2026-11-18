@@ -18,9 +18,9 @@ export default function Footer({ onNavigate, layoutSettings }: FooterProps) {
   const { executeRecaptcha } = useRecaptcha();
   const name = storeName(layoutSettings);
   const description =
-    layoutSettings?.footerLogoDescription && !/nicotine|pouch|canister/i.test(layoutSettings.footerLogoDescription)
+    layoutSettings?.footerLogoDescription
       ? layoutSettings.footerLogoDescription
-      : 'Contemporary womenswear — dresses, ethnic wear and everyday essentials, designed to be worn and loved.';
+      : 'Quality products, fair prices and friendly service — delivered to your door.';
 
   const handleSubscribe = async () => {
     setErrorMsg('');

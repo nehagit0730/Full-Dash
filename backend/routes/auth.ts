@@ -2,10 +2,18 @@ import { Router, Request, Response } from 'express';
 import { fetchResource, saveResource } from '../../serverDb';
 import { sendWelcomeEmail } from '../services/emailService';
 import { verifyCustomerToken, AdminAuthNotConfiguredError } from '../services/adminAuth';
+import { getActiveIntegrationValues } from '../services/integrations/store';
+import { getSiteUrl } from '../services/siteUrl';
+
+/** Google OAuth client from Settings → API & integrations (env vars as fallback). */
+async function getGoogleClient(): Promise<{ clientId: string; clientSecret: string }> {
+  const v = await getActiveIntegrationValues('google-signin');
+  return { clientId: String(v?.clientId || ''), clientSecret: String(v?.clientSecret || '') };
+}
 
 const router = Router();
 
-function getRedirectUri(req: Request): string {
+async function getRedirectUri(req: Request): Promise<string> {
   const clientOrigin = (req.query.origin || req.headers['x-client-origin']) as string;
   const isLocalOrigin = Boolean(
     clientOrigin && /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(clientOrigin.replace(/\/+$/, ''))
@@ -19,8 +27,8 @@ function getRedirectUri(req: Request): string {
   }
 
   // 2. Otherwise honour an explicitly configured deployment URL.
-  const envUrl = process.env.NEXTAUTH_URL || process.env.APP_URL;
-  if (envUrl && !envUrl.includes('localhost') && envUrl !== 'MY_APP_URL') {
+  const envUrl = await getSiteUrl();
+  if (envUrl && !envUrl.includes('localhost')) {
     return `${envUrl.replace(/\/+$/, '')}/auth/google/callback`;
   }
 
@@ -37,16 +45,16 @@ function getRedirectUri(req: Request): string {
 }
 
 // Endpoint to generate Google OAuth Authorization URL
-router.get('/google/url', (req: Request, res: Response) => {
+router.get('/google/url', async (req: Request, res: Response) => {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.OAUTH_CLIENT_ID || '';
-    const redirectUri = getRedirectUri(req);
+    const { clientId } = await getGoogleClient();
+    const redirectUri = await getRedirectUri(req);
 
     if (!clientId) {
       // Return configured indicator if client ID is missing
       return res.json({
         configured: false,
-        message: 'GOOGLE_CLIENT_ID environment variable is not configured.',
+        message: 'Google sign-in is not set up. Add it in Settings → API & integrations.',
         redirectUri
       });
     }
@@ -120,13 +128,13 @@ router.post('/google/verify', async (req: Request, res: Response) => {
         location: 'United Kingdom',
         ordersCount: 0,
         amountSpent: 0,
-        addresses: ['United Kingdom'],
+        addresses: [],
         wishlist: [],
         emailVerified: true,
         emailVerifiedAt: new Date().toISOString(),
         avatarUrl: picture,
         googleId: googleUser.id,
-        referralCode: `POUCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+        referralCode: `REF-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         storeCredit: 0
       };
       customersList.unshift(found);
@@ -170,9 +178,8 @@ export async function handleGoogleOAuthCallback(req: Request, res: Response) {
   }
 
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.OAUTH_CLIENT_ID || '';
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.OAUTH_CLIENT_SECRET || '';
-    const redirectUri = getRedirectUri(req);
+    const { clientId, clientSecret } = await getGoogleClient();
+    const redirectUri = await getRedirectUri(req);
 
     // 1. Exchange authorization code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -219,7 +226,7 @@ export async function handleGoogleOAuthCallback(req: Request, res: Response) {
       if (picture && !found.avatarUrl) found.avatarUrl = picture;
       if (googleUser.id) found.googleId = googleUser.id;
       if (!found.referralCode) {
-        found.referralCode = `POUCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+        found.referralCode = `REF-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
       }
     } else {
       found = {
@@ -230,13 +237,13 @@ export async function handleGoogleOAuthCallback(req: Request, res: Response) {
         location: 'United Kingdom',
         ordersCount: 0,
         amountSpent: 0,
-        addresses: ['United Kingdom'],
+        addresses: [],
         wishlist: [],
         emailVerified: true,
         emailVerifiedAt: new Date().toISOString(),
         avatarUrl: picture,
         googleId: googleUser.id,
-        referralCode: `POUCH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+        referralCode: `REF-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         storeCredit: 0
       };
       customersList.unshift(found);

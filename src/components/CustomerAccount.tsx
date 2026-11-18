@@ -169,7 +169,7 @@ function LoyaltyMilestoneCard({
             >
               {reward.rewardKind === 'choice'
                 ? 'Choose your reward'
-                : `Choose your free can${outstandingCans !== 1 ? 's' : ''}`}
+                : `Choose your free item${outstandingCans !== 1 ? 's' : ''}`}
             </button>
           )}
 
@@ -1402,12 +1402,7 @@ export default function CustomerAccount({
               </button>
             </div>
 
-            <div className="text-center pt-2 border-t border-white/10">
-              <span className="inline-block bg-white/10 text-[9px] border border-white/20 py-0.5 px-2 rounded-full text-slate-200 font-bold mb-1.5">18+ Only</span>
-              <p className="text-[9px] text-slate-400 leading-snug">
-                Nicotine pouches are for adult consumers only. Please consume responsibly.
-              </p>
-            </div>
+
           </div>
         </aside>
 
@@ -1710,7 +1705,7 @@ export default function CustomerAccount({
                           <div>
                             <h3 className="font-extrabold text-sm text-[#071d37] uppercase tracking-wider">No Orders Placed Yet</h3>
                             <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-                              Your customer account is active! Browse our premium nicotine pouches or set up a recurring subscription box for automatic delivery savings.
+                              Your account is ready. Browse the store to place your first order.
                             </p>
                           </div>
                           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 max-w-sm mx-auto">
@@ -1718,7 +1713,7 @@ export default function CustomerAccount({
                               onClick={() => { window.location.href = '/'; }}
                               className="flex-1 bg-[#071d37] hover:bg-[#0c2e56] text-white font-bold text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl transition-colors cursor-pointer text-center"
                             >
-                              Shop Pouches
+                              Start shopping
                             </button>
                             <button 
                               onClick={() => { window.location.href = '/subscribe'; }}
@@ -1816,7 +1811,7 @@ export default function CustomerAccount({
                           </div>
                           <div>
                             <p className="text-xs font-black text-[#071d37]">Order {myOrders[0].id}</p>
-                            <p className="text-[10px] text-slate-500">{myOrders[0].date} • {myOrders[0].items.reduce((sum, item) => sum + item.quantity, 0)} canisters</p>
+                            <p className="text-[10px] text-slate-500">{myOrders[0].date} • {myOrders[0].items.reduce((sum, item) => sum + item.quantity, 0)} items</p>
                           </div>
                         </div>
 
@@ -2171,7 +2166,7 @@ export default function CustomerAccount({
                       </div>
                       <p className="text-sm text-slate-800 font-extrabold uppercase tracking-wide">Your Wishlist is Empty</p>
                       <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                        Explore our catalog and click the heart icon on any product to save your favorite nicotine pouch cans here!
+                        Explore our catalog and click the heart icon on any product to save your favourites here.
                       </p>
                     </div>
                   ) : (
@@ -2215,7 +2210,7 @@ export default function CustomerAccount({
                               </div>
 
                               <div>
-                                <p className="text-[9.5px] text-slate-400 uppercase font-black tracking-wider">{prod.category || 'Pouches'}</p>
+                                <p className="text-[9.5px] text-slate-400 uppercase font-black tracking-wider">{prod.category || 'Product'}</p>
                                 <h4 className="font-extrabold text-slate-900 text-xs truncate mt-0.5" title={displayTitle}>{displayTitle}</h4>
                                 <p className="text-sm text-indigo-700 font-black mt-1">₹{(Number(prod.price || 0)).toFixed(2)}</p>
                               </div>
@@ -2302,7 +2297,7 @@ export default function CustomerAccount({
                           unlockMsg: "Unlock: Gold Member",
                           benefits: [
                             "Silver Account Badge 🥈",
-                            "Early Access to New Flavours 🎁",
+                            "Early Access to New Arrivals 🎁",
                             "Exclusive Subscriber-Only Offers 💰"
                           ],
                         },
@@ -2839,7 +2834,7 @@ export default function CustomerAccount({
                           required 
                           value={supportSubject}
                           onChange={(e) => setSupportSubject(e.target.value)}
-                          placeholder="e.g., Subscription flavour swapping / Delivery question" 
+                          placeholder="e.g., Delivery question / Order change" 
                           className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-xl focus:ring-2 focus:ring-[#071d37] outline-none" 
                         />
                       </div>
@@ -2880,8 +2875,8 @@ export default function CustomerAccount({
                     
                     <div className="space-y-3 text-xs">
                       {[
-                        { q: 'Can I swap can flavors?', a: 'Yes! Simply use the Swapper in your Subscriptions tab before shipment day.' },
-                        { q: 'How do loyalty gifts work?', a: 'Place regular orders to unlock free delivery coupons or premium extra pouch cans.' },
+                        { q: 'Where can I track my order?', a: 'Open the Orders tab — every order shows its latest status and tracking link.' },
+                        { q: 'How do loyalty gifts work?', a: 'Place orders to unlock rewards such as free delivery, store credit and free items.' },
                         { q: 'How do referrals trigger?', a: 'When friends join using your unique code, a ₹5.00 wallet discount applies automatically.' }
                       ].map((faq, idx) => (
                         <div key={idx} className="space-y-1 p-2 bg-slate-50 border border-slate-100 rounded-xl">
@@ -3328,8 +3323,8 @@ export default function CustomerAccount({
                   onChange={(e) => setReturnReason(e.target.value)}
                   className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-medium focus:ring-1 focus:ring-slate-900"
                 >
-                  <option value="Damaged or Defective">Damaged or Defective Canister</option>
-                  <option value="Wrong Flavor / Strength Delivered">Wrong Flavor or Strength Delivered</option>
+                  <option value="Damaged or Defective">Damaged or defective item</option>
+                  <option value="Wrong Item Delivered">Wrong item, size or colour delivered</option>
                   <option value="Changed Mind / Unwanted Item">Changed Mind / Unwanted Item</option>
                   <option value="Expired Product">Expired Product</option>
                   <option value="Other">Other Issue</option>
@@ -3342,7 +3337,7 @@ export default function CustomerAccount({
                   rows={3}
                   value={returnNotes}
                   onChange={(e) => setReturnNotes(e.target.value)}
-                  placeholder="Describe your issue or specify the replacement flavor/brand for exchange..."
+                  placeholder="Describe the issue, or the replacement you would like for an exchange…"
                   className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50 font-medium focus:ring-1 focus:ring-slate-900 text-xs"
                 />
               </div>

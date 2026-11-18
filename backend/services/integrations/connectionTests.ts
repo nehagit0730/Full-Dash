@@ -189,6 +189,79 @@ const tests: Record<string, () => Promise<TestResult>> = {
     return { ok: false, message: `Cloudinary returned HTTP ${r.status}: ${redact(r.body?.error?.message || r.text, [values.apiSecret])}` };
   },
 
+  async site() {
+    const { values } = await getIntegrationCredentials("site");
+    const raw = String(values.appUrl || "").trim();
+    let u: URL;
+    try {
+      u = new URL(raw);
+    } catch {
+      return { ok: false, message: "Enter a full URL such as https://www.yourstore.com." };
+    }
+    if (u.protocol !== "https:" && !/^(localhost|127\.0\.0\.1)$/.test(u.hostname)) {
+      return { ok: false, message: "Use https:// — payment providers and Google sign-in require it." };
+    }
+    const r = await http(`${u.origin}/api/site-status`, { method: "GET" });
+    return r.status < 500
+      ? { ok: true, message: `${u.host} is reachable (HTTP ${r.status}).` }
+      : { ok: false, message: `${u.host} answered HTTP ${r.status}.` };
+  },
+
+  async "google-signin"() {
+    // Exchanging a deliberately invalid code tells the two failure modes apart:
+    // Google answers "invalid_grant" for a valid client and "invalid_client"
+    // when the ID or secret is wrong. No user data is involved.
+    const { values } = await getIntegrationCredentials("google-signin");
+    const r = await http("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code: "connection-test",
+        client_id: String(values.clientId || ""),
+        client_secret: String(values.clientSecret || ""),
+        redirect_uri: "https://example.com/auth/google/callback",
+        grant_type: "authorization_code"
+      }).toString()
+    });
+    const err = String(r.body?.error || "");
+    if (err === "invalid_grant" || err === "redirect_uri_mismatch") {
+      return { ok: true, message: "Google accepted the client ID and secret." };
+    }
+    if (err === "invalid_client" || err === "unauthorized_client") {
+      return { ok: false, message: "Google rejected the client ID or secret." };
+    }
+    return { ok: false, message: `Unexpected answer from Google (HTTP ${r.status}): ${redact(r.text, [String(values.clientSecret || "")])}` };
+  },
+
+  async recaptcha() {
+    const { values } = await getIntegrationCredentials("recaptcha");
+    const r = await http("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret: String(values.secretKey || ""), response: "connection-test" }).toString()
+    });
+    const codes: string[] = Array.isArray(r.body?.["error-codes"]) ? r.body["error-codes"] : [];
+    if (codes.includes("invalid-input-secret") || codes.includes("missing-input-secret")) {
+      return { ok: false, message: "Google rejected the reCAPTCHA secret key." };
+    }
+    if (codes.includes("invalid-input-response") || codes.includes("timeout-or-duplicate")) {
+      return { ok: true, message: "Google accepted the secret key. Check the site key's domain list matches your store URL." };
+    }
+    return { ok: false, message: `Unexpected answer from Google (HTTP ${r.status}).` };
+  },
+
+  async "vercel-analytics"() {
+    const { values } = await getIntegrationCredentials("vercel-analytics");
+    const qs = values.teamId ? `?teamId=${encodeURIComponent(values.teamId)}` : values.teamSlug ? `?slug=${encodeURIComponent(values.teamSlug)}` : "";
+    const r = await http(`https://api.vercel.com/v9/projects/${encodeURIComponent(String(values.projectId || ""))}${qs}`, {
+      headers: { Authorization: `Bearer ${values.apiToken}` }
+    });
+    if (r.status === 200) return { ok: true, message: `Vercel project "${r.body?.name || values.projectId}" found.` };
+    if (r.status === 403 || r.status === 401) return { ok: false, message: "Vercel rejected the token (or it cannot see this project/team)." };
+    if (r.status === 404) return { ok: false, message: "Vercel could not find that project. For team projects, also set the Team ID." };
+    return { ok: false, message: `Vercel returned HTTP ${r.status}: ${redact(r.body?.error?.message || r.text, [String(values.apiToken || "")])}` };
+  },
+
   async agechecked() {
     // AgeChecked's AC0130 API has no credential-only endpoint: the only way to
     // prove the key works is a real verification. Say so instead of pretending.

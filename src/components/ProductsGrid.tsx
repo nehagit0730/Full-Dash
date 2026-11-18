@@ -35,7 +35,7 @@ export default function ProductsGrid({
       onToggleWishlist={onToggleWishlist}
       onNeedLogin={onOpenLoginModal}
       title="Shop all"
-      description="Dresses, ethnic wear, tops and everyday essentials."
+      description="Browse our full range of products."
     />
   );
 }

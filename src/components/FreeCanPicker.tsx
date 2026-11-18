@@ -156,7 +156,7 @@ export default function FreeCanPicker({
                     type="text"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    placeholder="Search brand, product or flavour…"
+                    placeholder="Search products…"
                     className="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-250 bg-white focus:outline-hidden focus:border-[#dfa047] font-semibold text-slate-700"
                   />
                 </div>

@@ -373,14 +373,14 @@ export function EmailSettingsTab() {
               {
                 id: 'p1',
                 productId: 'p1',
-                productTitle: 'VELO Freeze Max Strong 17mg Canister',
+                productTitle: 'Classic Cotton T-Shirt — Black / M',
                 price: 5.99,
                 quantity: 4
               },
               {
                 id: 'p2',
                 productId: 'p2',
-                productTitle: 'KILLA Cold Mint Extra Strong 16mg Canister',
+                productTitle: 'Canvas Tote Bag',
                 price: 5.49,
                 quantity: 2
               }
