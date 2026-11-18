@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { 
-  CustomPage, PageSection, Product, Collection, BlogPost 
+import React, { useRef, useState } from 'react';
+import {
+  CustomPage, PageSection, Product, Collection, BlogPost, LayoutSettings
 } from '../../types';
+import { ArrowLeft, Copy, EyeOff, ExternalLink, Monitor, PanelBottom, PanelTop, Smartphone, Tablet } from 'lucide-react';
+import PreviewFrame, { PreviewDevice } from './builder/PreviewFrame';
+import SectionStylePanel from './builder/SectionStylePanel';
+import { ColorField, Field, FontSelect, Group, Row, Segmented, TextInput } from './builder/controls';
+import Header from '../Header';
+import Footer from '../Footer';
 import { 
   Download, Upload, Plus, Settings, Clipboard, Eye, Trash2, Globe, MoveUp, MoveDown, 
   GripVertical, RefreshCw, Check, Save, Search, X, ImageIcon, Columns, Grid, ShoppingBag, 
@@ -54,6 +60,12 @@ export interface PagesTabProps {
   products: Product[];
   collections: Collection[];
   blogs: BlogPost[];
+  /** Header/footer settings, so the preview shows the store's real chrome. */
+  layoutSettings?: LayoutSettings;
+  /** What the live homepage renders: the builder homepage or the built-in theme. */
+  homepageSource?: 'theme' | 'page-builder';
+  onSetHomepageSource?: (source: 'theme' | 'page-builder') => void;
+  onOpenLayoutSettings?: () => void;
 }
 
 export const PagesTab: React.FC<PagesTabProps> = ({
@@ -92,8 +104,86 @@ export const PagesTab: React.FC<PagesTabProps> = ({
   products,
   collections,
   blogs,
+  layoutSettings,
+  homepageSource,
+  onSetHomepageSource,
+  onOpenLayoutSettings,
 }) => {
   const [editingMetaPageId, setEditingMetaPageId] = useState<string | null>(null);
+
+  // ── Section editor state ──────────────────────────────────────────────
+  const [device, setDevice] = useState<PreviewDevice>('desktop');
+  const [showChrome, setShowChrome] = useState(true);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerHover, setPickerHover] = useState<string | null>(null);
+  const [panelTab, setPanelTab] = useState<'content' | 'style'>('content');
+  const previewDocRef = useRef<Document | null>(null);
+
+  const pickerItems = AVAILABLE_SECTION_TEMPLATES.filter(item => {
+    const q = moduleSearchQuery.toLowerCase();
+    return item.label.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || item.type.toLowerCase().includes(q);
+  });
+  const pickerPreview = pickerItems.find(i => i.type === pickerHover) || pickerItems[0];
+
+  const exitBuilder = () => {
+    if (hasUnsavedChanges && !confirm('You have unsaved changes. Leave the editor and discard them?')) return;
+    if (hasUnsavedChanges) handleGlobalDiscard();
+    setSelectedBuilderPageId(null);
+    setSelectedBuilderSectionId(null);
+    setHasUnsavedChanges(false);
+  };
+
+  /** Selects a section; from the list it also scrolls the preview to it. */
+  const selectSection = (id: string, scrollPreview: boolean) => {
+    setSelectedBuilderSectionId(id);
+    if (scrollPreview) {
+      previewDocRef.current?.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  /** Replaces the page being edited in one update (one undo-able change). */
+  const commitEditingPage = (fn: (p: CustomPage) => CustomPage) => {
+    if (!currentlyEditingPage) return;
+    const updated = localPages.map(p => (p.id === currentlyEditingPage.id ? fn(p) : p));
+    setLocalPages(updated);
+    onUpdateCustomPages(updated);
+    setHasUnsavedChanges(true);
+  };
+
+  const patchSection = (sectionId: string, patch: Record<string, any>) =>
+    commitEditingPage(p => ({
+      ...p,
+      sections: p.sections.map(s => (s.id === sectionId ? { ...s, settings: { ...s.settings, ...patch } } : s))
+    }));
+
+  const toggleSectionHidden = (sectionId: string) => {
+    const sec = currentlyEditingPage?.sections.find(s => s.id === sectionId);
+    if (sec) patchSection(sectionId, { hidden: sec.settings?.hidden ? undefined : true });
+  };
+
+  const duplicateSection = (sectionId: string) => {
+    const newId = `sec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    commitEditingPage(p => {
+      const i = p.sections.findIndex(s => s.id === sectionId);
+      if (i < 0) return p;
+      const copy: PageSection = JSON.parse(JSON.stringify(p.sections[i]));
+      copy.id = newId;
+      const sections = [...p.sections];
+      sections.splice(i + 1, 0, copy);
+      return { ...p, sections };
+    });
+    setSelectedBuilderSectionId(newId);
+  };
+
+  const patchPageSettings = (patch: Record<string, any>) =>
+    commitEditingPage(p => ({ ...p, settings: { ...(p.settings || {}), ...patch } }));
+
+  const addSection = (type: string) => {
+    handleAddSectionToPage(type as any);
+    setShowPicker(false);
+    setModuleSearchQuery('');
+    setPanelTab('content');
+  };
 
   const handleUpdatePageMeta = (pageId: string, updates: { title?: string; slug?: string; visibility?: 'Visible' | 'Hidden' }) => {
     const updated = localPages.map(p => {
@@ -392,862 +482,412 @@ export const PagesTab: React.FC<PagesTabProps> = ({
         </div>
       ) : (
         // ----------------------------------------------------
-        // THE EXQUISITE VISUAL SECTION LAYOUT BUILDER SCREEN
+        // FULL-SCREEN SECTION EDITOR (Shopify theme-editor style)
         // ----------------------------------------------------
-        <div className="space-y-4">
-          {/* Save Options Action Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 text-white p-3.5 px-4 rounded-xl shadow-md border border-slate-800 gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => {
-                  if (hasUnsavedChanges && !confirm("You have unsaved adjustments! Exit anyway and discard modifications?")) {
-                    return;
-                  }
-                  setSelectedBuilderPageId(null);
-                  setSelectedBuilderSectionId(null);
-                  setHasUnsavedChanges(false);
-                }}
-                className="text-white hover:text-slate-300 cursor-pointer text-xs font-bold flex items-center gap-1.5 bg-slate-800 hover:bg-slate-750 p-2 py-1 rounded-lg border border-slate-700 transition"
-              >
-                ← Exit Builder
-              </button>
+        <div className="fixed inset-0 z-[70] flex flex-col bg-[#f1f1f1] text-slate-900 font-sans">
+          {/* Top bar */}
+          <div className="h-14 shrink-0 bg-white border-b border-slate-200 flex items-center gap-3 px-3">
+            <button
+              type="button"
+              onClick={exitBuilder}
+              title="Exit editor"
+              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="hidden sm:block h-6 w-px bg-slate-200" />
 
-              <div className="flex flex-wrap items-center gap-2 border-l border-slate-800 pl-3">
-                <div>
-                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Page Title</label>
-                  <input
-                    type="text"
-                    value={currentlyEditingPage?.title || ''}
-                    onChange={(e) => {
-                      if (currentlyEditingPage) {
-                        handleUpdatePageMeta(currentlyEditingPage.id, { title: e.target.value });
-                      }
-                    }}
-                    className="bg-slate-800 border border-slate-700 text-white font-black text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400 w-36 sm:w-44"
-                    placeholder="Page Title"
-                  />
-                </div>
-                {!currentlyEditingPage?.isHomepage && (
-                  <div>
-                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">URL Slug (/pages/)</label>
-                    <input
-                      type="text"
-                      value={currentlyEditingPage?.slug || ''}
-                      onChange={(e) => {
-                        if (currentlyEditingPage) {
-                          handleUpdatePageMeta(currentlyEditingPage.id, { slug: e.target.value });
-                        }
-                      }}
-                      className="bg-slate-800 border border-slate-700 text-amber-300 font-mono font-bold text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400 w-36 sm:w-48"
-                      placeholder="page-slug"
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Visibility</label>
-                  <select
-                    value={currentlyEditingPage?.visibility || 'Visible'}
-                    onChange={(e) => {
-                      if (currentlyEditingPage) {
-                        handleUpdatePageMeta(currentlyEditingPage.id, { visibility: e.target.value as 'Visible' | 'Hidden' });
-                      }
-                    }}
-                    className="bg-slate-800 border border-slate-700 text-white font-bold text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400 cursor-pointer"
-                  >
-                    <option value="Visible">Visible</option>
-                    <option value="Hidden">Hidden</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              {hasUnsavedChanges && (
-                <button
-                  onClick={() => {
-                    if (confirm("Revert layout to the last saved state?")) {
-                      handleGlobalDiscard();
-                      setSelectedBuilderSectionId(null);
-                    }
-                  }}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] py-1.5 px-3 rounded-lg border border-slate-700 cursor-pointer transition"
-                >
-                  Revert Draft
-                </button>
-              )}
-              <button
-                onClick={handleGlobalSave}
-                disabled={!hasUnsavedChanges || isSaving}
-                className={`font-extrabold text-[10px] py-1.5 px-4 rounded-lg flex items-center gap-1.5 uppercase tracking-wider transition-all duration-300 shadow-sm border ${
-                  isSaving
-                    ? 'bg-slate-700 text-slate-300 border-slate-700 cursor-wait'
-                    : hasUnsavedChanges
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 cursor-pointer ring-4 ring-emerald-400/40 animate-pulse shadow-md shadow-emerald-900/30 font-black'
-                    : 'bg-slate-800 text-slate-400 border-slate-700 cursor-not-allowed select-none'
+            <div className="flex items-center gap-2 min-w-0">
+              <select
+                value={currentlyEditingPage?.id || ''}
+                onChange={(e) => {
+                  setSelectedBuilderPageId(e.target.value);
+                  setSelectedBuilderSectionId(null);
+                }}
+                className="max-w-[220px] truncate rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[13px] font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                title="Switch page"
+              >
+                {localPages.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.isHomepage ? `🏠 ${p.title || 'Home page'}` : p.title || p.slug}
+                  </option>
+                ))}
+              </select>
+              <span
+                className={`hidden md:inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                  currentlyEditingPage?.visibility === 'Hidden' ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-700'
                 }`}
               >
-                {isSaving ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-300" />
-                ) : !hasUnsavedChanges ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
-                ) : (
-                  <Save className="h-3.5 w-3.5" />
-                )}
-                <span>{isSaving ? 'Saving...' : !hasUnsavedChanges ? 'All Saved & Live' : 'Save Changes'}</span>
-              </button>
+                {currentlyEditingPage?.visibility === 'Hidden' ? 'Hidden' : 'Live'}
+              </span>
             </div>
+
+            <div className="flex-1" />
+
+            <div className="flex items-center rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+              {([
+                { id: 'desktop', icon: <Monitor className="h-4 w-4" />, label: 'Desktop' },
+                { id: 'tablet', icon: <Tablet className="h-4 w-4" />, label: 'Tablet' },
+                { id: 'mobile', icon: <Smartphone className="h-4 w-4" />, label: 'Mobile' }
+              ] as const).map(d => (
+                <button
+                  key={d.id}
+                  type="button"
+                  title={d.label}
+                  onClick={() => setDevice(d.id)}
+                  className={`h-8 w-9 flex items-center justify-center rounded-md transition ${
+                    device === d.id ? 'bg-white shadow-sm ring-1 ring-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {d.icon}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowChrome(v => !v)}
+              title={showChrome ? 'Hide header & footer in preview' : 'Show header & footer in preview'}
+              className={`hidden md:flex h-9 w-9 items-center justify-center rounded-lg border ${
+                showChrome ? 'border-slate-300 bg-white text-slate-700' : 'border-slate-200 bg-slate-100 text-slate-400'
+              } hover:bg-slate-50`}
+            >
+              <PanelTop className="h-4 w-4" />
+            </button>
+
+            {currentlyEditingPage && (
+              <button
+                type="button"
+                onClick={() => handlePreviewPage(currentlyEditingPage)}
+                title="View the live page"
+                className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </button>
+            )}
+
+            {hasUnsavedChanges && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Discard all unsaved changes?')) {
+                    handleGlobalDiscard();
+                    setSelectedBuilderSectionId(null);
+                  }
+                }}
+                className="hidden sm:block h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Discard
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleGlobalSave}
+              disabled={!hasUnsavedChanges || isSaving}
+              className={`h-9 rounded-lg px-4 text-[13px] font-semibold flex items-center gap-1.5 transition ${
+                hasUnsavedChanges && !isSaving
+                  ? 'bg-slate-900 text-white hover:bg-slate-800'
+                  : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              {isSaving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : !hasUnsavedChanges ? <Check className="h-3.5 w-3.5" /> : null}
+              {isSaving ? 'Saving…' : hasUnsavedChanges ? 'Save' : 'Saved'}
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-slate-100 p-5 rounded-2xl border border-slate-250">
-            
-            {/* 1. Left controls column: Section stacking */}
-            <div className="lg:col-span-1 space-y-4">
-              <div className="bg-white border rounded-xl p-4 shadow-xs space-y-4">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                  <h4 className="font-black text-slate-700 uppercase tracking-wide text-xs">Page Sections</h4>
-                  <button
-                    onClick={() => {
-                      if (hasUnsavedChanges && !confirm("You have unsaved adjustments! Exit anyway and discard modifications?")) {
-                        return;
-                      }
-                      setSelectedBuilderPageId(null);
-                      setSelectedBuilderSectionId(null);
-                      setHasUnsavedChanges(false);
-                    }}
-                    className="text-[10px] text-slate-400 font-semibold hover:text-slate-600"
-                  >
-                    ← Exit
-                  </button>
-                </div>
+          {/* The live homepage is not this page: say so, and offer the switch. */}
+          {currentlyEditingPage?.isHomepage && homepageSource === 'theme' && (
+            <div className="shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-amber-900">
+              <Info className="h-4 w-4 shrink-0" />
+              <span>
+                Your live homepage is set to the built-in theme design, so edits here don't appear on the homepage.
+              </span>
+              <button
+                type="button"
+                onClick={() => onSetHomepageSource?.('page-builder')}
+                className="font-semibold underline underline-offset-2 hover:text-amber-700"
+              >
+                Use this page as the homepage
+              </button>
+            </div>
+          )}
 
-                {/* Section stacking list */}
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {currentlyEditingPage?.sections.map((sec, idx) => (
-                    <div 
+          <div className="flex-1 min-h-0 flex relative">
+            {/* Left: section tree */}
+            <aside className="w-[272px] shrink-0 bg-white border-r border-slate-200 flex flex-col min-h-0">
+              <div className="px-4 py-3 border-b border-slate-200">
+                <h3 className="text-[14px] font-semibold truncate">{currentlyEditingPage?.title || 'Page'}</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto py-2 text-[13px]">
+                <div className="px-4 pt-2 pb-1 text-[12px] font-semibold text-slate-900">Header</div>
+                <button
+                  type="button"
+                  onClick={() => onOpenLayoutSettings?.()}
+                  className="w-full flex items-center gap-2 px-4 py-1.5 text-slate-700 hover:bg-slate-100 text-left"
+                  title="Edit in Header & Footer settings"
+                >
+                  <PanelTop className="h-4 w-4 text-slate-500" /> Header
+                </button>
+
+                <div className="mt-3 border-t border-slate-100 px-4 pt-3 pb-1 text-[12px] font-semibold text-slate-900">Template</div>
+                {(currentlyEditingPage?.sections || []).map((sec, idx) => {
+                  const selected = selectedBuilderSectionId === sec.id;
+                  const hidden = !!sec.settings?.hidden;
+                  return (
+                    <div
                       key={sec.id}
-                      onClick={() => setSelectedBuilderSectionId(sec.id)}
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData('text/plain', idx.toString());
                         e.dataTransfer.effectAllowed = 'move';
                       }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                      }}
+                      onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         e.preventDefault();
-                        const dragIdxStr = e.dataTransfer.getData('text/plain');
-                        if (dragIdxStr !== '') {
-                          const dragIdx = parseInt(dragIdxStr, 10);
-                          handleMoveSectionTo(dragIdx, idx);
-                        }
+                        const from = e.dataTransfer.getData('text/plain');
+                        if (from !== '') handleMoveSectionTo(parseInt(from, 10), idx);
                       }}
-                      className={`p-2 rounded-xl border text-xs flex justify-between items-center transition-all cursor-grab active:cursor-grabbing ${
-                        selectedBuilderSectionId === sec.id 
-                          ? 'border-indigo-600 bg-indigo-50/30 text-slate-900 shadow-sm' 
-                          : 'bg-slate-50 border-slate-200/70 hover:bg-slate-100 text-slate-700'
+                      onClick={() => selectSection(sec.id, true)}
+                      className={`group mx-2 flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer select-none ${
+                        selected ? 'bg-blue-600 text-white' : 'text-slate-700 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 truncate pr-1">
-                        <GripVertical className="h-3 w-3 text-slate-400 shrink-0 cursor-grab" />
-                        <div className="shrink-0 p-1 bg-white border border-slate-200 rounded-lg shadow-2xs">
-                          {getSectionIcon(sec.type)}
-                        </div>
-                        <div className="truncate text-left font-bold text-slate-800">
-                          <span className="text-[8px] text-slate-400 block font-mono uppercase leading-none mb-0.5">Sec {idx + 1}</span>
-                          <span className="truncate block leading-tight">{getSectionLabel(sec.type)}</span>
-                        </div>
-                      </div>
+                      <GripVertical className={`h-3.5 w-3.5 shrink-0 cursor-grab ${selected ? 'text-blue-200' : 'text-slate-300 group-hover:text-slate-400'}`} />
+                      <span className={`shrink-0 [&_svg]:h-4 [&_svg]:w-4 ${selected ? '[&_svg]:text-white' : ''} ${hidden ? 'opacity-40' : ''}`}>
+                        {getSectionIcon(sec.type)}
+                      </span>
+                      <span className={`flex-1 min-w-0 truncate ${hidden ? 'opacity-50 line-through' : ''}`}>
+                        {getSectionLabel(sec.type)}
+                        {sec.settings?.title && (
+                          <span className={`ml-1 ${selected ? 'text-blue-100' : 'text-slate-400'}`}>– {String(sec.settings.title).slice(0, 28)}</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        title={hidden ? 'Show section' : 'Hide section'}
+                        onClick={(e) => { e.stopPropagation(); toggleSectionHidden(sec.id); }}
+                        className={`shrink-0 rounded p-0.5 ${hidden ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${
+                          selected ? 'hover:bg-blue-500' : 'hover:bg-slate-200'
+                        }`}
+                      >
+                        {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setShowPicker(true)}
+                  className="mx-2 mt-1 flex w-[calc(100%-16px)] items-center gap-2 rounded-lg px-2 py-1.5 text-blue-700 hover:bg-blue-50"
+                >
+                  <Plus className="h-4 w-4" /> Add section
+                </button>
 
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button
-                          disabled={idx === 0}
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleMoveSection(idx, 'up'); }}
-                          className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-755 cursor-pointer disabled:opacity-30"
-                        >
-                          <MoveUp className="h-3 w-3" />
-                        </button>
-                        <button
-                          disabled={idx === (currentlyEditingPage.sections.length - 1)}
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleMoveSection(idx, 'down'); }}
-                          className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-755 cursor-pointer disabled:opacity-30"
-                        >
-                          <MoveDown className="h-3 w-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleRemoveSectionFromPage(sec.id); }}
-                          className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg cursor-pointer"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                <div className="mt-3 border-t border-slate-100 px-4 pt-3 pb-1 text-[12px] font-semibold text-slate-900">Footer</div>
+                <button
+                  type="button"
+                  onClick={() => onOpenLayoutSettings?.()}
+                  className="w-full flex items-center gap-2 px-4 py-1.5 text-slate-700 hover:bg-slate-100 text-left"
+                  title="Edit in Header & Footer settings"
+                >
+                  <PanelBottom className="h-4 w-4 text-slate-500" /> Footer
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBuilderSectionId(null)}
+                className="shrink-0 flex items-center gap-2 border-t border-slate-200 px-4 py-3 text-[13px] text-slate-700 hover:bg-slate-50"
+              >
+                <Settings className="h-4 w-4" /> Page settings
+              </button>
+            </aside>
+
+            {/* Add-section picker */}
+            {showPicker && (
+              <>
+                <div className="absolute inset-0 z-30" onClick={() => setShowPicker(false)} />
+                <div className="absolute left-[280px] top-3 bottom-3 z-40 w-[min(640px,calc(100%-296px))] flex rounded-xl bg-white shadow-2xl ring-1 ring-black/10 overflow-hidden">
+                  <div className="w-[260px] shrink-0 border-r border-slate-200 flex flex-col">
+                    <div className="p-2.5 border-b border-slate-200">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          autoFocus
+                          type="text"
+                          placeholder="Search sections"
+                          value={moduleSearchQuery}
+                          onChange={(e) => setModuleSearchQuery(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 py-2 pl-8 pr-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                        />
                       </div>
                     </div>
-                  ))}
-                  {(!currentlyEditingPage?.sections || currentlyEditingPage.sections.length === 0) && (
-                    <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                      <p className="text-[10px] text-slate-400">No layout modules created yet.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Add Section toolbar dropdown */}
-                <div className="border-t border-slate-100 pt-4 space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wide mb-1.5">Add Layout Module</label>
-                    <div className="relative">
-                      <input 
-                        type="text"
-                        placeholder="Search layout modules..."
-                        value={moduleSearchQuery}
-                        onChange={(e) => setModuleSearchQuery(e.target.value)}
-                        className="w-full text-[11px] p-1.5 pb-2 pl-7 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-650 font-medium"
-                      />
-                      <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-slate-400" />
-                      {moduleSearchQuery && (
-                        <button 
+                    <div className="flex-1 overflow-y-auto p-1.5">
+                      {pickerItems.map(item => (
+                        <button
+                          key={item.type}
                           type="button"
-                          onClick={() => setModuleSearchQuery('')}
-                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-605"
+                          onMouseEnter={() => setPickerHover(item.type)}
+                          onFocus={() => setPickerHover(item.type)}
+                          onClick={() => addSection(item.type)}
+                          className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] ${
+                            pickerHover === item.type ? 'bg-slate-100' : 'hover:bg-slate-50'
+                          }`}
                         >
-                          <X className="h-3 w-3" />
+                          <span className="shrink-0 [&_svg]:h-4 [&_svg]:w-4">{getSectionIcon(item.type)}</span>
+                          <span className="truncate">{item.label}</span>
                         </button>
-                      )}
+                      ))}
+                      {pickerItems.length === 0 && <p className="p-4 text-center text-[12px] text-slate-500">No sections match.</p>}
                     </div>
                   </div>
-
-                  <div className="max-h-[260px] overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
-                    {AVAILABLE_SECTION_TEMPLATES.filter(item => 
-                      item.label.toLowerCase().includes(moduleSearchQuery.toLowerCase()) ||
-                      item.desc.toLowerCase().includes(moduleSearchQuery.toLowerCase()) ||
-                      item.type.toLowerCase().includes(moduleSearchQuery.toLowerCase())
-                    ).map(item => (
-                      <button
-                        key={item.type}
-                        type="button"
-                        onClick={() => handleAddSectionToPage(item.type as any)}
-                        className="w-full text-left p-1.5 border border-slate-200 bg-slate-50 hover:bg-indigo-50/40 hover:border-indigo-250 hover:shadow-2xs rounded-xl cursor-pointer flex items-start gap-2.5 transition-all group"
-                      >
-                        <div className="shrink-0 p-1 rounded-lg bg-white border border-slate-200 group-hover:border-indigo-200 transition-colors shadow-2xs">
-                          {getSectionIcon(item.type)}
+                  <div className="flex-1 min-w-0 bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+                    {pickerPreview ? (
+                      <>
+                        <div className="h-24 w-24 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 flex items-center justify-center [&_svg]:h-10 [&_svg]:w-10">
+                          {getSectionIcon(pickerPreview.type)}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-extrabold text-slate-800 group-hover:text-indigo-650 transition-colors uppercase tracking-tight">{item.label}</span>
-                            <Plus className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-600 shrink-0" />
-                          </div>
-                          <p className="text-[9px] text-slate-450 leading-tight mt-0.5 line-clamp-1">{item.desc}</p>
-                        </div>
-                      </button>
-                    ))}
-                    {AVAILABLE_SECTION_TEMPLATES.filter(item => 
-                      item.label.toLowerCase().includes(moduleSearchQuery.toLowerCase()) ||
-                      item.desc.toLowerCase().includes(moduleSearchQuery.toLowerCase()) ||
-                      item.type.toLowerCase().includes(moduleSearchQuery.toLowerCase())
-                    ).length === 0 && (
-                      <p className="text-[10px] text-slate-400 text-center py-4">No matching modules found.</p>
+                        <h4 className="mt-5 text-[17px] font-semibold">{pickerPreview.label}</h4>
+                        <p className="mt-2 max-w-xs text-[13px] leading-relaxed text-slate-600">{pickerPreview.desc}</p>
+                        <button
+                          type="button"
+                          onClick={() => addSection(pickerPreview.type)}
+                          className="mt-6 rounded-lg bg-slate-900 px-4 py-2 text-[13px] font-semibold text-white hover:bg-slate-800"
+                        >
+                          Add section
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-[13px] text-slate-500">Hover a section to see what it does.</p>
                     )}
                   </div>
                 </div>
+              </>
+            )}
 
+            {/* Center: live preview at real device width */}
+            <div className="flex-1 min-w-0 p-3">
+              <div className="h-full rounded-xl overflow-hidden bg-white shadow-sm ring-1 ring-black/5">
+                <PreviewFrame device={device} onDocument={(doc) => { previewDocRef.current = doc; }}>
+                  <div className="min-h-screen bg-[#f6f6f7] text-slate-800 flex flex-col font-sans">
+                    {showChrome && (
+                      <div className="pointer-events-none">
+                        <Header
+                          currentTab={currentlyEditingPage?.isHomepage ? 'frontend-home' : (currentlyEditingPage?.slug || '')}
+                          onTabChange={() => {}}
+                          loggedInCustomer={null}
+                          cartItems={[]}
+                          onOpenCart={() => {}}
+                          onOpenCustomer={() => {}}
+                          onOpenWishlist={() => {}}
+                          onOpenAdmin={() => {}}
+                          isAdminActive={false}
+                          allProducts={products}
+                          allCollections={collections}
+                          layoutSettings={layoutSettings}
+                        />
+                      </div>
+                    )}
+                    <main className="flex-1">
+                      {currentlyEditingPage && (currentlyEditingPage.sections || []).length > 0 ? (
+                        <PageRenderer
+                          page={currentlyEditingPage}
+                          allProducts={products}
+                          allCollections={collections}
+                          allBlogs={blogs}
+                          loggedInCustomer={null}
+                          onAddToCart={() => {}}
+                          onToggleWishlist={() => {}}
+                          onNavigate={() => {}}
+                          editor={{
+                            selectedSectionId: selectedBuilderSectionId,
+                            onSelectSection: (id) => selectSection(id, false),
+                            renderSectionTools: (sec, idx) => (
+                              <div className="flex items-center gap-0.5 rounded-xl bg-white p-1 shadow-lg ring-1 ring-black/10 text-slate-700">
+                                <button type="button" title="Move up" disabled={idx === 0}
+                                  onClick={(e) => { e.stopPropagation(); handleMoveSection(idx, 'up'); }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100 disabled:opacity-30">
+                                  <MoveUp className="h-4 w-4" />
+                                </button>
+                                <button type="button" title="Move down" disabled={idx === currentlyEditingPage.sections.length - 1}
+                                  onClick={(e) => { e.stopPropagation(); handleMoveSection(idx, 'down'); }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100 disabled:opacity-30">
+                                  <MoveDown className="h-4 w-4" />
+                                </button>
+                                <button type="button" title="Duplicate"
+                                  onClick={(e) => { e.stopPropagation(); duplicateSection(sec.id); }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+                                  <Copy className="h-4 w-4" />
+                                </button>
+                                <button type="button" title={sec.settings?.hidden ? 'Show section' : 'Hide section'}
+                                  onClick={(e) => { e.stopPropagation(); toggleSectionHidden(sec.id); }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+                                  {sec.settings?.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                </button>
+                                <button type="button" title="Delete section"
+                                  onClick={(e) => { e.stopPropagation(); handleRemoveSectionFromPage(sec.id); }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-red-600">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )
+                          }}
+                        />
+                      ) : (
+                        <div className="py-32 text-center font-sans">
+                          <p className="text-[15px] font-semibold text-slate-700">This page has no sections yet</p>
+                          <p className="mt-1 text-[13px] text-slate-500">Use “Add section” on the left to start building.</p>
+                        </div>
+                      )}
+                    </main>
+                    {showChrome && (
+                      <div className="pointer-events-none">
+                        <Footer layoutSettings={layoutSettings} />
+                      </div>
+                    )}
+                  </div>
+                </PreviewFrame>
               </div>
             </div>
 
-            {/* 2. Middle Visual Template Previewer (Interactive Sandbox canvas!) */}
-            <div className="lg:col-span-2">
-              <div className="bg-white border rounded-xl shadow-md min-h-[60vh] overflow-hidden">
-                
-                {/* Live browser frame header */}
-                <div className="bg-slate-100 border-b border-slate-200 p-3 px-4 flex justify-between items-center text-[10px] text-slate-400 font-bold tracking-wider">
-                  <div className="flex gap-1.5 items-center">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            {/* Right: settings */}
+            <aside className="w-[340px] shrink-0 bg-white border-l border-slate-200 flex flex-col min-h-0">
+              {currentlyEditingSection ? (
+                <>
+                  <div className="h-12 shrink-0 flex items-center gap-2 px-4 border-b border-slate-200">
+                    <span className="[&_svg]:h-4 [&_svg]:w-4 shrink-0">{getSectionIcon(currentlyEditingSection.type)}</span>
+                    <h3 className="flex-1 truncate text-[14px] font-semibold">{getSectionLabel(currentlyEditingSection.type)}</h3>
+                    <button type="button" title="Duplicate" onClick={() => duplicateSection(currentlyEditingSection.id)}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100">
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button type="button" title="Close" onClick={() => setSelectedBuilderSectionId(null)}
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100">
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="bg-white border border-slate-250 rounded-lg py-1 px-3 text-center text-slate-600 w-auto max-w-md flex items-center justify-center gap-1 font-mono text-xs shadow-2xs">
-                    <span className="text-slate-400 select-none">yourstore.com/pages/</span>
-                    <input
-                      type="text"
-                      value={currentlyEditingPage?.slug || ''}
-                      disabled={currentlyEditingPage?.isHomepage}
-                      onChange={(e) => {
-                        if (currentlyEditingPage && !currentlyEditingPage.isHomepage) {
-                          handleUpdatePageMeta(currentlyEditingPage.id, { slug: e.target.value });
-                        }
-                      }}
-                      placeholder="page-slug"
-                      className="bg-amber-50/80 border border-amber-300 text-slate-900 font-bold px-1.5 py-0.5 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs font-mono disabled:bg-slate-100 disabled:border-slate-200 cursor-text"
-                      title="Click to modify page route slug"
-                    />
-                  </div>
-                  <Globe className="h-3.5 w-3.5" />
-                </div>
-
-                {/* Rendering the Page builder canvas content directly */}
-                <div className="p-4 space-y-6">
-                  
-                  {!currentlyEditingPage ? (
-                    <div className="text-center py-24 text-slate-400">
-                      <p className="font-bold text-slate-600 mb-1">No Page Selected</p>
-                      <p className="text-xs">Click on a page from the list to start building.</p>
-                    </div>
-                  ) : (!currentlyEditingPage.sections || currentlyEditingPage.sections.length === 0) ? (
-                    <div className="text-center py-24 text-slate-400">
-                      <p className="font-bold text-slate-600 mb-1">Empty Page Template</p>
-                      <p className="text-xs">Add section blocks using the left panel menu to build this page.</p>
-                    </div>
-                  ) : (
-                    currentlyEditingPage.sections.map((sec, sIdx) => {
-                      const isFocused = selectedBuilderSectionId === sec.id;
-
-                      return (
-                        <div 
-                          id={`sec-wrapper-${sec.id}`}
-                          key={sec.id}
-                          onClickCapture={() => setSelectedBuilderSectionId(sec.id)}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', sIdx.toString());
-                            e.dataTransfer.effectAllowed = 'move';
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const dragIdxStr = e.dataTransfer.getData('text/plain');
-                            if (dragIdxStr !== '') {
-                              const dragIdx = parseInt(dragIdxStr, 10);
-                              handleMoveSectionTo(dragIdx, sIdx);
-                            }
-                          }}
-                          className={`relative group rounded-2xl border transition-all cursor-pointer overflow-hidden ${
-                            isFocused 
-                              ? 'ring-2 ring-indigo-600 border-indigo-600 bg-white shadow-lg scale-[1.002] z-10' 
-                              : 'border-slate-200/80 hover:border-indigo-400 bg-white hover:shadow-sm'
+                  <div className="shrink-0 px-4 pt-3">
+                    <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+                      {(['content', 'style'] as const).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setPanelTab(t)}
+                          className={`flex-1 rounded-md py-1.5 text-[12.5px] font-medium capitalize transition ${
+                            panelTab === t ? 'bg-white shadow-sm ring-1 ring-slate-200 text-slate-900' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
-                          {/* Floating action tools overlay */}
-                          <div className="absolute right-3 top-2.5 z-30 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity bg-slate-900/90 backdrop-blur-md p-1 px-1.5 rounded-lg shadow-lg border border-slate-700">
-                            <button
-                              disabled={sIdx === 0}
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleMoveSection(sIdx, 'up'); }}
-                              className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                              title="Move Section Up"
-                            >
-                              <MoveUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              disabled={sIdx === (currentlyEditingPage.sections.length - 1)}
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleMoveSection(sIdx, 'down'); }}
-                              className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                              title="Move Section Down"
-                            >
-                              <MoveDown className="h-3 w-3" />
-                            </button>
-                            <div className="w-px h-3 bg-slate-700 mx-0.5" />
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleRemoveSectionFromPage(sec.id); }}
-                              className="p-1 hover:bg-red-950 rounded-md text-slate-400 hover:text-red-500 cursor-pointer"
-                              title="Remove Section"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-
-                          {/* Overlay tag indicator */}
-                          <span className="absolute top-2.5 left-3 bg-slate-900 text-white text-[8px] font-black tracking-widest uppercase py-0.5 px-1.5 rounded-md pointer-events-none opacity-80">
-                            {getSectionLabel(sec.type)} {isFocused ? '• EDITING' : ''}
-                          </span>
-
-                          {/* Render section in exact live-website fidelity */}
-                          <div className="pointer-events-none">
-                            <PageRenderer
-                              page={{ ...currentlyEditingPage, sections: [sec] }}
-                              allProducts={products}
-                              allCollections={collections}
-                              allBlogs={blogs}
-                              loggedInCustomer={null}
-                              onAddToCart={() => {}}
-                              onToggleWishlist={() => {}}
-                              onNavigate={() => {}}
-                            />
-                          </div>
-                          <div className="hidden">
-                            
-                            {/* 1. IMAGE BANNER */}
-                            {sec.type === 'Image banner' && (
-                              <div className="text-center space-y-3 py-4">
-                                <div className="relative h-28 w-full rounded-xl bg-slate-100 overflow-hidden border">
-                                  <img 
-                                    src={cleanMediaUrl(sec.settings.imageUrl) || PLACEHOLDER_IMAGE} 
-                                    className="h-full w-full object-cover" 
-                                    alt="" 
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <div className="absolute inset-0 bg-black/40" />
-                                </div>
-                                <h3 className="text-sm font-black uppercase" style={{ color: sec.settings.headingColor || '#1E293B' }}>
-                                  {sec.settings.title || 'Exclusive Pouch Launch'}
-                                </h3>
-                                <p className="text-[10px] leading-relaxed max-w-sm mx-auto text-slate-500">{sec.settings.description || 'Banner details...'}</p>
-                                {sec.settings.buttonText && (
-                                  <button type="button" className="bg-slate-900 text-white font-extrabold text-[8px] py-1 px-3.5 rounded-md uppercase tracking-wider">
-                                    {sec.settings.buttonText}
-                                  </button>
-                                )}
-                              </div>
-                            )}
-
-                            {/* 2. IMAGE WITH TEXT */}
-                            {sec.type === 'Image with text' && (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center py-4 text-left">
-                                <div className="h-28 w-full rounded-xl bg-slate-50 border overflow-hidden relative shadow-inner">
-                                  <img 
-                                    src={cleanMediaUrl(sec.settings.imageUrl) || PLACEHOLDER_IMAGE} 
-                                    className="h-full w-full object-cover" 
-                                    alt="" 
-                                    referrerPolicy="no-referrer"
-                                  />
-                                </div>
-                                <div className="space-y-1.5">
-                                  <h4 className="font-extrabold text-xs" style={{ color: sec.settings.headingColor || '#1E293B' }}>
-                                    {sec.settings.title || 'Curate Your Premium Package'}
-                                  </h4>
-                                  <p className="text-[9.5px] text-slate-500 leading-snug line-clamp-3">{sec.settings.description}</p>
-                                  {sec.settings.buttonText && (
-                                    <span className="inline-block bg-slate-950 text-white font-black text-[8px] py-1 px-3 rounded-lg uppercase tracking-wide">
-                                      {sec.settings.buttonText}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 3. TEXT COLUMN WITH IMAGE */}
-                            {sec.type === 'Text column with image' && (
-                              <div className="space-y-3 py-4 text-center">
-                                <h4 className="font-extrabold text-xs uppercase tracking-tight" style={{ color: sec.settings.headingColor || '#1E293B' }}>
-                                  {sec.settings.title || 'Our Laboratory Certified Foundations'}
-                                </h4>
-                                <p className="text-[9.5px] text-slate-450 max-w-md mx-auto leading-snug">{sec.settings.description}</p>
-                                <div className="grid grid-cols-3 gap-2 pt-2">
-                                  {[
-                                    { label: 'Global Testing', badge: 'LAB VERIFIED', img: PLACEHOLDER_IMAGE },
-                                    { label: 'Aroma Boost', badge: '100% FREE', img: 'https://images.unsplash.com/photo-1589984662646-e7b2e4962f18?auto=format&fit=crop&w=200&q=80' },
-                                    { label: 'Vacuum Sealed', badge: 'FRESH LOCK', img: 'https://images.unsplash.com/photo-1576186726115-4d51596775d1?auto=format&fit=crop&w=200&q=80' }
-                                  ].map((col, cIdx) => (
-                                    <div key={cIdx} className="bg-slate-50 border border-slate-200/60 rounded-xl p-2 text-center text-[9px] hover:shadow-2xs transition-shadow">
-                                      <div className="h-10 bg-slate-200 min-w-full rounded-md mb-1 bg-cover bg-center overflow-hidden">
-                                        <img src={col.img} className="h-full w-full object-cover" alt="" referrerPolicy="no-referrer" />
-                                      </div>
-                                      <span className="font-extrabold text-slate-800 leading-tight block truncate text-[8.5px]">{col.label}</span>
-                                      <span className="text-[7px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1 inline-block mt-0.5 tracking-wider font-extrabold font-mono uppercase">{col.badge}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 4. VIDEO BANNER */}
-                            {sec.type === 'Video banner' && (() => {
-                              const extractYouTubeId = (str: string) => {
-                                if (!str) return '';
-                                const trimmed = str.trim();
-                                if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed) && !trimmed.toLowerCase().endsWith('.mp4') && !trimmed.toLowerCase().endsWith('.webm')) {
-                                  return trimmed;
-                                }
-                                const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-                                const match = trimmed.match(regExp);
-                                return (match && match[1]) ? match[1] : '';
-                              };
-
-                              const rawYouTube = (sec.settings.videoUrl || '').trim();
-                              const rawMp4 = (sec.settings.videoMp4Url || '').trim();
-
-                              let ytId = '';
-                              let isYouTube = false;
-                              let videoSource = '';
-
-                              if (rawMp4) {
-                                const ytFromMp4 = extractYouTubeId(rawMp4);
-                                if (ytFromMp4) {
-                                  ytId = ytFromMp4;
-                                  isYouTube = true;
-                                } else {
-                                  videoSource = rawMp4;
-                                  isYouTube = false;
-                                }
-                              } else if (rawYouTube) {
-                                const ytFromUrl = extractYouTubeId(rawYouTube);
-                                if (ytFromUrl) {
-                                  ytId = ytFromUrl;
-                                  isYouTube = true;
-                                } else {
-                                  videoSource = rawYouTube;
-                                  isYouTube = false;
-                                }
-                              }
-
-                              if (!isYouTube && !videoSource) {
-                                videoSource = 'https://assets.mixkit.co/videos/preview/mixkit-laboratory-test-tubes-40436-large.mp4';
-                              }
-
-                              const cleanedVideoUrl = cleanMediaUrl(videoSource);
-
-                              return (
-                                <div className="text-center space-y-2 py-3">
-                                  <div className="relative h-28 w-full rounded-xl bg-slate-900 overflow-hidden flex flex-col items-center justify-center border border-slate-800 text-white font-mono text-[9px] uppercase tracking-widest gap-1 p-4 shadow-inner">
-                                    {isYouTube && ytId ? (
-                                      <iframe
-                                        className="absolute inset-0 w-full h-full object-cover border-0 opacity-80 pointer-events-none"
-                                        src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&playlist=${ytId}&loop=1&controls=0&showinfo=0&rel=0`}
-                                        title="Video Banner Preview"
-                                      />
-                                    ) : (
-                                      <video
-                                        key={cleanedVideoUrl}
-                                        ref={(vEl) => { if (vEl) { vEl.muted = true; vEl.defaultMuted = true; vEl.play().catch(() => {}); } }}
-                                        className="absolute inset-0 w-full h-full object-cover opacity-90 pointer-events-none"
-                                        autoPlay
-                                        muted
-                                        loop
-                                        playsInline
-                                        src={cleanedVideoUrl}
-                                      />
-                                    )}
-                                    <div className="relative z-10 flex flex-col items-center justify-center gap-1 bg-slate-950/60 p-2 rounded-lg backdrop-blur-xs">
-                                      <PlaySquare className="h-6 w-6 text-indigo-400 animate-pulse" />
-                                      <span className="text-white font-extrabold">{isYouTube ? 'Active YouTube Video' : 'Active MP4 Video'}</span>
-                                    </div>
-                                  </div>
-                                  <p className="font-extrabold text-xs text-slate-700" style={{ color: sec.settings.headingColor || '#1E293B' }}>
-                                    {sec.settings.title || 'Laboratory Showcase Highlights'}
-                                  </p>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 5. RICH TEXT */}
-                            {sec.type === 'Rich text' && (
-                              <div className="text-center space-y-2 py-4">
-                                <h3 className="text-sm font-black uppercase" style={{ color: sec.settings.headingColor || '#1E293B' }}>
-                                  {sec.settings.title || 'Editorial Showcase'}
-                                </h3>
-                                <p className="text-[10px] leading-relaxed max-w-sm mx-auto text-slate-500 font-medium">{sec.settings.description || 'Craft premium experiences under your own terms.'}</p>
-                              </div>
-                            )}
-
-                            {/* 6. MARQUEE TEXT */}
-                            {sec.type === 'Marquee text' && (() => {
-                              const rawText = sec.settings.title || 'DELIVERY // CANCEL ANYTIME // LOYALTY SCHEME // NEVER RUN OUT // DELIVERED ON YOUR SCHEDULE // SAVE VS. SHOP PRICES // DISCREET DELIVERY';
-                              const items = rawText.includes('//') 
-                                ? rawText.split('//').map(item => item.trim()).filter(Boolean)
-                                : rawText.includes('•')
-                                ? rawText.split('•').map(item => item.trim()).filter(Boolean)
-                                : [rawText];
-                              return (
-                                <div 
-                                  className="overflow-hidden p-2.5 rounded-lg border border-amber-500/10 text-center relative shadow-xs"
-                                  style={{ backgroundColor: sec.settings.backgroundColor || '#E8BE74' }}
-                                >
-                                  <p 
-                                    className="font-bold text-[9px] uppercase tracking-wider font-sans truncate flex items-center justify-center gap-1.5"
-                                    style={{ color: sec.settings.textColor || '#1A1C1D' }}
-                                  >
-                                    {items.map((item, index) => (
-                                      <React.Fragment key={index}>
-                                        <span className="shrink-0">{item}</span>
-                                        {index < items.length - 1 && (
-                                          <span className="text-[#071d37]/40 shrink-0 select-none">•</span>
-                                        )}
-                                      </React.Fragment>
-                                    ))}
-                                  </p>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 7. COLLECTION LIST */}
-                            {sec.type === 'Collection list' && (() => {
-                              const filteredCols = sec.settings.selectedCollectionIds && sec.settings.selectedCollectionIds.length > 0
-                                ? collections.filter(c => sec.settings.selectedCollectionIds!.includes(c.id))
-                                : collections.slice(0, Math.min(sec.settings.itemsCount || 4, collections.length));
-
-                              return (
-                                <div className="space-y-3 py-3 text-center">
-                                  <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                    {sec.settings.title || 'EXPLORE BRAND COLLECTIONS'}
-                                  </h3>
-                                  {sec.settings.description && (
-                                    <p className="text-[10px] text-slate-500 max-w-md mx-auto">{sec.settings.description}</p>
-                                  )}
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                                    {filteredCols.map(col => (
-                                      <div key={col.id} className="bg-white border rounded-xl p-3 text-center shadow-2xs">
-                                        <div className="h-16 bg-slate-50 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
-                                          {col.image ? (
-                                            <img src={cleanMediaUrl(col.image)} className="h-full w-full object-cover" alt="" referrerPolicy="no-referrer" />
-                                          ) : (
-                                            <span className="text-2xl">🥫</span>
-                                          )}
-                                        </div>
-                                        <h4 className="font-extrabold text-[10px] text-slate-800 uppercase tracking-wide truncate">{col.title}</h4>
-                                        <p className="text-[9px] text-slate-400 font-mono mt-0.5">{col.productIds.length} FLAVORS</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 8. FEATURED COLLECTION */}
-                            {sec.type === 'Featured collection' && (() => {
-                              const featCol = sec.settings.collectionId ? collections.find(c => c.id === sec.settings.collectionId) : collections[0];
-                              const featProds = featCol
-                                ? products.filter(p => featCol.productIds.includes(p.id)).slice(0, sec.settings.itemsCount || 4)
-                                : products.slice(0, sec.settings.itemsCount || 4);
-
-                              return (
-                                <div className="space-y-3 py-3 text-center">
-                                  <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                    {sec.settings.title || featCol?.title || 'FEATURED COLLECTION'}
-                                  </h3>
-                                  {sec.settings.description && (
-                                    <p className="text-[10px] text-slate-500 max-w-md mx-auto">{sec.settings.description}</p>
-                                  )}
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                                    {featProds.map(prod => (
-                                      <div key={prod.id} className="bg-white border rounded-xl p-3 text-center shadow-2xs space-y-1">
-                                        <div className="h-16 bg-slate-50 rounded-lg overflow-hidden flex items-center justify-center">
-                                          {prod.image ? (
-                                            <img src={cleanMediaUrl(prod.image)} className="h-full w-full object-contain p-1" alt="" referrerPolicy="no-referrer" />
-                                          ) : (
-                                            <span className="text-2xl">⚡</span>
-                                          )}
-                                        </div>
-                                        <span className="text-[8px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded inline-block">
-                                          {prod.vendor || 'POUCH'}
-                                        </span>
-                                        <h4 className="font-bold text-[10px] text-slate-800 truncate block">{prod.title}</h4>
-                                        <div className="text-[10px] font-black text-slate-900">₹{prod.price.toFixed(2)}</div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 9. BRAND LIST / BRANDS WE OFFER */}
-                            {(sec.type === 'Brand list' || sec.type === 'Brands we offer') && (() => {
-                              const brandItems = (sec.settings.brandItems || []).filter((b: any) => b.imageUrl || b.name || b.title);
-                              const displayItems = brandItems.length > 0 ? brandItems : collections.slice(0, 6);
-
-                              return (
-                                <div className="space-y-3 py-3 text-center">
-                                  <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                    {sec.settings.title || 'BRANDS WE OFFER'}
-                                  </h3>
-                                  {sec.settings.description && (
-                                    <p className="text-[10px] text-slate-500 max-w-md mx-auto">{sec.settings.description}</p>
-                                  )}
-                                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-2">
-                                    {displayItems.map((item: any, idx: number) => {
-                                      const name = item.name || item.title || `Brand ${idx + 1}`;
-                                      const img = item.imageUrl || item.image || PLACEHOLDER_IMAGE;
-                                      return (
-                                        <div key={idx} className="bg-white border rounded-xl p-2.5 text-center flex flex-col items-center justify-center shadow-2xs">
-                                          <div className="h-10 w-full overflow-hidden flex items-center justify-center mb-1">
-                                            <img src={cleanMediaUrl(img)} className="max-h-full max-w-full object-contain" alt="" referrerPolicy="no-referrer" />
-                                          </div>
-                                          <span className="font-bold text-[9px] text-slate-700 truncate w-full block">{name}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 10. SLIDESHOW */}
-                            {sec.type === 'Slideshow' && (
-                              <div className="relative h-36 w-full rounded-xl bg-slate-900 overflow-hidden border text-white flex flex-col items-center justify-center p-4 text-center space-y-1">
-                                {sec.settings.imageUrl && (
-                                  <img src={cleanMediaUrl(sec.settings.imageUrl)} className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" referrerPolicy="no-referrer" />
-                                )}
-                                <div className="relative z-10 space-y-1 max-w-md">
-                                  <span className="text-[8px] bg-indigo-600 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">HERO SLIDESHOW</span>
-                                  <h3 className="text-xs font-black uppercase tracking-tight" style={{ color: sec.settings.headingColor || '#FFFFFF' }}>
-                                    {sec.settings.title || 'PREMIUM NICOTINE POUCHES'}
-                                  </h3>
-                                  <p className="text-[9px] text-slate-200 line-clamp-2">{sec.settings.description || 'Discover ultra clean, tobacco-free nicotine pouches.'}</p>
-                                  {sec.settings.buttonText && (
-                                    <span className="inline-block bg-white text-slate-900 font-extrabold text-[8px] py-1 px-3 rounded-md uppercase tracking-wider mt-1">
-                                      {sec.settings.buttonText}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 11. IMAGES GALLERY / MARQUEE IMAGES / LOGO LIST */}
-                            {(sec.type === 'Images gallery' || sec.type === 'Marquee images' || sec.type === 'Logo list') && (() => {
-                              const images = (sec.settings.galleryImages || sec.settings.logoImages || []).filter(Boolean);
-                              const displayImgs = images.length > 0 ? images : [PLACEHOLDER_IMAGE, PLACEHOLDER_IMAGE, PLACEHOLDER_IMAGE, PLACEHOLDER_IMAGE];
-
-                              return (
-                                <div className="space-y-3 py-3 text-center">
-                                  <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                    {sec.settings.title || getSectionLabel(sec.type)}
-                                  </h3>
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                                    {displayImgs.map((img: string, idx: number) => (
-                                      <div key={idx} className="h-16 rounded-xl overflow-hidden border bg-slate-50 flex items-center justify-center">
-                                        <img src={cleanMediaUrl(img)} className="h-full w-full object-cover" alt="" referrerPolicy="no-referrer" />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 12. FAQS */}
-                            {sec.type === 'FAQs' && (() => {
-                              const rawFaqs = (sec.settings.faqs && sec.settings.faqs.length > 0) ? sec.settings.faqs 
-                                            : (sec.settings.faqItems && sec.settings.faqItems.length > 0) ? sec.settings.faqItems 
-                                            : null;
-                              const faqs = rawFaqs || [
-                                { question: 'How long does shipping take?', answer: 'Orders placed before 3 PM ship the same day with tracked delivery.' },
-                                { question: 'Are all products tobacco-free?', answer: 'Yes, 100% tobacco-free white nicotine pouches.' }
-                              ];
-
-                              return (
-                                <div className="space-y-3 py-3 text-center max-w-md mx-auto">
-                                  <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                    {sec.settings.title || 'FREQUENTLY ASKED QUESTIONS'}
-                                  </h3>
-                                  <div className="space-y-2 text-left pt-1">
-                                    {faqs.map((faq: any, fIdx: number) => (
-                                      <div key={fIdx} className="bg-slate-50 border rounded-xl p-2.5 text-[9.5px]">
-                                        <p className="font-extrabold text-slate-800">{faq.question || faq.q || ''}</p>
-                                        <p className="text-slate-500 mt-0.5">{faq.answer || faq.a || ''}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                            {/* 13. HOW IT WORKS */}
-                            {sec.type === 'How it works' && (
-                              <div className="space-y-3 py-3 text-center">
-                                <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                  {sec.settings.title || 'HOW IT WORKS'}
-                                </h3>
-                                <div className="grid grid-cols-3 gap-2.5 pt-2">
-                                  {[
-                                    { step: '01', title: 'Choose Flavors', desc: 'Select from 50+ Swedish nicotine pouch tins.' },
-                                    { step: '02', title: 'Fast Dispatch', desc: 'Discreet packaging delivered to your door.' },
-                                    { step: '03', title: 'Enjoy Anywhere', desc: 'Smoke-free, spit-free, discreet nicotine fix.' }
-                                  ].map((st, idx) => (
-                                    <div key={idx} className="bg-white border rounded-xl p-2.5 text-center space-y-1">
-                                      <span className="font-mono text-indigo-600 font-extrabold text-[10px] block">{st.step}</span>
-                                      <h4 className="font-extrabold text-[9.5px] text-slate-800">{st.title}</h4>
-                                      <p className="text-[8.5px] text-slate-400">{st.desc}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 15. ICON WITH TEXT / TRUST BADGES */}
-                            {(sec.type === 'Icon with text' || sec.type === 'Trust badges') && (
-                              <div className="space-y-3 py-3 text-center">
-                                <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                  {sec.settings.title || 'WHY ECOMMERCE STORE'}
-                                </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                                  {[
-                                    { title: 'Tracked Delivery', sub: 'Fast tracked delivery across India' },
-                                    { title: '100% Authentic', sub: 'Direct Swedish Imports' },
-                                    { title: 'Lab Tested', sub: 'Purity & Quality Guaranteed' },
-                                    { title: 'Discreet Package', sub: 'No Brand Outer Logos' }
-                                  ].map((badge, idx) => (
-                                    <div key={idx} className="bg-slate-50 border rounded-xl p-2.5 text-center space-y-0.5">
-                                      <span className="text-base">🛡️</span>
-                                      <h4 className="font-extrabold text-[9.5px] text-slate-800">{badge.title}</h4>
-                                      <p className="text-[8.5px] text-slate-400">{badge.sub}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 16. CLEARANCE SALE */}
-                            {sec.type === 'Clearance Sale' && (
-                              <div className="space-y-2 py-3 text-center bg-rose-50/50 border border-rose-200 rounded-2xl p-3">
-                                <span className="bg-rose-600 text-white font-black text-[8px] px-2 py-0.5 rounded-full uppercase tracking-wider">CLEARANCE SALE</span>
-                                <h3 className="text-xs font-black uppercase tracking-widest text-rose-950" style={{ color: sec.settings.headingColor || '#881337' }}>
-                                  {sec.settings.title || 'LIMITED TIME OFFERS'}
-                                </h3>
-                                <p className="text-[9.5px] text-rose-700 max-w-md mx-auto">{sec.settings.description || 'Up to 40% off selected pouch canisters.'}</p>
-                              </div>
-                            )}
-
-                            {/* 17. BLOG POST */}
-                            {sec.type === 'Blog post' && (() => {
-                              const displayBlogs = blogs.length > 0 ? blogs.slice(0, 2) : [
-                                { id: '1', title: 'Top Nicotine Strengths Explained', category: 'Guides', date: '2026-07-20' },
-                                { id: '2', title: 'Swedish Pouch Manufacturing Standards', category: 'Quality', date: '2026-07-15' }
-                              ];
-
-                              return (
-                                <div className="space-y-3 py-3 text-center">
-                                  <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: sec.settings.headingColor || '#0F172A' }}>
-                                    {sec.settings.title || 'LATEST EDITORIAL ARTICLES'}
-                                  </h3>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-left">
-                                    {displayBlogs.map((b: any) => (
-                                      <div key={b.id} className="bg-white border rounded-xl p-2.5 space-y-1 shadow-2xs">
-                                        <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase">{b.category || 'Article'}</span>
-                                        <h4 className="font-extrabold text-[10px] text-slate-800 line-clamp-1">{b.title}</h4>
-                                        <p className="text-[8.5px] text-slate-400">{b.date}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Right Column: Live Section Properties Inspector Panel */}
-            <div className="lg:col-span-1 space-y-4">
-              <div className="bg-white border rounded-xl p-4 shadow-xs space-y-4 sticky top-4">
-                <div className="border-b border-slate-100 pb-2 flex justify-between items-center">
-                  <h4 className="font-black text-slate-700 uppercase tracking-wide text-xs">Module Inspector</h4>
-                  {currentlyEditingSection && (
-                    <span className="text-[8px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-mono font-bold">
-                      {getSectionLabel(currentlyEditingSection.type)}
-                    </span>
-                  )}
-                </div>
-
-                {currentlyEditingSection ? (
-                  <div className="space-y-4 text-xs">
-                    
+                          {t === 'style' ? 'Style & fonts' : 'Content'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {panelTab === 'style' ? (
+                      <div className="pt-1">
+                        <SectionStylePanel section={currentlyEditingSection} onPatch={(patch) => patchSection(currentlyEditingSection.id, patch)} />
+                      </div>
+                    ) : (
+                  <div className="p-4 space-y-4 text-xs">
                     {/* General Settings */}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Headline Title</label>
@@ -2346,334 +1986,86 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                       );
                     })()}
 
-                    {/* Text & Color Customizers */}
-                    <div className="space-y-3 bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 pt-3">
-                      <span className="block text-[10px] font-black text-slate-900 uppercase tracking-wider">🎨 Text Color & Theme Options</span>
-                      
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Heading Color</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.headingColor || '#1E293B'}
-                              onChange={(e) => handleUpdateSectionSettings('headingColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.headingColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('headingColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#1E293B"
-                            />
-                          </div>
-                        </div>
 
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Body / Subtitle Text</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.textColor || '#475569'}
-                              onChange={(e) => handleUpdateSectionSettings('textColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.textColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('textColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#475569"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">
-                            {(currentlyEditingSection.type === 'Brand list' || currentlyEditingSection.type === 'Brands we offer')
-                              ? 'Brand Image Overlay Heading Color'
-                              : 'Card / Item Title'}
-                          </label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.overlayHeadingColor || currentlyEditingSection.settings.cardTitleColor || ((currentlyEditingSection.type === 'Brand list' || currentlyEditingSection.type === 'Brands we offer') ? '#FFFFFF' : '#0F172A')}
-                              onChange={(e) => {
-                                handleUpdateSectionSettings('overlayHeadingColor', e.target.value);
-                                handleUpdateSectionSettings('cardTitleColor', e.target.value);
-                              }}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.overlayHeadingColor || currentlyEditingSection.settings.cardTitleColor || ''}
-                              onChange={(e) => {
-                                handleUpdateSectionSettings('overlayHeadingColor', e.target.value);
-                                handleUpdateSectionSettings('cardTitleColor', e.target.value);
-                              }}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder={(currentlyEditingSection.type === 'Brand list' || currentlyEditingSection.type === 'Brands we offer') ? '#FFFFFF' : '#0F172A'}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Card / Item Description</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.cardTextColor || '#64748B'}
-                              onChange={(e) => handleUpdateSectionSettings('cardTextColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.cardTextColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('cardTextColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#64748B"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Primary Button Text</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.buttonTextColor || '#FFFFFF'}
-                              onChange={(e) => handleUpdateSectionSettings('buttonTextColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.buttonTextColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('buttonTextColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#FFFFFF"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Primary Button Bg</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.buttonBgColor || '#4F46E5'}
-                              onChange={(e) => handleUpdateSectionSettings('buttonBgColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.buttonBgColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('buttonBgColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#4F46E5"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Badge / Accent Text</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.badgeTextColor || '#10B981'}
-                              onChange={(e) => handleUpdateSectionSettings('badgeTextColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.badgeTextColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('badgeTextColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#10B981"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[8.5px] font-extrabold text-slate-600 uppercase mb-1">Section Background</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={currentlyEditingSection.settings.backgroundColor || '#FFFFFF'}
-                              onChange={(e) => handleUpdateSectionSettings('backgroundColor', e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer bg-white p-0 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={currentlyEditingSection.settings.backgroundColor || ''}
-                              onChange={(e) => handleUpdateSectionSettings('backgroundColor', e.target.value)}
-                              className="w-full text-[10px] p-1 border rounded bg-white font-mono uppercase"
-                              placeholder="#FFFFFF"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSectionFromPage(currentlyEditingSection.id)}
+                        className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-red-200 py-2 text-[12.5px] font-medium text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Remove section
+                      </button>
                     </div>
-
-                    {/* Spacing adjustments */}
-                    <div className="space-y-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/55">
-                      <span className="block text-slate-700 font-extrabold text-[8px] uppercase tracking-wider mb-1">Spacing Controls (Padding)</span>
-                      
-                      <div>
-                        <div className="flex justify-between items-center mb-1 text-[8px] font-bold text-slate-500 uppercase">
-                          <span>Top Spacing</span>
-                          <span className="font-mono text-indigo-600">{currentlyEditingSection.settings.paddingTop !== undefined ? currentlyEditingSection.settings.paddingTop : 'Default'} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="120"
-                          step="4"
-                          value={currentlyEditingSection.settings.paddingTop !== undefined ? currentlyEditingSection.settings.paddingTop : 24}
-                          onChange={(e) => handleUpdateSectionSettings('paddingTop', parseInt(e.target.value, 10))}
-                          className="w-full accent-indigo-600 cursor-pointer"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-1 text-[8px] font-bold text-slate-500 uppercase">
-                          <span>Bottom Spacing</span>
-                          <span className="font-mono text-indigo-600">{currentlyEditingSection.settings.paddingBottom !== undefined ? currentlyEditingSection.settings.paddingBottom : 'Default'} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="120"
-                          step="4"
-                          value={currentlyEditingSection.settings.paddingBottom !== undefined ? currentlyEditingSection.settings.paddingBottom : 24}
-                          onChange={(e) => handleUpdateSectionSettings('paddingBottom', parseInt(e.target.value, 10))}
-                          className="w-full accent-indigo-600 cursor-pointer"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-1 text-[8px] font-bold text-slate-500 uppercase tracking-wider">
-                          <span>Horizontal Spacing (X-Padding)</span>
-                          <span className="font-mono text-indigo-600">{currentlyEditingSection.settings.paddingSide !== undefined ? currentlyEditingSection.settings.paddingSide : 'Default'} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="80"
-                          step="4"
-                          value={currentlyEditingSection.settings.paddingSide !== undefined ? currentlyEditingSection.settings.paddingSide : 16}
-                          onChange={(e) => handleUpdateSectionSettings('paddingSide', parseInt(e.target.value, 10))}
-                          className="w-full accent-indigo-600 cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Typography sizes */}
-                    <div className="space-y-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/55">
-                      <span className="block text-slate-700 font-extrabold text-[8px] uppercase tracking-wider mb-1">Typography & Font Sizes</span>
-                      
-                      <div>
-                        <div className="flex justify-between items-center mb-1 text-[8px] font-bold text-slate-500 uppercase">
-                          <span>Heading Font Size</span>
-                          <span className="font-mono text-indigo-600">{currentlyEditingSection.settings.titleFontSize || 'Default'} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="12"
-                          max="64"
-                          step="2"
-                          value={currentlyEditingSection.settings.titleFontSize || 30}
-                          onChange={(e) => handleUpdateSectionSettings('titleFontSize', parseInt(e.target.value, 10))}
-                          className="w-full accent-indigo-600 cursor-pointer"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-1 text-[8px] font-bold text-slate-500 uppercase">
-                          <span>Body / Subtitle Font Size</span>
-                          <span className="font-mono text-indigo-600">{currentlyEditingSection.settings.bodyFontSize || 'Default'} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="10"
-                          max="24"
-                          step="1"
-                          value={currentlyEditingSection.settings.bodyFontSize || 14}
-                          onChange={(e) => handleUpdateSectionSettings('bodyFontSize', parseInt(e.target.value, 10))}
-                          className="w-full accent-indigo-600 cursor-pointer"
-                        />
-                      </div>
-
-                      {/* Text Alignment Button Group */}
-                      <div>
-                        <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Content Alignment</label>
-                        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-lg border border-slate-250/50">
-                          {['left', 'center', 'right'].map((align) => (
-                            <button
-                              key={align}
-                              type="button"
-                              onClick={() => handleUpdateSectionSettings('alignment', align)}
-                              className={`text-[9px] font-extrabold py-1 px-1.5 rounded-md transition-all cursor-pointer text-center capitalize ${
-                                (currentlyEditingSection.settings.alignment || 'center') === align
-                                  ? 'bg-white text-indigo-650 shadow-xs border border-slate-250/20'
-                                  : 'text-slate-500 hover:text-slate-800'
-                              }`}
-                            >
-                              {align}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Button styling customizer */}
-                    <div className="space-y-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200/55">
-                      <span className="block text-slate-700 font-extrabold text-[8px] uppercase tracking-wider">Button Customization</span>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Button BG Hex</label>
-                          <input
-                            type="color"
-                            value={currentlyEditingSection.settings.buttonBgColor || '#D4AF37'}
-                            onChange={(e) => handleUpdateSectionSettings('buttonBgColor', e.target.value)}
-                            className="w-full h-7 border rounded cursor-pointer bg-slate-50 animate-none p-0"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Button Text Hex</label>
-                          <input
-                            type="color"
-                            value={currentlyEditingSection.settings.buttonTextColor || '#000000'}
-                            onChange={(e) => handleUpdateSectionSettings('buttonTextColor', e.target.value)}
-                            className="w-full h-7 border rounded cursor-pointer bg-slate-50 animate-none p-0"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Corner Roundness</label>
-                        <select
-                          value={currentlyEditingSection.settings.buttonRoundness || 'rounded-lg'}
-                          onChange={(e) => handleUpdateSectionSettings('buttonRoundness', e.target.value)}
-                          className="w-full text-[9px] border p-1 rounded bg-white cursor-pointer"
-                        >
-                          <option value="rounded-none">Square (rounded-none)</option>
-                          <option value="rounded">Soft (rounded)</option>
-                          <option value="rounded-lg">Regular (rounded-lg)</option>
-                          <option value="rounded-xl">Bubble (rounded-xl)</option>
-                          <option value="rounded-full">Pill (rounded-full)</option>
-                        </select>
-                      </div>
-                    </div>
-
                   </div>
-                ) : (
-                  <p className="text-[11px] text-slate-400 py-6 text-center">Click on any module section in the live preview frame to load options.</p>
-                )}
-
-              </div>
-            </div>
-
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="h-12 shrink-0 flex items-center gap-2 px-4 border-b border-slate-200">
+                    <Settings className="h-4 w-4 text-slate-500" />
+                    <h3 className="text-[14px] font-semibold">Page settings</h3>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {currentlyEditingPage && (
+                      <>
+                        <Group title="Page">
+                          <Field label="Title">
+                            <TextInput value={currentlyEditingPage.title} onChange={(v) => handleUpdatePageMeta(currentlyEditingPage.id, { title: v })} />
+                          </Field>
+                          {!currentlyEditingPage.isHomepage && (
+                            <Field label="URL handle (/pages/…)">
+                              <TextInput value={currentlyEditingPage.slug} onChange={(v) => handleUpdatePageMeta(currentlyEditingPage.id, { slug: v })} placeholder="page-handle" />
+                            </Field>
+                          )}
+                          <Row label="Visibility">
+                            <Segmented
+                              value={currentlyEditingPage.visibility || 'Visible'}
+                              options={[{ value: 'Visible', label: 'Visible' }, { value: 'Hidden', label: 'Hidden' }]}
+                              onChange={(v) => handleUpdatePageMeta(currentlyEditingPage.id, { visibility: v as 'Visible' | 'Hidden' })}
+                            />
+                          </Row>
+                          {currentlyEditingPage.isHomepage && (
+                            <Field label="Live homepage shows">
+                              <Segmented
+                                value={homepageSource === 'theme' ? 'theme' : 'page-builder'}
+                                options={[
+                                  { value: 'page-builder', label: 'This page' },
+                                  { value: 'theme', label: 'Theme design' }
+                                ]}
+                                onChange={(v) => onSetHomepageSource?.(v as 'theme' | 'page-builder')}
+                              />
+                            </Field>
+                          )}
+                        </Group>
+                        <Group title="Typography">
+                          <p className="text-[11.5px] text-slate-500 leading-relaxed">Defaults for every section on this page. Each section can override them under Style &amp; fonts.</p>
+                          <Row label="Heading font">
+                            <FontSelect value={currentlyEditingPage.settings?.headingFont} onChange={(v) => patchPageSettings({ headingFont: v })} />
+                          </Row>
+                          <Row label="Body font">
+                            <FontSelect value={currentlyEditingPage.settings?.bodyFont} onChange={(v) => patchPageSettings({ bodyFont: v })} />
+                          </Row>
+                        </Group>
+                        <Group title="Colors">
+                          <Row label="Page background">
+                            <ColorField
+                              value={currentlyEditingPage.settings?.backgroundColor}
+                              fallback="#F6F6F7"
+                              onChange={(v) => patchPageSettings({ backgroundColor: v })}
+                              onClear={() => patchPageSettings({ backgroundColor: undefined })}
+                            />
+                          </Row>
+                        </Group>
+                      </>
+                    )}
+                    <p className="px-4 py-4 text-[12px] text-slate-500 leading-relaxed">
+                      Select a section in the preview or in the list on the left to edit its content, layout, colors and fonts.
+                    </p>
+                  </div>
+                </>
+              )}
+            </aside>
           </div>
         </div>
       )}

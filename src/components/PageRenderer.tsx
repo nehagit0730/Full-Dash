@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PremiumSlideshow from './PremiumSlideshow';
 import { useRecaptcha } from '../hooks/useRecaptcha';
+import { fontStack, googleFontHrefs } from '../utils/sectionFonts';
 
 interface BrandsWeOfferSectionProps {
   sec: PageSection;
@@ -1082,7 +1083,108 @@ interface PageRendererProps {
   onToggleWishlist: (productId: string) => void;
   onNavigate: (tab: string, arg?: string) => void; // for shop, subscribe etc.
   allBlogs?: BlogPost[];
+  /** Set only by the page builder preview: makes sections selectable. */
+  editor?: {
+    selectedSectionId: string | null;
+    onSelectSection: (id: string) => void;
+    /** Floating tools drawn on the selected section. */
+    renderSectionTools?: (sec: PageSection, index: number) => React.ReactNode;
+  };
 }
+
+const HEADING_SEL = (id: string) =>
+  ['h1', 'h2', 'h3', 'h4', '.section-title'].map(h => `#sec-${id} ${h}, #sec-${id} ${h} *`).join(', ');
+const BODY_SEL = (id: string) =>
+  ['', ' p', ' li', ' span', ' a', ' button', ' input', ' textarea', ' label', ' div'].map(s => `#sec-${id}${s}`).join(', ');
+
+const CONTENT_WIDTHS: Record<string, string> = {
+  narrow: '760px',
+  medium: '1040px',
+  wide: '1280px',
+  xl: '1440px'
+};
+
+/**
+ * CSS for the shared style settings every section supports (fonts, type scale,
+ * layout width, background image, device visibility, mobile overrides,
+ * animation, custom CSS). Kept separate from the per-type colour rules so the
+ * builder and the live store run the exact same code.
+ */
+function buildSectionStyleCss(sec: PageSection, page: CustomPage): string {
+  const s: any = sec.settings || {};
+  const id = sec.id;
+  const rules: string[] = [];
+
+  const headingStack = fontStack(s.headingFont) || fontStack(page.settings?.headingFont);
+  const bodyStack = fontStack(s.bodyFont) || fontStack(page.settings?.bodyFont);
+
+  if (bodyStack) rules.push(`${BODY_SEL(id)} { font-family: ${bodyStack} !important; }`);
+
+  const head: string[] = [];
+  if (headingStack) head.push(`font-family: ${headingStack} !important;`);
+  if (s.headingWeight) head.push(`font-weight: ${Number(s.headingWeight)} !important;`);
+  if (s.headingLetterSpacing !== undefined && s.headingLetterSpacing !== '') head.push(`letter-spacing: ${Number(s.headingLetterSpacing)}em !important;`);
+  if (s.headingTransform) head.push(`text-transform: ${s.headingTransform} !important;`);
+  if (s.headingLineHeight) head.push(`line-height: ${Number(s.headingLineHeight)} !important;`);
+  if (s.headingItalic) head.push('font-style: italic !important;');
+  if (head.length) rules.push(`${HEADING_SEL(id)} { ${head.join(' ')} }`);
+
+  const body: string[] = [];
+  if (s.bodyWeight) body.push(`font-weight: ${Number(s.bodyWeight)} !important;`);
+  if (s.bodyLineHeight) body.push(`line-height: ${Number(s.bodyLineHeight)} !important;`);
+  if (s.bodyLetterSpacing !== undefined && s.bodyLetterSpacing !== '') body.push(`letter-spacing: ${Number(s.bodyLetterSpacing)}em !important;`);
+  if (body.length) rules.push(`#sec-${id} p, #sec-${id} li, #sec-${id} .section-desc { ${body.join(' ')} }`);
+
+  const btn: string[] = [];
+  if (s.buttonStyle === 'outline') btn.push(`background-color: transparent !important; border: 1.5px solid ${s.buttonBgColor || 'currentColor'} !important; color: ${s.buttonBgColor || 'inherit'} !important;`);
+  if (s.buttonStyle === 'link') btn.push('background-color: transparent !important; border: 0 !important; padding-left: 0 !important; padding-right: 0 !important; text-decoration: underline !important; text-underline-offset: 4px;');
+  if (s.buttonUppercase === true) btn.push('text-transform: uppercase !important;');
+  if (s.buttonUppercase === false) btn.push('text-transform: none !important;');
+  if (s.buttonFontSize) btn.push(`font-size: ${Number(s.buttonFontSize)}px !important;`);
+  if (btn.length) rules.push(`#sec-${id} button, #sec-${id} .section-btn { ${btn.join(' ')} }`);
+
+  if (!s.fullWidth && s.contentWidth && CONTENT_WIDTHS[s.contentWidth]) {
+    rules.push(`#sec-${id} > .sec-container { max-width: ${CONTENT_WIDTHS[s.contentWidth]} !important; }`);
+  }
+
+  if (s.backgroundImageUrl) {
+    const o = Math.max(0, Math.min(90, Number(s.backgroundOverlay ?? 0))) / 100;
+    const url = String(s.backgroundImageUrl).replace(/["\\\n<>]/g, '');
+    rules.push(`#sec-${id} { background-image: linear-gradient(rgba(0,0,0,${o}), rgba(0,0,0,${o})), url("${url}") !important; background-size: cover !important; background-position: center !important; }`);
+  }
+
+  if (s.sectionRadius) rules.push(`#sec-${id} { border-radius: ${Number(s.sectionRadius)}px; }`);
+
+  // Mobile overrides (≤ 767px). In the builder these respond to the preview
+  // frame's width, so "Mobile" preview shows exactly what phones get.
+  const mob: string[] = [];
+  if (s.paddingTopMobile !== undefined && s.paddingTopMobile !== '') mob.push(`#sec-${id} { padding-top: ${Number(s.paddingTopMobile)}px !important; }`);
+  if (s.paddingBottomMobile !== undefined && s.paddingBottomMobile !== '') mob.push(`#sec-${id} { padding-bottom: ${Number(s.paddingBottomMobile)}px !important; }`);
+  if (s.mobileAlignment) mob.push(`#sec-${id}, #sec-${id} h1, #sec-${id} h2, #sec-${id} h3, #sec-${id} p { text-align: ${s.mobileAlignment} !important; }`);
+  if (s.titleFontSizeMobile) mob.push(`${HEADING_SEL(id)} { font-size: ${Number(s.titleFontSizeMobile)}px !important; }`);
+  if (s.hideOnMobile) mob.push(`#sec-${id} { display: none !important; }`);
+  if (mob.length) rules.push(`@media (max-width: 767px) { ${mob.join(' ')} }`);
+  if (s.hideOnDesktop) rules.push(`@media (min-width: 768px) { #sec-${id} { display: none !important; } }`);
+
+  if (s.animation && s.animation !== 'none') {
+    rules.push(`#sec-${id} > .sec-container { animation: pr-${s.animation} 0.8s cubic-bezier(.2,.7,.2,1) both; }`);
+  }
+
+  if (s.customCss) {
+    // Nested under the section id so it cannot restyle the rest of the store.
+    const css = String(s.customCss).replace(/<\/?style/gi, '').replace(/</g, '');
+    rules.push(`#sec-${id} { ${css} }`);
+  }
+
+  return rules.join('\n');
+}
+
+const ANIMATION_KEYFRAMES = `
+@keyframes pr-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pr-slide-up { from { opacity: 0; transform: translateY(28px) } to { opacity: 1; transform: none } }
+@keyframes pr-zoom { from { opacity: 0; transform: scale(.96) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) { [id^="sec-"] > .sec-container { animation: none !important; } }
+`;
 
 interface ContactFormSectionProps {
   sec: PageSection;
@@ -1362,7 +1464,8 @@ export default function PageRenderer({
   onAddToCart,
   onToggleWishlist,
   onNavigate,
-  allBlogs = []
+  allBlogs = [],
+  editor
 }: PageRendererProps) {
   // Safe state for keeping track of active FAQs
   const [openFaqIdx, setOpenFaqIdx] = useState<string | null>(null);
@@ -1455,10 +1558,28 @@ export default function PageRenderer({
     setOpenFaqIdx(openFaqIdx === key ? null : key);
   };
 
+  // Sections switched off in the builder stay in the page data but are not
+  // published; the builder still shows them (dimmed) so they can be re-enabled.
+  const renderedSections = (page.sections || []).filter(s => s && (editor || !s.settings?.hidden));
+  const fontHrefs = googleFontHrefs([
+    page.settings?.headingFont,
+    page.settings?.bodyFont,
+    ...renderedSections.flatMap(s => [s.settings?.headingFont, s.settings?.bodyFont])
+  ]);
+  const pageBodyStack = fontStack(page.settings?.bodyFont);
+
   return (
-    <div className="space-y-0 pb-24 font-sans">
-      {page.sections && page.sections.length > 0 ? (
-        page.sections.map((sec, idx) => {
+    <div
+      className="space-y-0 pb-24 font-sans"
+      style={{
+        ...(page.settings?.backgroundColor ? { backgroundColor: page.settings.backgroundColor } : {}),
+        ...(pageBodyStack ? { fontFamily: pageBodyStack } : {})
+      }}
+    >
+      {fontHrefs.map(href => <link key={href} rel="stylesheet" href={href} />)}
+      <style dangerouslySetInnerHTML={{ __html: ANIMATION_KEYFRAMES }} />
+      {renderedSections.length > 0 ? (
+        renderedSections.map((sec, idx) => {
           const sectionClassName = (sec.type || (sec as any).name || 'section')
             .toLowerCase()
             .trim()
@@ -1474,7 +1595,9 @@ export default function PageRenderer({
           
           const hasCustomPadding = sec.settings.paddingTop !== undefined || sec.settings.paddingBottom !== undefined;
           const paddingClass = isFullBleed ? 'py-0' : (hasCustomPadding ? '' : 'py-3 sm:py-4 md:py-5');
-          const containerClass = sec.settings.fullWidth ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8';
+          const containerClass = `sec-container ${sec.settings.fullWidth ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}`;
+          const isSelected = !!editor && editor.selectedSectionId === sec.id;
+          const isDisabled = !!sec.settings?.hidden;
 
           const customStyles = `
             #sec-${sec.id} {
@@ -1535,9 +1658,38 @@ export default function PageRenderer({
               id={`sec-${sec.id}`}
               key={sec.id || idx}
               style={sStyle}
-              className={`${sectionClassName} ${paddingClass} relative transition-all duration-300 w-full overflow-hidden`}
+              data-section-id={sec.id}
+              onClickCapture={editor ? (e) => {
+                // In the builder a click selects the section; links must not
+                // navigate the preview away from the page being edited.
+                if ((e.target as HTMLElement).closest?.('a')) e.preventDefault();
+                editor.onSelectSection(sec.id);
+              } : undefined}
+              onSubmitCapture={editor ? (e) => e.preventDefault() : undefined}
+              className={`${sectionClassName} ${paddingClass} relative transition-all duration-300 w-full overflow-hidden ${
+                editor ? 'cursor-pointer group/sec' : ''
+              } ${isDisabled ? 'opacity-40' : ''}`}
             >
-              <style dangerouslySetInnerHTML={{ __html: customStyles }} />
+              <style dangerouslySetInnerHTML={{ __html: customStyles + '\n' + buildSectionStyleCss(sec, page) }} />
+              {editor && (
+                <>
+                  <div
+                    className={`pointer-events-none absolute inset-0 z-40 transition-shadow ${
+                      isSelected ? 'shadow-[inset_0_0_0_2px_#2563eb]' : 'group-hover/sec:shadow-[inset_0_0_0_2px_#93c5fd]'
+                    }`}
+                  />
+                  {isSelected && (
+                    <span className="pointer-events-none absolute left-0 top-0 z-50 bg-blue-600 text-white text-[11px] font-medium px-2 py-0.5 rounded-br-md font-sans">
+                      {sec.type}{isDisabled ? ' · Hidden' : ''}
+                    </span>
+                  )}
+                  {isSelected && editor.renderSectionTools && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-50 font-sans">
+                      {editor.renderSectionTools(sec, idx)}
+                    </div>
+                  )}
+                </>
+              )}
               <div className={containerClass}>
                 
                 {/* 1. IMAGE BANNER */}

@@ -1868,9 +1868,11 @@ export default function App() {
           <>
             {/* FRONTEND VIEW - HOME */}
             {currentTab === 'frontend-home' && (() => {
-              // The theme home page is the default. An admin can switch the home
-              // page to one built in the Page Builder (Header & Footer settings).
-              const useBuilderHome = layoutSettings?.homepageSource === 'page-builder';
+              // The homepage built in the Page Builder is what the store shows, so
+              // what the admin edits is what shoppers see. The built-in theme
+              // design is used only when explicitly chosen, or when no builder
+              // homepage exists.
+              const useBuilderHome = layoutSettings?.homepageSource !== 'theme';
               const hp = useBuilderHome
                 ? customPages.find(p => p.isHomepage || p.slug === '' || p.slug === 'home' || p.slug === 'homepage' || p.id === 'homepage' || p.id === 'page-home')
                 : null;

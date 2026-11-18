@@ -404,6 +404,12 @@ export interface CustomPage {
   updatedAt: string;
   sections: PageSection[];
   isHomepage?: boolean;
+  /** Page-wide defaults; any section can override them in its own settings. */
+  settings?: {
+    headingFont?: string;
+    bodyFont?: string;
+    backgroundColor?: string;
+  };
 }
 
 export interface CartItem {

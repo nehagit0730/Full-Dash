@@ -113,12 +113,12 @@ export const LayoutTab: React.FC<LayoutTabProps> = ({
               <label htmlFor="homepage-source" className="block text-slate-500 font-bold text-[9px] uppercase tracking-wider mb-1">Home page</label>
               <select
                 id="homepage-source"
-                value={(localLayoutSettings as any).homepageSource || 'theme'}
+                value={(localLayoutSettings as any).homepageSource === 'theme' ? 'theme' : 'page-builder'}
                 onChange={(e) => setLocalLayoutSettings({ ...localLayoutSettings, homepageSource: e.target.value as any })}
                 className="w-full text-xs font-semibold border border-slate-200 p-2.5 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option value="theme">Theme home page (default storefront design)</option>
-                <option value="page-builder">Page Builder home page (the page marked as homepage)</option>
+                <option value="page-builder">Page Builder home page (what you edit in Pages)</option>
+                <option value="theme">Built-in theme home page (not editable in Pages)</option>
               </select>
               <p className="text-[10px] text-slate-400 mt-1">The logo text below is the store name shown in the header, footer and emails.</p>
             </div>

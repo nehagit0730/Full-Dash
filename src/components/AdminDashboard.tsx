@@ -3800,6 +3800,19 @@ export default function AdminDashboard({
             products={products}
             collections={collections}
             blogs={blogs}
+            layoutSettings={localLayoutSettings}
+            homepageSource={(localLayoutSettings as any).homepageSource}
+            onSetHomepageSource={(source) => {
+              setLocalLayoutSettings({ ...localLayoutSettings, homepageSource: source });
+              setHasUnsavedChanges(true);
+            }}
+            onOpenLayoutSettings={() => {
+              if (hasUnsavedChanges && !confirm('You have unsaved changes in the page editor. Leave and discard them?')) return;
+              if (hasUnsavedChanges) handleGlobalDiscard();
+              setSelectedBuilderPageId(null);
+              setSelectedBuilderSectionId(null);
+              setActiveTab('layout' as any);
+            }}
           />
         )}
 
