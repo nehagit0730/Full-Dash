@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle, CheckCircle2, ChevronDown, Copy, Download, Eye, Loader2, Monitor, MoreHorizontal,
   Paintbrush, Pencil, Plus, RotateCcw, Smartphone, Tablet, Trash2, Upload, X
@@ -69,33 +70,85 @@ function readAsBase64(file: File): Promise<string> {
 
 // ─────────────────────────── small UI pieces ───────────────────────────
 
-function Menu({ children, dark }: { children: (close: () => void) => React.ReactNode; dark?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+/**
+ * A dropdown rendered into document.body with fixed positioning, so no
+ * ancestor's overflow or stacking can clip or cover it. It opens below its
+ * trigger, flips above when there is no room, and stays inside the window.
+ */
+function Popover({
+  anchor, width, onClose, children
+}: { anchor: HTMLElement; width: number; onClose: () => void; children: React.ReactNode }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const place = () => {
+      const r = anchor.getBoundingClientRect();
+      const h = panelRef.current?.offsetHeight || 0;
+      const gap = 6, margin = 8;
+      const below = window.innerHeight - r.bottom - margin;
+      const top = below >= h + gap || r.top < h + gap + margin
+        ? Math.min(r.bottom + gap, window.innerHeight - h - margin)
+        : r.top - h - gap;
+      const left = Math.max(margin, Math.min(r.right - width, window.innerWidth - width - margin));
+      setPos({ top: Math.max(margin, top), left });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [anchor, width]);
+
   useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!panelRef.current?.contains(t) && !anchor.contains(t)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, [open]);
+  }, [anchor, onClose]);
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      role="menu"
+      style={{ position: 'fixed', top: pos?.top ?? -9999, left: pos?.left ?? -9999, width, visibility: pos ? 'visible' : 'hidden' }}
+      className="z-[200] rounded-xl bg-white py-1.5 shadow-xl ring-1 ring-black/10 text-[13px] text-slate-800 font-sans"
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+function Menu({ children, dark }: { children: (close: () => void) => React.ReactNode; dark?: boolean }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const close = useCallback(() => setAnchor(null), []);
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
         type="button"
         aria-label="More actions"
-        onClick={() => setOpen(o => !o)}
-        className={`h-8 w-8 flex items-center justify-center rounded-lg ${dark ? 'text-white hover:bg-white/15' : 'text-slate-600 hover:bg-slate-100'}`}
+        aria-haspopup="menu"
+        aria-expanded={!!anchor}
+        onClick={e => setAnchor(a => (a ? null : e.currentTarget))}
+        className={`h-8 w-8 flex items-center justify-center rounded-lg ${
+          dark ? 'text-white hover:bg-white/15' : 'text-slate-600 hover:bg-slate-100'
+        } ${anchor ? (dark ? 'bg-white/15' : 'bg-slate-100') : ''}`}
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
-      {open && (
-        <div className="absolute right-0 top-9 z-30 w-56 rounded-xl bg-white py-1.5 shadow-xl ring-1 ring-black/10 text-[13px] text-slate-800">
-          {children(() => setOpen(false))}
-        </div>
+      {anchor && (
+        <Popover anchor={anchor} width={232} onClose={close}>
+          {children(close)}
+        </Popover>
       )}
-    </div>
+    </>
   );
 }
 
@@ -292,7 +345,8 @@ export default function ThemesTab({ products, collections, blogs, hasUnsavedChan
   const [notices, setNotices] = useState<Notice[]>([]);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | { kind: 'rename' | 'duplicate' | 'new'; theme?: ThemeSummary }>(null);
-  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [addAnchor, setAddAnchor] = useState<HTMLElement | null>(null);
+  const closeAddMenu = useCallback(() => setAddAnchor(null), []);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -504,22 +558,18 @@ export default function ThemesTab({ products, collections, blogs, hasUnsavedChan
                 {isBusy('import') ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 {isBusy('import') ? 'Importing…' : 'Import'}
               </button>
-              <div className="relative">
-                <button type="button" onClick={() => setShowAddMenu(v => !v)}
-                  className="h-9 flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-[13px] font-semibold text-white hover:bg-slate-800">
-                  <Plus className="h-4 w-4" /> Add theme <ChevronDown className="h-3.5 w-3.5" />
-                </button>
-                {showAddMenu && (
-                  <>
-                    <div className="fixed inset-0 z-20" onClick={() => setShowAddMenu(false)} />
-                    <div className="absolute right-0 top-10 z-30 w-64 rounded-xl bg-white py-1.5 shadow-xl ring-1 ring-black/10 text-[13px]">
-                      <MenuItem icon={<Upload />} label="Upload theme file(s)…" onClick={() => { setShowAddMenu(false); fileRef.current?.click(); }} />
-                      {live && <MenuItem icon={<Copy />} label={`Duplicate "${live.name}"`} onClick={() => { setShowAddMenu(false); setDialog({ kind: 'duplicate', theme: live }); }} />}
-                      <MenuItem icon={<Paintbrush />} label="Start from the default theme" onClick={() => { setShowAddMenu(false); setDialog({ kind: 'new' }); }} />
-                    </div>
-                  </>
-                )}
-              </div>
+              <button type="button" onClick={e => setAddAnchor(a => (a ? null : e.currentTarget))}
+                aria-haspopup="menu" aria-expanded={!!addAnchor}
+                className="h-9 flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-[13px] font-semibold text-white hover:bg-slate-800">
+                <Plus className="h-4 w-4" /> Add theme <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              {addAnchor && (
+                <Popover anchor={addAnchor} width={264} onClose={closeAddMenu}>
+                  <MenuItem icon={<Upload />} label="Upload theme file(s)…" onClick={() => { closeAddMenu(); fileRef.current?.click(); }} />
+                  {live && <MenuItem icon={<Copy />} label={`Duplicate "${live.name}"`} onClick={() => { closeAddMenu(); setDialog({ kind: 'duplicate', theme: live }); }} />}
+                  <MenuItem icon={<Paintbrush />} label="Start from the default theme" onClick={() => { closeAddMenu(); setDialog({ kind: 'new' }); }} />
+                </Popover>
+              )}
             </div>
           </div>
 
@@ -573,8 +623,9 @@ export default function ThemesTab({ products, collections, blogs, hasUnsavedChan
           </div>
 
           <p className="text-[12px] leading-relaxed text-slate-500">
-            Theme files are .zip packages (or theme.json) downloaded from this dashboard. Shopify Liquid themes run only on Shopify and can't be imported.
-            Images are referenced by URL and aren't packed into the file; credentials and store settings are never included.
+            A downloaded theme is a folder with one file per page (templates/) and per section (sections/), plus a schema/ reference
+            and a README explaining how to build your own — edit it, zip it, and import it here. Shopify Liquid themes run only on Shopify and can't be imported.
+            Images are referenced by URL; credentials and store settings are never included.
           </p>
         </section>
       )}

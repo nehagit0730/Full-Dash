@@ -1179,6 +1179,11 @@ function buildSectionStyleCss(sec: PageSection, page: CustomPage): string {
   return rules.join('\n');
 }
 
+/** A section's image-list setting (plain URLs), with blanks dropped. */
+function imageList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && v.trim() !== '') : [];
+}
+
 /**
  * Setting values (colours, sizes, custom CSS) are interpolated into <style>
  * text. A value containing "</style>" would end the element and let markup
@@ -2210,9 +2215,18 @@ export default function PageRenderer({
                   <div className="space-y-6 px-4">
                     <div className="flex items-center gap-1.5 justify-center">
                       <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
-                      <h4 className="text-[10px] font-extrabold text-center uppercase tracking-widest text-slate-400">Fresh Stock Dispatch Reel</h4>
+                      <h4 className="text-[10px] font-extrabold text-center uppercase tracking-widest text-slate-400">{sec.settings.title || 'Fresh Stock Dispatch Reel'}</h4>
                     </div>
 
+                    {imageList(sec.settings.galleryImages).length > 0 ? (
+                      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none justify-start sm:justify-center">
+                        {imageList(sec.settings.galleryImages).map((url, i) => (
+                          <div key={`reel-img-${i}`} className="h-40 w-32 sm:h-56 sm:w-44 shrink-0 overflow-hidden rounded-xl bg-slate-50">
+                            <img src={cleanMediaUrl(url)} className="h-full w-full object-cover" alt="" referrerPolicy="no-referrer" loading="lazy" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none justify-start sm:justify-center">
                       {allProducts.slice(0, 6).map((prod, pIdx) => (
                         <div key={`reel-${prod.id}-${pIdx}`} className="w-28 shrink-0 bg-white border border-slate-100 p-2 rounded-xl text-center shadow-xs hover:shadow-md transition-shadow group">
@@ -2233,6 +2247,7 @@ export default function PageRenderer({
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                 )}
 
@@ -2246,11 +2261,21 @@ export default function PageRenderer({
                       >
                         {sec.settings.title || 'OFFICIAL LAB PARTNER REGISTER'}
                       </h3>
-                      <p className="text-[10px] text-slate-400">Clinically formulated nicotine lines distributed under licensing agreements</p>
+                      {sec.settings.description && (
+                        <p className="text-[10px] text-slate-400">{sec.settings.description}</p>
+                      )}
                     </div>
 
+                    {imageList(sec.settings.logoImages).length > 0 ? (
+                      <div className="flex flex-wrap justify-center items-center gap-8 sm:gap-12">
+                        {imageList(sec.settings.logoImages).map((url, i) => (
+                          <img key={`logo-${i}`} src={cleanMediaUrl(url)} alt="" referrerPolicy="no-referrer" loading="lazy"
+                            className="h-10 sm:h-12 w-auto max-w-[160px] object-contain opacity-80 hover:opacity-100 transition-opacity" />
+                        ))}
+                      </div>
+                    ) : (
                     <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6">
-                      {['77', 'clew', 'cuba', 'maggie', 'nordic spirit', 'xqs', 'zyn', 'pablo', 'killa', 'fumi', 'velo', 'white fox', 'snu'].map((logo, lIdx) => (
+                      {['77','clew', 'cuba', 'maggie', 'nordic spirit', 'xqs', 'zyn', 'pablo', 'killa', 'fumi', 'velo', 'white fox', 'snu'].map((logo, lIdx) => (
                         <div 
                           key={lIdx} 
                           onClick={() => onNavigate('frontend-brands')}
@@ -2261,6 +2286,7 @@ export default function PageRenderer({
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                 )}
 
@@ -2489,16 +2515,16 @@ export default function PageRenderer({
                       >
                         {sec.settings.title || 'Laboratory & Dispatch Facility Gallery'}
                       </h3>
-                      <p className="text-xs text-slate-500 max-w-md mx-auto">Inspected clean-room assembly lines yielding high-density plant-fiber purity.</p>
+                      {sec.settings.description && (
+                        <p className="text-xs text-slate-500 max-w-md mx-auto">{sec.settings.description}</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                      {[
-                        PLACEHOLDER_IMAGE,
-                        PLACEHOLDER_IMAGE,
-                        PLACEHOLDER_IMAGE,
-                        PLACEHOLDER_IMAGE
-                      ].map((imgUrl, galIdx) => (
+                      {(imageList(sec.settings.galleryImages).length
+                        ? imageList(sec.settings.galleryImages)
+                        : [PLACEHOLDER_IMAGE, PLACEHOLDER_IMAGE, PLACEHOLDER_IMAGE, PLACEHOLDER_IMAGE]
+                      ).map((imgUrl, galIdx) => (
                         <div key={galIdx} className="h-44 rounded-2xl overflow-hidden border border-slate-150 shadow-sm relative group bg-slate-50">
                           <img 
                             src={cleanMediaUrl(imgUrl)} 
