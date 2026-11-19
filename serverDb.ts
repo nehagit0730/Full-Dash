@@ -449,7 +449,7 @@ export async function hydrateMemoryCacheFromDatabase(): Promise<void> {
         where: { resource: resName },
         orderBy: { createdAt: 'asc' }
       });
-      const directList = await fetchFromPrismaModel(resName);
+      const directList = isPagesResource(resName) && (records || []).length > 0 ? [] : await fetchFromPrismaModel(resName);
 
       const mergedMap = new Map<string, any>();
       for (const r of (records || [])) {
@@ -663,7 +663,19 @@ export async function getDb(): Promise<boolean> {
  * customer had just paid for. Rows here are only ever created or updated by a
  * list save; removing one goes through deleteSingleItem (DELETE /api/:id).
  */
-const LIST_SAVE_NEVER_DELETES = new Set(['orders', 'customers', 'subscriptions', 'pending_checkouts', 'email_logs', 'klaviyo_logs']);
+const LIST_SAVE_NEVER_DELETES = new Set(['orders', 'customers', 'subscriptions', 'pending_checkouts', 'email_logs', 'klaviyo_logs', 'custompages']);
+
+/**
+ * Write options.
+ *  - strict:  a failed database write throws instead of being logged, so an API
+ *             caller can report the failure instead of claiming success.
+ *  - replace: a list save may delete records missing from the list even for
+ *             delete-protected resources (used by theme publishing, which
+ *             swaps the whole set of pages on purpose).
+ */
+export interface WriteOptions { strict?: boolean; replace?: boolean }
+
+const isPagesResource = (r: string) => ['custompages', 'pages'].includes(String(r || '').toLowerCase());
 
 function isDeleteProtected(resource: string): boolean {
   return LIST_SAVE_NEVER_DELETES.has(String(resource || '').toLowerCase());
@@ -1116,7 +1128,9 @@ export async function fetchResource(resource: string): Promise<any[]> {
       });
 
       const storeResourceList = (records || []).map(r => r.data as any);
-      const directModelList = await fetchFromPrismaModel(normResource);
+      const directModelList = isPagesResource(normResource) && storeResourceList.length > 0
+        ? []
+        : await fetchFromPrismaModel(normResource);
 
       // Merge by ID to ensure items in direct Prisma model (e.g. Order table) are included
       const mergedMap = new Map<string, any>();
@@ -1183,26 +1197,31 @@ export async function fetchResource(resource: string): Promise<any[]> {
   return memoryCache[normResource] || memoryCache[resource] || [];
 }
 
-export async function saveResource(resource: string, list: any[] | any): Promise<any[]> {
+export async function saveResource(resource: string, list: any[] | any, opts: WriteOptions = {}): Promise<any[]> {
   const normResource = normalizeResourceName(resource);
   const normalizedList = Array.isArray(list) ? list : (list ? [list] : []);
   if (!Array.isArray(normalizedList)) return memoryCache[normResource] || [];
 
-  // For customPages, ensure sections are preserved and not accidentally stripped
-  if (normResource === 'customPages' || normResource === 'custompages' || normResource === 'pages') {
-    const existingPages = memoryCache['customPages'] || [];
+  // Pages always carry a sections array. An empty array is a real value (the
+  // merchant removed every section) and is saved as such — it used to be
+  // "repaired" from this server's memory, which resurrected deleted sections.
+  if (isPagesResource(normResource)) {
     for (let i = 0; i < normalizedList.length; i++) {
       const p = normalizedList[i];
-      if (p && (!p.sections || !Array.isArray(p.sections) || p.sections.length === 0)) {
-        const existing = existingPages.find((ep: any) => ep && (ep.id === p.id || ep.slug === p.slug));
-        if (existing && Array.isArray(existing.sections) && existing.sections.length > 0) {
-          normalizedList[i] = { ...p, sections: existing.sections };
-        }
-      }
+      if (p && !Array.isArray(p.sections)) normalizedList[i] = { ...p, sections: [] };
     }
   }
 
-  memoryCache[normResource] = [...normalizedList];
+  const mayDelete = opts.replace || !isDeleteProtected(normResource);
+  if (mayDelete) {
+    memoryCache[normResource] = [...normalizedList];
+  } else {
+    // Additive: update or append, never drop what the list left out.
+    const merged = new Map<string, any>();
+    for (const it of memoryCache[normResource] || []) if (it) merged.set(String(it.id || it.slug || it.orderId), it);
+    for (const it of normalizedList) if (it) merged.set(String(it.id || it.slug || it.orderId), it);
+    memoryCache[normResource] = Array.from(merged.values());
+  }
   if (normResource !== resource) memoryCache[resource] = memoryCache[normResource];
   persistMemoryCacheToBackup();
 
@@ -1232,7 +1251,10 @@ export async function saveResource(resource: string, list: any[] | any): Promise
               itemId,
               data: item
             }
-          }).catch((e: any) => console.warn(`[StoreResource Sync] ${normResource} ${itemId} warning:`, e?.message));
+          }).catch((e: any) => {
+            console.warn(`[StoreResource Sync] ${normResource} ${itemId} warning:`, e?.message);
+            if (opts.strict) throw new Error(`Could not save ${normResource} "${itemId}" to the database: ${e?.message || e}`);
+          });
 
           // Dual sync to the dedicated Prisma model table. This MUST be awaited.
           // It used to be fire-and-forget, which works on a long-lived server but
@@ -1251,7 +1273,7 @@ export async function saveResource(resource: string, list: any[] | any): Promise
 
       // Delete items removed from list in StoreResource. Transactional resources
       // are exempt from list-driven deletion - see isDeleteProtected.
-      if (validItemIds.length > 0 && !isDeleteProtected(normResource)) {
+      if (validItemIds.length > 0 && mayDelete) {
         await prisma.storeResource.deleteMany({
           where: {
             resource: normResource,
@@ -1259,13 +1281,16 @@ export async function saveResource(resource: string, list: any[] | any): Promise
               notIn: validItemIds
             }
           }
-        }).catch((e: any) => console.warn(`[StoreResource deleteMany] ${normResource} warning:`, e?.message));
+        }).catch((e: any) => {
+          console.warn(`[StoreResource deleteMany] ${normResource} warning:`, e?.message);
+          if (opts.strict) throw new Error(`Could not remove old ${normResource} records: ${e?.message || e}`);
+        });
       }
 
       // Delete items removed from list in dedicated Prisma tables. Transactional
       // resources are exempt from list-driven deletion - see isDeleteProtected.
       const norm = normResource.toLowerCase();
-      if (validItemIds.length > 0 && !isDeleteProtected(normResource)) {
+      if (validItemIds.length > 0 && mayDelete) {
         if (norm === 'products') {
           await prisma.product.deleteMany({ where: { id: { notIn: validItemIds } } }).catch(() => {});
         } else if (norm === 'collections') {
@@ -1284,7 +1309,10 @@ export async function saveResource(resource: string, list: any[] | any): Promise
       }
     } catch (err) {
       console.error(`[Neon DB] Error saving resource ${normResource}:`, err);
+      if (opts.strict) throw err;
     }
+  } else if (opts.strict && process.env.DATABASE_URL) {
+    throw new Error('The database is unreachable, so nothing was saved. Please try again in a moment.');
   }
 
   return normalizedList;
@@ -1359,7 +1387,9 @@ export async function restoreDatabaseBackup(backupId: string): Promise<boolean> 
       const data = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
       for (const [resKey, items] of Object.entries(data)) {
         if (Array.isArray(items)) {
-          await saveResource(resKey, items);
+          // Pages are restored exactly (list saves are otherwise additive for them);
+          // orders and customers keep their existing never-delete protection.
+          await saveResource(resKey, items, { replace: isPagesResource(resKey) });
         }
       }
       return true;
@@ -1442,20 +1472,15 @@ export async function fetchSingleItem(resource: string, id: string): Promise<any
   return items.find((i: any) => i.id === id || i.slug === id) || null;
 }
 
-export async function saveSingleItem(resource: string, item: any): Promise<any> {
+export async function saveSingleItem(resource: string, item: any, opts: WriteOptions = {}): Promise<any> {
   if (!item) return item;
   const normResource = normalizeResourceName(resource);
   const itemId = String(item.id || item.slug || item.orderId || `item-${Date.now()}-${Math.random()}`);
 
   const items = memoryCache[normResource] || memoryCache[resource] || [];
 
-  if (normResource === 'customPages' || normResource === 'custompages' || normResource === 'pages') {
-    if (!item.sections || !Array.isArray(item.sections) || item.sections.length === 0) {
-      const existing = items.find((i: any) => i.id === itemId || i.slug === itemId);
-      if (existing && Array.isArray(existing.sections) && existing.sections.length > 0) {
-        item = { ...item, sections: existing.sections };
-      }
-    }
+  if (isPagesResource(normResource) && !Array.isArray(item.sections)) {
+    item = { ...item, sections: [] };
   }
 
   const idx = items.findIndex((i: any) => i.id === itemId || i.slug === itemId);
@@ -1494,13 +1519,16 @@ export async function saveSingleItem(resource: string, item: any): Promise<any> 
       );
     } catch (err) {
       console.error(`[Neon DB] Error saving single item ${normResource}/${itemId}:`, err);
+      if (opts.strict) throw new Error(`Could not save to the database: ${(err as any)?.message || err}`);
     }
+  } else if (opts.strict && process.env.DATABASE_URL) {
+    throw new Error('The database is unreachable, so nothing was saved. Please try again in a moment.');
   }
 
   return item;
 }
 
-export async function deleteSingleItem(resource: string, id: string): Promise<boolean> {
+export async function deleteSingleItem(resource: string, id: string, opts: WriteOptions = {}): Promise<boolean> {
   if (!id) return false;
   const normResource = normalizeResourceName(resource);
 
@@ -1537,7 +1565,10 @@ export async function deleteSingleItem(resource: string, id: string): Promise<bo
       }
     } catch (err) {
       console.error(`[Neon DB] Error deleting single item ${normResource}/${id}:`, err);
+      if (opts.strict) throw new Error(`Could not delete from the database: ${(err as any)?.message || err}`);
     }
+  } else if (opts.strict && process.env.DATABASE_URL) {
+    throw new Error('The database is unreachable, so nothing was deleted. Please try again in a moment.');
   }
 
   return true;

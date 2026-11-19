@@ -248,7 +248,9 @@ export async function publishTheme(id: string) {
   // 2. Apply the target's design. Store configuration/credentials held in the
   //    layout settings are kept as they are.
   const pages = JSON.parse(JSON.stringify(target.data.pages || []));
-  await saveResource('customPages', pages);
+  // Publishing swaps the whole set of pages, so this save may remove pages
+  // the outgoing theme had (page list saves are otherwise additive).
+  await saveResource('customPages', pages, { replace: true, strict: true });
   const existingLayout = await fetchLayoutSettings();
   const layout = { ...themeLayout(target.data.layout), ...privateLayout(existingLayout), id: 'layout_settings' };
   await saveLayoutSettings(layout);

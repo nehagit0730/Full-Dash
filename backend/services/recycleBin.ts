@@ -152,8 +152,20 @@ export async function moveToRecycleBin(
   // Cleared under the slug as well as the id where they differ: the JSON store
   // and the typed table do not agree on which of the two is a page's key, so
   // deleting by one alone can leave the record behind in the other.
-  await deleteSingleItem(store, canonicalId);
-  if (slug && slug !== canonicalId) await deleteSingleItem(store, slug);
+  try {
+    await deleteSingleItem(store, canonicalId, { strict: true });
+    if (slug && slug !== canonicalId) await deleteSingleItem(store, slug, { strict: true });
+  } catch (err: any) {
+    // The record is still live, so the bin entry must not claim otherwise.
+    await prisma.recycleBinItem.delete({ where: { id: entry.id } }).catch(() => {});
+    return { ok: false, message: err?.message || 'The item could not be deleted. Please try again.' };
+  }
+
+  // Confirm it is really gone before reporting success.
+  if (await findActive(store, canonicalId)) {
+    await prisma.recycleBinItem.delete({ where: { id: entry.id } }).catch(() => {});
+    return { ok: false, message: 'The item could not be removed from the database. Please try again.' };
+  }
 
   // Files also hold a typed FileEntry row and a Cloudinary asset. The row goes
   // with the record; the asset is deliberately LEFT on Cloudinary until the bin

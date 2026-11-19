@@ -71,7 +71,7 @@ export function createCrudRouter(resourceName: string, options: CrudRouterOption
 
         // Captured before the write so a hook can see what actually changed.
         const before = options.onAfterReplace ? ((await fetchResource(resourceName)) || []) : [];
-        const updated = await saveResource(resourceName, kept);
+        const updated = await saveResource(resourceName, kept, { strict: true });
 
         if (options.onAfterReplace) {
           try {
@@ -83,7 +83,7 @@ export function createCrudRouter(resourceName: string, options: CrudRouterOption
 
         return res.json(updated);
       } else if (payload && typeof payload === "object") {
-        const updatedItem = await saveSingleItem(resourceName, payload);
+        const updatedItem = await saveSingleItem(resourceName, payload, { strict: true });
         return res.json(updatedItem);
       } else {
         return res.status(400).json({ error: "Invalid payload for POST operation" });
@@ -110,7 +110,7 @@ export function createCrudRouter(resourceName: string, options: CrudRouterOption
         res.setHeader("X-Database-Offline", "false");
       }
 
-      const updated = await saveSingleItem(resourceName, itemToSave);
+      const updated = await saveSingleItem(resourceName, itemToSave, { strict: true });
       res.json(updated);
     } catch (err: any) {
       console.error(`[${resourceName} Router] PUT /:id Error:`, err);
@@ -128,7 +128,7 @@ export function createCrudRouter(resourceName: string, options: CrudRouterOption
         res.setHeader("X-Database-Offline", "false");
       }
 
-      const success = await deleteSingleItem(resourceName, req.params.id);
+      const success = await deleteSingleItem(resourceName, req.params.id, { strict: true });
       res.json({ success, id: req.params.id });
     } catch (err: any) {
       console.error(`[${resourceName} Router] DELETE /:id Error:`, err);

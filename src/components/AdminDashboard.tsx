@@ -840,6 +840,37 @@ export default function AdminDashboard({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  // Outcome of the last save that talked to the database (null = nothing to show).
+  const [saveNotice, setSaveNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const flashNotice = useCallback((ok: boolean, text: string) => {
+    setSaveNotice({ ok, text });
+    window.setTimeout(() => setSaveNotice(n => (n && n.text === text ? null : n)), ok ? 3500 : 9000);
+  }, []);
+
+  /**
+   * Saves the full page list and waits for the database to confirm it.
+   * Resolves to the pages as stored, or throws with the server's message —
+   * callers only update the dashboard once the save has really happened.
+   */
+  const savePagesToDb = useCallback(async (pages: CustomPage[]): Promise<CustomPage[]> => {
+    const payload = pages.map(p => ({ ...p, sections: Array.isArray(p.sections) ? p.sections : [] }));
+    let res: Response;
+    try {
+      res = await fetch('/api/custompages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch {
+      throw new Error('Could not reach the server, so the pages were not saved.');
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error((data && data.error) || `Saving pages failed (HTTP ${res.status}).`);
+    if (res.headers.get('X-Database-Offline') === 'true') {
+      throw new Error('The database is offline, so the pages were only kept temporarily. Check Settings → Database.');
+    }
+    return Array.isArray(data) ? (data as CustomPage[]) : payload;
+  }, []);
 
   // Sync edits wrapper overrides so existing handlers automatically write to drafts and sync to the parent App context immediately
   const onUpdateProducts = (updatedProds: Product[]) => {
@@ -914,105 +945,71 @@ export default function AdminDashboard({
   };
 
   // Global Save & Discard triggers
-  const handleGlobalSave = () => {
+  const handleGlobalSave = async () => {
     setIsSaving(true);
     setShowSaveSuccess(false);
+    setSaveNotice(null);
 
-    // Guarantee full page section settings payload
     const pagesToSave: CustomPage[] = (localPages as CustomPage[]).map(page => ({
       ...page,
-      sections: (page.sections || []).map(section => ({
-        ...section,
-        settings: {
-          ...(section.settings || {})
-        } as any
-      }))
+      sections: (page.sections || []).map(section => ({ ...section, settings: { ...(section.settings || {}) } as any }))
     }));
 
-    // Merge local files and parent files by URL to ensure no uploaded assets are lost
+    // Merge local files and parent files by URL so no uploaded asset is lost.
     const mergedFilesMap = new Map<string, FileEntry>();
     (parentFiles || []).forEach(f => { if (f && f.url) mergedFilesMap.set(f.url, f); });
     (localFiles || []).forEach(f => { if (f && f.url) mergedFilesMap.set(f.url, f); });
     const finalFilesToSave = Array.from(mergedFilesMap.values());
 
-    // Update parent states
+    const post = async (label: string, url: string, body: unknown) => {
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error((data && data.error) || `HTTP ${res.status}`);
+        }
+      } catch (err: any) {
+        throw new Error(`${label}: ${err?.message || err}`);
+      }
+    };
+
+    // Orders are deliberately NOT posted here: localOrders is whatever this tab
+    // loaded, and orders placed since then would be missing from it. Orders
+    // change through their own endpoints.
+    const results = await Promise.allSettled([
+      savePagesToDb(pagesToSave).catch(err => { throw new Error(`Pages: ${err.message}`); }),
+      post('Products', '/api/products', localProducts),
+      post('Collections', '/api/collections', localCollections),
+      post('Customers', '/api/customers', localCustomers),
+      post('Discounts', '/api/discounts', localDiscounts),
+      post('Blog posts', '/api/blogs', localBlogs),
+      post('Files', '/api/files', finalFilesToSave),
+      post('Header & footer', '/api/layoutsettings', localLayoutSettings)
+    ]);
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected').map(r => String(r.reason?.message || r.reason));
+
+    setIsSaving(false);
+    if (failures.length) {
+      // Nothing is marked as saved: the edits stay in the dashboard so the
+      // merchant can retry instead of losing them on refresh.
+      flashNotice(false, `Not everything was saved. ${failures.join(' · ')}`);
+      return;
+    }
+
     parentOnUpdateProducts(localProducts);
     parentOnUpdateCollections(localCollections);
     parentOnUpdateCustomPages(pagesToSave);
     parentOnUpdateDiscounts(localDiscounts);
-    parentOnUpdateOrders(localOrders);
     parentOnUpdateFiles(finalFilesToSave);
     setLocalFiles(finalFilesToSave);
     parentOnUpdateCustomers(localCustomers);
     parentOnUpdateBlogs(localBlogs);
 
-    // Save directly to localStorage as backup
-    try {
-      localStorage.setItem('ps_custom_pages', JSON.stringify(pagesToSave));
-      localStorage.setItem('ps_products', JSON.stringify(localProducts));
-      localStorage.setItem('ps_collections', JSON.stringify(localCollections));
-      localStorage.setItem('ps_orders', JSON.stringify(localOrders));
-      // Save lightweight subset for files to prevent LocalStorage quota overflow
-      const filesSubset = (finalFilesToSave || []).slice(0, 25).map((f: any) => ({ id: f.id, url: f.url, fileName: f.fileName, size: f.size }));
-      localStorage.setItem('ps_files', JSON.stringify(filesSubset));
-      localStorage.setItem('ps_customers', JSON.stringify(localCustomers));
-      localStorage.setItem('ps_discounts', JSON.stringify(localDiscounts));
-      localStorage.setItem('ps_blogs', JSON.stringify(localBlogs));
-    } catch (e) {
-      // Ignored for localStorage quota
-    }
-
-    // Direct HTTP POST to API endpoints for instant database persistence
-    const postOptions = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    };
-
-    fetch('/api/products', { ...postOptions, body: JSON.stringify(localProducts) })
-      .catch(err => console.error('[Admin Save] Direct POST products failed:', err));
-
-    fetch('/api/collections', { ...postOptions, body: JSON.stringify(localCollections) })
-      .catch(err => console.error('[Admin Save] Direct POST collections failed:', err));
-
-    // Orders are deliberately NOT synced here.
-    //
-    // localOrders is whatever this tab loaded when it opened. Posting it as the
-    // order list meant every order placed after that point was absent from the
-    // payload - and the server then deleted those rows, so a customer who paid
-    // while the admin had the dashboard open lost their order. Orders are
-    // changed through their own endpoints instead: /api/orders/:id/admin-action,
-    // /api/orders/:id/cancel and DELETE /api/orders/:id.
-
-    fetch('/api/customers', { ...postOptions, body: JSON.stringify(localCustomers) })
-      .catch(err => console.error('[Admin Save] Direct POST customers failed:', err));
-
-    fetch('/api/discounts', { ...postOptions, body: JSON.stringify(localDiscounts) })
-      .catch(err => console.error('[Admin Save] Direct POST discounts failed:', err));
-
-    fetch('/api/blogs', { ...postOptions, body: JSON.stringify(localBlogs) })
-      .catch(err => console.error('[Admin Save] Direct POST blogs failed:', err));
-
-    fetch('/api/custompages', { ...postOptions, body: JSON.stringify(pagesToSave) })
-      .catch(err => console.error('[Admin Save] Direct POST custompages failed:', err));
-
-    fetch('/api/files', { ...postOptions, body: JSON.stringify(finalFilesToSave) })
-      .catch(err => console.error('[Admin Save] Direct POST files failed:', err));
-
-    fetch('/api/layoutsettings', { ...postOptions, body: JSON.stringify(localLayoutSettings) })
-      .catch(err => console.error('[Admin Save] Direct POST layoutsettings failed:', err));
-
-    setTimeout(() => {
-      setHasUnsavedChanges(false);
-      setIsSaving(false);
-      setShowSaveSuccess(true);
-      
-      if (onDirtyChange) onDirtyChange(false);
-      if (onAdminActionComplete) onAdminActionComplete('save');
-
-      setTimeout(() => {
-        setShowSaveSuccess(false);
-      }, 3500);
-    }, 450);
+    setHasUnsavedChanges(false);
+    setShowSaveSuccess(true);
+    if (onDirtyChange) onDirtyChange(false);
+    if (onAdminActionComplete) onAdminActionComplete('save');
+    window.setTimeout(() => setShowSaveSuccess(false), 3500);
   };
 
   const handleGlobalDiscard = () => {
@@ -1257,23 +1254,48 @@ export default function AdminDashboard({
       updatedAt: 'Just Now'
     };
     const updated = [...localPages, duplicated];
-    setLocalPages(updated);
-    onUpdateCustomPages(updated);
+    savePagesToDb(updated)
+      .then(saved => { onUpdateCustomPages(saved); flashNotice(true, `“${duplicated.title}” created.`); })
+      .catch(err => flashNotice(false, `Could not duplicate the page — ${err.message}`));
   };
 
   const handleSetPageAsHomepage = (id: string) => {
+    // Exactly one page has the empty (root) slug. The outgoing homepage gets a
+    // real slug back so two pages never share one.
+    const taken = new Set(localPages.filter(p => p.id !== id).map(p => p.slug));
     const updated = localPages.map(p => {
-      if (p.id === id) {
-        return { ...p, isHomepage: true, slug: '' };
+      if (p.id === id) return { ...p, isHomepage: true, slug: '' };
+      if (p.isHomepage || p.slug === '') {
+        let base = slugify(p.title || 'previous-home') || 'previous-home';
+        if (base === '') base = 'previous-home';
+        let slug = base;
+        for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+        taken.add(slug);
+        return { ...p, isHomepage: false, slug };
       }
       return { ...p, isHomepage: false };
     });
-    setLocalPages(updated);
-    onUpdateCustomPages(updated);
+    savePagesToDb(updated)
+      .then(saved => { onUpdateCustomPages(saved); flashNotice(true, 'Homepage updated.'); })
+      .catch(err => flashNotice(false, `Could not change the homepage — ${err.message}`));
   };
 
-  const handlePreviewPage = (page: CustomPage) => {
+  const handlePreviewPage = async (page: CustomPage) => {
     const url = page.isHomepage ? '/' : `/pages/${page.slug}`;
+    // The preview tab loads the page from the database, so unsaved edits are
+    // saved first — otherwise it would show the previous version.
+    if (hasUnsavedChanges) {
+      const win = window.open('about:blank', '_blank');
+      try {
+        const saved = await savePagesToDb(localPages);
+        onUpdateCustomPages(saved);
+        if (win) win.location.href = url;
+      } catch (err: any) {
+        win?.close();
+        flashNotice(false, `Save failed, so the preview would be out of date — ${err.message}`);
+      }
+      return;
+    }
     window.open(url, '_blank');
   };
 
@@ -1873,18 +1895,6 @@ export default function AdminDashboard({
       downloadAnchor.click();
       downloadAnchor.remove();
 
-      // Persist to localStorage and Neon PostgreSQL to guarantee safety
-      try {
-        localStorage.setItem('ps_custom_pages', JSON.stringify(pagesToExport));
-      } catch (e) {
-        console.warn('LocalStorage backup failed:', e);
-      }
-
-      fetch('/api/custompages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pagesToExport)
-      }).catch(err => console.error('[Export Safety Sync] POST failed:', err));
 
     } catch (e: any) {
       console.error("Export failed:", e);
@@ -1926,20 +1936,13 @@ export default function AdminDashboard({
             }
           });
 
-          setLocalPages(merged);
-          parentOnUpdateCustomPages(merged);
-
-          try {
-            localStorage.setItem('ps_custom_pages', JSON.stringify(merged));
-          } catch (err) {}
-
-          fetch('/api/custompages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(merged)
-          }).catch(err => console.error('[Import Safety Sync] POST failed:', err));
-
-          alert(`Successfully imported and merged ${importedList.length} pages into database and local storage!`);
+          savePagesToDb(merged)
+            .then(saved => {
+              setLocalPages(saved);
+              parentOnUpdateCustomPages(saved);
+              flashNotice(true, `Imported ${importedList.length} page${importedList.length === 1 ? '' : 's'}.`);
+            })
+            .catch(err => flashNotice(false, `Import failed — ${err.message}`));
         }, "Import Pages Backup");
 
       } catch (err: any) {
@@ -2326,7 +2329,7 @@ export default function AdminDashboard({
   };
 
   // Pages & Section Builder Handlers
-  const handleAddPageSubmit = (e: React.FormEvent) => {
+  const handleAddPageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const titleClean = newPageForm.title.trim();
     if (!titleClean) return;
@@ -2367,17 +2370,18 @@ export default function AdminDashboard({
     };
 
     const updatedPages = [...localPages, page];
-    setLocalPages(updatedPages);
-    onUpdateCustomPages(updatedPages);
+    let saved: CustomPage[];
+    try {
+      saved = await savePagesToDb(updatedPages);
+    } catch (err: any) {
+      // The page is not added: showing it would only make it vanish on refresh.
+      flashNotice(false, `The page was not created — ${err.message}`);
+      return;
+    }
+    onUpdateCustomPages(saved);
+    flashNotice(true, `“${titleClean}” created.`);
 
-    // Persist immediately to backend
-    fetch('/api/custompages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedPages)
-    }).catch(() => {});
-
-    // Automatically select the newly created page to enter builder immediately
+    // Open the new page in the builder.
     setSelectedBuilderPageId(pageId);
     setSelectedBuilderSectionId(newSecId);
 
@@ -3558,6 +3562,15 @@ export default function AdminDashboard({
           </div>
         )}
 
+        {/* Save outcome (success or a real error from the database) */}
+        {saveNotice && (
+          <div role={saveNotice.ok ? 'status' : 'alert'} className={`fixed bottom-6 right-6 z-[99999] flex max-w-md items-start gap-3 rounded-xl border p-4 text-sm shadow-2xl ${saveNotice.ok ? 'border-slate-800 bg-slate-900 text-white' : 'border-red-200 bg-red-50 text-red-800'}`}>
+            {saveNotice.ok ? <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
+            <span className="flex-1 leading-relaxed">{saveNotice.text}</span>
+            <button type="button" onClick={() => setSaveNotice(null)} aria-label="Dismiss" className="opacity-60 hover:opacity-100"><X className="h-4 w-4" /></button>
+          </div>
+        )}
+
         {/* Floating Save Success Toast Notification */}
         {showSaveSuccess && (
           <div className="fixed bottom-6 right-6 z-[99999] bg-slate-900 text-white border border-slate-800 p-4 rounded-xl shadow-2xl flex items-center gap-3.5 max-w-sm select-none transition-all duration-300 animate-in slide-in-from-bottom-4 zoom-in-95">
@@ -3565,9 +3578,8 @@ export default function AdminDashboard({
               <Check className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="font-black uppercase tracking-wider text-[9px] text-emerald-400 block mb-0.5">Live Sync Complete</span>
-              <span className="font-extrabold block text-xs text-white">All Changes Saved successfully!</span>
-              <span className="text-[10px] font-semibold text-slate-400 leading-normal block mt-0.5">Your edits have been synchronized across the database and are now live on the storefront.</span>
+              <span className="font-extrabold block text-xs text-white">All changes saved</span>
+              <span className="text-[11px] text-slate-400 leading-normal block mt-0.5">Confirmed by the database and live on your store.</span>
             </div>
             <button 
               onClick={() => setShowSaveSuccess(false)} 

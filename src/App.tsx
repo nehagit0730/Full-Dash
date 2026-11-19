@@ -279,40 +279,11 @@ export default function App() {
   const [frontendBlogQuery, setFrontendBlogQuery] = useState('');
   const [selectedFrontCategory, setSelectedFrontCategory] = useState('All');
 
-  const [customPages, setCustomPages] = useState<CustomPage[]>(() => {
-    const loaded = safeLoadFromLocalStorage<CustomPage[]>('ps_custom_pages', DEFAULT_PAGES);
-    const list = Array.isArray(loaded) ? loaded : DEFAULT_PAGES;
-    let finalPages = [...list].filter(Boolean);
-    // Guaranteed presence check for Homepage in Pages list
-    if (!finalPages.some((p: any) => p && p.isHomepage)) {
-      const defaultHome = DEFAULT_PAGES.find((p: any) => p.isHomepage);
-      if (defaultHome) {
-        finalPages = [defaultHome, ...finalPages];
-      }
-    }
-    // Guaranteed presence check for Brands page
-    if (!finalPages.some((p: any) => p && p.slug === 'brands')) {
-      const defaultBrands = DEFAULT_PAGES.find((p: any) => p.slug === 'brands');
-      if (defaultBrands) {
-        finalPages = [...finalPages, defaultBrands];
-      }
-    }
-    // Guaranteed presence check for About page
-    if (!finalPages.some((p: any) => p && (p.slug === 'about' || p.id === 'about'))) {
-      const defaultAbout = DEFAULT_PAGES.find((p: any) => p.slug === 'about' || p.id === 'about');
-      if (defaultAbout) {
-        finalPages = [...finalPages, defaultAbout];
-      }
-    }
-    // Guaranteed presence check for Contact page
-    if (!finalPages.some((p: any) => p && (p.slug === 'contact' || p.id === 'contact'))) {
-      const defaultContact = DEFAULT_PAGES.find((p: any) => p.slug === 'contact' || p.id === 'contact');
-      if (defaultContact) {
-        finalPages = [...finalPages, defaultContact];
-      }
-    }
-    return finalPages;
-  });
+  // Pages come from the database only. The built-in defaults are a placeholder
+  // until the first load completes (the app shows its loading screen until
+  // then) — no browser-stored copy is used, because a stale copy written back
+  // over the database is how pages used to disappear.
+  const [customPages, setCustomPages] = useState<CustomPage[]>(DEFAULT_PAGES);
 
   // Shopping Cart & User session statuses
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -507,68 +478,26 @@ export default function App() {
           loadedDiscountsSuccess.current = true;
         }
         if (Array.isArray(pagesRes) && pagesRes.length > 0) {
-          setCustomPages(prevLocalPages => {
-            const localMap = new Map(prevLocalPages.map(p => [p.id, p]));
-            
-            const mergedPages = pagesRes.map((serverPage: CustomPage) => {
-              const localPage = localMap.get(serverPage.id) || prevLocalPages.find(p => p.slug === serverPage.slug);
-              
-              const serverHasSections = Array.isArray(serverPage.sections) && serverPage.sections.length > 0;
-              let finalSections = serverPage.sections || [];
-              if (!serverHasSections) {
-                const localPage = localMap.get(serverPage.id) || prevLocalPages.find(p => p.slug === serverPage.slug);
-                if (localPage && Array.isArray(localPage.sections) && localPage.sections.length > 0) {
-                  finalSections = localPage.sections;
-                } else {
-                  const defaultPage = DEFAULT_PAGES.find(dp => dp.id === serverPage.id || dp.slug === serverPage.slug);
-                  if (defaultPage && defaultPage.sections) {
-                    finalSections = defaultPage.sections;
-                  }
-                }
-              }
-              
-              return {
-                ...serverPage,
-                sections: finalSections
-              };
-            });
-
-            // Pages that exist only in this browser's cache are not re-added:
-            // they belong to whichever database the cache was filled from.
-            let combined = [...mergedPages];
-
-            // Normalize homepage flags across all pages to prevent duplicate/overwriting homepage entries
-            const explicitHomeIdx = combined.findIndex(p => p && p.isHomepage === true);
-            let homeMarked = false;
-
-            combined = combined.map((p, idx) => {
-              if (!p) return p;
-              const isHomeMatch = (explicitHomeIdx !== -1 && idx === explicitHomeIdx) ||
-                (explicitHomeIdx === -1 && (p.isHomepage || p.slug === '' || p.slug === 'home' || p.slug === 'homepage' || p.id === 'homepage' || p.id === 'page-home'));
-
-              if (isHomeMatch && !homeMarked) {
-                homeMarked = true;
-                return { ...p, isHomepage: true };
-              } else {
-                return { ...p, isHomepage: false };
-              }
-            });
-
-            if (!combined.some(p => p && p.slug === 'brands')) {
-              const defaultBrands = DEFAULT_PAGES.find(p => p.slug === 'brands');
-              if (defaultBrands) combined = [...combined, defaultBrands];
-            }
-
-            lastSyncedHash.current['custompages'] = JSON.stringify(combined);
-            return combined;
+          // Exactly what the database holds. Only the homepage flag is
+          // normalised (one homepage) so the storefront always has one.
+          const explicitHomeIdx = pagesRes.findIndex((p: any) => p && p.isHomepage === true);
+          let homeMarked = false;
+          const serverPages: CustomPage[] = pagesRes.filter(Boolean).map((p: any, idx: number) => {
+            const sections = Array.isArray(p.sections) ? p.sections : [];
+            const isHomeMatch = explicitHomeIdx !== -1
+              ? idx === explicitHomeIdx
+              : (p.slug === '' || p.slug === 'home' || p.slug === 'homepage' || p.id === 'homepage' || p.id === 'page-home');
+            const isHomepage = isHomeMatch && !homeMarked;
+            if (isHomepage) homeMarked = true;
+            return { ...p, sections, isHomepage };
           });
+          setCustomPages(serverPages);
           loadedPagesSuccess.current = true;
         }
         if (Array.isArray(pagesRes) && pagesRes.length === 0) {
           // Empty database: start from the built-in default pages, not from
           // whatever an earlier database left in this browser.
           setCustomPages(DEFAULT_PAGES);
-          lastSyncedHash.current['custompages'] = JSON.stringify(DEFAULT_PAGES);
           loadedPagesSuccess.current = true;
         }
         if (Array.isArray(blogsRes)) {
@@ -1115,14 +1044,18 @@ export default function App() {
   // --- Write to LocalStorage AND Neon PostgreSQL Database on Changes ---
   useEffect(() => {
     safeSaveToLocalStorage('ps_products', products);
-    if (isInitialLoadDone) {
+    // Only after this tab has loaded the server's copy — otherwise a stale
+    // local copy would be written back over the database.
+    if (isInitialLoadDone && loadedProductsSuccess.current) {
       syncToApi('products', products);
     }
   }, [products, isInitialLoadDone]);
 
   useEffect(() => {
     safeSaveToLocalStorage('ps_collections', collections);
-    if (isInitialLoadDone) {
+    // Only after this tab has loaded the server's copy — otherwise a stale
+    // local copy would be written back over the database.
+    if (isInitialLoadDone && loadedCollectionsSuccess.current) {
       syncToApi('collections', collections);
     }
   }, [collections, isInitialLoadDone]);
@@ -1170,14 +1103,18 @@ export default function App() {
 
   useEffect(() => {
     safeSaveToLocalStorage('ps_files', files);
-    if (isInitialLoadDone) {
+    // Only after this tab has loaded the server's copy — otherwise a stale
+    // local copy would be written back over the database.
+    if (isInitialLoadDone && loadedFilesSuccess.current) {
       syncToApi('files', files);
     }
   }, [files, isInitialLoadDone]);
 
   useEffect(() => {
     safeSaveToLocalStorage('ps_customers', customers);
-    if (isInitialLoadDone) {
+    // Only after this tab has loaded the server's copy — otherwise a stale
+    // local copy would be written back over the database.
+    if (isInitialLoadDone && loadedCustomersSuccess.current) {
       syncToApi('customers', customers);
     }
   }, [customers, isInitialLoadDone]);
@@ -1211,21 +1148,22 @@ export default function App() {
 
   useEffect(() => {
     safeSaveToLocalStorage('ps_discounts', discounts);
-    if (isInitialLoadDone) {
+    // Only after this tab has loaded the server's copy — otherwise a stale
+    // local copy would be written back over the database.
+    if (isInitialLoadDone && loadedDiscountsSuccess.current) {
       syncToApi('discounts', discounts);
     }
   }, [discounts, isInitialLoadDone]);
 
-  useEffect(() => {
-    safeSaveToLocalStorage('ps_custom_pages', customPages);
-    if (isInitialLoadDone) {
-      syncToApi('custompages', customPages);
-    }
-  }, [customPages, isInitialLoadDone]);
+  // Pages are not synced from here. The dashboard saves them explicitly and
+  // waits for the database to confirm; a background whole-list sync from this
+  // tab could overwrite pages created or deleted elsewhere.
 
   useEffect(() => {
     safeSaveToLocalStorage('ps_blogs', blogs);
-    if (isInitialLoadDone) {
+    // Only after this tab has loaded the server's copy — otherwise a stale
+    // local copy would be written back over the database.
+    if (isInitialLoadDone && loadedBlogsSuccess.current) {
       syncToApi('blogs', blogs);
     }
   }, [blogs, isInitialLoadDone]);
