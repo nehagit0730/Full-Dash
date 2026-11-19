@@ -1,4 +1,5 @@
 import { Router, Response } from "express";
+import { ensureNeonTablesExist } from "../../serverDb";
 import { requireAdmin, AdminRequest } from "../middleware/requireAdmin";
 import {
   RECYCLABLE_RESOURCES,
@@ -14,6 +15,13 @@ import {
 } from "../services/recycleBin";
 
 const router = Router();
+
+// A fresh database gets its RecycleBinItem table on first boot; requests that
+// arrive during a cold start wait for that instead of failing.
+router.use(async (_req, _res, next) => {
+  try { await ensureNeonTablesExist(); } catch { /* the route reports its own error */ }
+  next();
+});
 
 /**
  * The recycle bin.

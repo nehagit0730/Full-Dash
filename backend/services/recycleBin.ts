@@ -1,4 +1,4 @@
-import { fetchResource, saveSingleItem, deleteSingleItem } from "../../serverDb";
+import { fetchResource, saveSingleItem, deleteSingleItem, ensureNeonTablesExist } from "../../serverDb";
 import { prisma } from "../../src/lib/prisma";
 
 /**
@@ -365,6 +365,7 @@ export async function stripRecycled<T extends Record<string, any>>(
 
   let binned: Array<{ itemId: string }>;
   try {
+    await ensureNeonTablesExist();
     binned = await prisma.recycleBinItem.findMany({ where: { resource: store }, select: { itemId: true } });
   } catch {
     // Cannot read the bin: let the save through rather than silently dropping

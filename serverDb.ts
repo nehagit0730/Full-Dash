@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import { prisma } from './src/lib/prisma';
+import { SCHEMA_TABLES, SCHEMA_INDEXES, SCHEMA_FOREIGN_KEYS } from './backend/db/schemaStatements';
 
 dotenv.config();
 
@@ -122,9 +123,62 @@ function persistMemoryCacheToBackup() {
 loadMemoryCacheFromBackup();
 
 let isTablesInitialized = false;
+let tablesInitPromise: Promise<void> | null = null;
+
+/**
+ * Brings the database up to schema.prisma, additively. Migrations are never run
+ * on deploy, so a new Neon database used to be missing every table added after
+ * the original bootstrap (RecycleBinItem, Subscription, OrderItem, …) and any
+ * route using them failed with "table does not exist".
+ *
+ * Each statement runs on its own so one failure (e.g. a unique index that
+ * existing duplicate rows prevent) cannot stop the rest. Nothing is dropped or
+ * altered; foreign keys are only added to tables created in this same pass.
+ */
+async function syncSchemaFromPrisma(): Promise<void> {
+  const existingRows: { table_name: string }[] = await prisma.$queryRawUnsafe(
+    `SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()`
+  );
+  const existing = new Set(existingRows.map(r => r.table_name));
+  const created = new Set<string>();
+  const failures: string[] = [];
+  const run = async (label: string, stmt: string) => {
+    try { await prisma.$executeRawUnsafe(stmt); }
+    catch (err: any) { failures.push(`${label}: ${String(err?.message || err).trim().split('\n').pop()}`); }
+  };
+
+  for (const t of SCHEMA_TABLES) {
+    if (t.name.startsWith('__type_')) { await run(t.name, t.create); continue; }
+    if (!existing.has(t.name)) {
+      await run(`create ${t.name}`, t.create);
+      created.add(t.name);
+    } else {
+      for (const col of t.columns) {
+        await run(`${t.name} column`, `ALTER TABLE "${t.name}" ADD COLUMN IF NOT EXISTS ${col}`);
+      }
+    }
+  }
+  for (const idx of SCHEMA_INDEXES) await run('index', idx);
+  for (const fk of SCHEMA_FOREIGN_KEYS) {
+    if (created.has(fk.table)) await run(`foreign key ${fk.name}`, fk.sql);
+  }
+
+  if (created.size) console.log(`[Neon Table Setup] Created missing tables: ${[...created].join(', ')}`);
+  if (failures.length) console.warn(`[Neon Table Setup] ${failures.length} schema statement(s) skipped:`, failures.slice(0, 10));
+}
 
 export async function ensureNeonTablesExist(): Promise<void> {
   if (isTablesInitialized) return;
+  // Requests arriving during a cold start wait for the same run instead of
+  // querying tables that are still being created.
+  if (!tablesInitPromise) {
+    tablesInitPromise = initNeonTables().finally(() => { tablesInitPromise = null; });
+  }
+  return tablesInitPromise;
+}
+
+async function initNeonTables(): Promise<void> {
+  if (!process.env.DATABASE_URL) return;
   try {
     // 1. Central Key-Value Store Resources & Settings
     await prisma.$executeRawUnsafe(`
@@ -420,6 +474,8 @@ export async function ensureNeonTablesExist(): Promise<void> {
         );
       `);
     }
+
+    await syncSchemaFromPrisma();
 
     isTablesInitialized = true;
   } catch (err) {
