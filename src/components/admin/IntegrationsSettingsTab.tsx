@@ -232,8 +232,9 @@ function IntegrationCard({
               onChange={v => put({ enabled: v }, 'toggle')}
             />
           )}
-          <button type="button" onClick={() => setOpen(o => !o)} className="p-1.5 rounded hover:bg-slate-100 cursor-pointer" aria-label={open ? 'Collapse' : 'Expand'}>
-            {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <button type="button" onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-[#c9cccf] bg-white text-[12px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer" aria-label={open ? `Close ${view.name} settings` : `Configure ${view.name}`}>
+            {open ? 'Close' : 'Configure'}
+            {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
@@ -547,6 +548,65 @@ function AuditLog() {
   );
 }
 
+/**
+ * Shown while the server has no SETTINGS_ENCRYPTION_KEY. API secrets saved here
+ * are encrypted with that key, so it cannot itself be stored in the dashboard
+ * (it would sit in the same database as the secrets it protects) — it has to be
+ * set once in the hosting environment. This walks the admin through doing that.
+ */
+function EncryptionKeySetup({ onRecheck }: { onRecheck: () => void }) {
+  const [key, setKey] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const generate = () => {
+    // Generated in the browser and never sent anywhere.
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    setKey(btoa(String.fromCharCode(...bytes)));
+    setCopied(false);
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(key); setCopied(true); } catch { setCopied(false); }
+  };
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-[13px] text-amber-950 space-y-3">
+      <div className="flex items-start gap-2">
+        <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+        <div>
+          <strong>One-time setup: add an encryption key.</strong> The API keys you enter below are stored encrypted in your
+          database. The key that encrypts them must live in your hosting environment, not in the dashboard. Until it is set,
+          you can view the settings but secret fields can't be saved.
+        </div>
+      </div>
+      <ol className="list-decimal pl-9 space-y-1.5">
+        <li>
+          Generate a key:{' '}
+          <button type="button" onClick={generate} className="ml-1 px-2.5 py-1 rounded-md bg-[#1a1c1d] text-white text-[12px] font-semibold cursor-pointer">
+            {key ? 'Generate another' : 'Generate key'}
+          </button>
+          {key && (
+            <span className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="px-2 py-1 rounded bg-white border border-amber-200 text-[12px] break-all select-all">{key}</code>
+              <button type="button" onClick={copy} className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-amber-300 bg-white text-[12px] font-semibold cursor-pointer">
+                <Copy className="w-3 h-3" /> {copied ? 'Copied' : 'Copy'}
+              </button>
+            </span>
+          )}
+        </li>
+        <li>
+          In Vercel open your project → <strong>Settings → Environment Variables</strong>, add <code>SETTINGS_ENCRYPTION_KEY</code>{' '}
+          with that value for Production (and Preview if you use it). Running locally? Put it in <code>.env</code> instead.
+        </li>
+        <li>Redeploy (Deployments → ⋯ → Redeploy) so the server picks it up, then <button type="button" onClick={onRecheck} className="underline font-semibold cursor-pointer">check again</button>.</li>
+      </ol>
+      <p className="text-[12px] text-amber-800 pl-9">
+        Keep the key safe and don't change it later: secrets saved with one key can't be read with another and would need re-entering.
+      </p>
+    </div>
+  );
+}
+
 export default function IntegrationsSettingsTab({ section, onOpenTab }: { section: Section; onOpenTab?: (tab: string) => void }) {
   const [hub, setHub] = useState<HubResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -600,14 +660,7 @@ export default function IntegrationsSettingsTab({ section, onOpenTab }: { sectio
         </div>
       )}
 
-      {hub && !hub.encryptionConfigured && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-900">
-          <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-          <div>
-            <strong>Encryption key missing.</strong> Set <code>SETTINGS_ENCRYPTION_KEY</code> (32+ characters) in the server environment before saving any credentials. Without it, secrets are refused rather than stored in plain text.
-          </div>
-        </div>
-      )}
+      {hub && !hub.encryptionConfigured && <EncryptionKeySetup onRecheck={load} />}
 
       {loading && !hub && (
         <div className="flex items-center gap-2 text-[13px] text-slate-500"><Loader2 className="w-4 h-4 animate-spin" /> Loading integrations…</div>
