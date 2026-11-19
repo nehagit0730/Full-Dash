@@ -630,6 +630,41 @@ router.post("/admin-login", async (req, res) => {
 // POST: Update Customer Profile & Subscription Settings
 // Identified the account to edit purely from the email or id in the body, so
 // anyone could rewrite anyone's profile by naming them.
+/**
+ * A signed-in customer changes their own password. The current password is
+ * required, so a session left open on a shared device cannot be used to take
+ * the account over. Accounts that never had a password (Google sign-in) are
+ * pointed at the reset flow instead.
+ */
+router.post("/change-password", requireCustomer, async (req: AdminRequest, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body || {};
+    const emailTrim = String(email || "").trim().toLowerCase();
+    if (!emailTrim || !newPassword) return res.status(400).json({ error: "Email and new password are required." });
+    if (String(newPassword).length < 8) return res.status(400).json({ error: "Use at least 8 characters for your new password." });
+
+    const customersList: any[] = (await fetchResource("customers")) || [];
+    const index = customersList.findIndex((c: any) => c.email && c.email.toLowerCase() === emailTrim);
+    if (index === -1) return res.status(404).json({ error: "Customer account not found." });
+    const existing = customersList[index];
+    if (!mayActOnCustomer(req, existing.email)) return res.status(403).json({ error: "You can only change your own password." });
+
+    if (!existing.passwordHash) {
+      return res.status(400).json({ error: "This account signs in with Google and has no password yet. Use “Forgot password” on the sign-in page to create one." });
+    }
+    if (existing.passwordHash !== hashPassword(String(currentPassword || ""))) {
+      return res.status(401).json({ error: "Your current password is incorrect." });
+    }
+
+    customersList[index] = { ...existing, passwordHash: hashPassword(String(newPassword)) };
+    await saveResource("customers", customersList);
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error("[Customers] change-password failed:", err);
+    return res.status(500).json({ error: "Could not change the password. Please try again." });
+  }
+});
+
 router.post("/update-profile", requireCustomer, async (req: AdminRequest, res) => {
   try {
     const customerData = req.body.customer || req.body;
