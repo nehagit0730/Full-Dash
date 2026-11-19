@@ -239,3 +239,9 @@ body {
   .app-splash__bar > span { animation-duration: 2.4s; }
   .app-splash__inner, .app-ready { animation: none; }
 }
+
+/* Storefront sections */
+@keyframes slide-progress { from { width: 0; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee, .animate-marquee-slow { animation-duration: 120s !important; }
+}

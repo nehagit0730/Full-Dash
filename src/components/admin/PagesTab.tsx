@@ -912,7 +912,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                     </div>
 
                     {/* Section-specific options */}
-                    {['Image banner', 'Text column with image', 'Images gallery', 'Blog post', 'Brand list', 'Brands we offer'].includes(currentlyEditingSection.type) && (
+                    {!['Slideshow', 'Marquee text', 'Trust badges'].includes(currentlyEditingSection.type) && (
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Small label above the heading</label>
                         <input
@@ -922,6 +922,91 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                           className="w-full text-xs p-2 border rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-650"
                           placeholder="Leave empty for the default"
                         />
+                      </div>
+                    )}
+
+                    {currentlyEditingSection.type === 'Brand list' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Layout</label>
+                        <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+                          {[['grid', 'Grid'], ['masonry', 'Masonry']].map(([v, l]) => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => handleUpdateSectionSettings('layout', v)}
+                              className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold ${(currentlyEditingSection.settings.layout || 'grid') === v ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+                            >
+                              {l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {currentlyEditingSection.type === 'Image with text' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Image position</label>
+                        <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+                          {[['left', 'Image left'], ['right', 'Image right']].map(([v, l]) => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => handleUpdateSectionSettings('imagePosition', v)}
+                              className={`flex-1 rounded-md py-1.5 text-[11px] font-semibold ${(currentlyEditingSection.settings.imagePosition || 'left') === v ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+                            >
+                              {l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {currentlyEditingSection.type === 'Marquee text' && (
+                      <div>
+                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          <span>Scroll speed</span><span className="font-mono">{currentlyEditingSection.settings.marqueeSpeed || 3}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={1}
+                          max={10}
+                          value={currentlyEditingSection.settings.marqueeSpeed || 3}
+                          onChange={(e) => handleUpdateSectionSettings('marqueeSpeed', Number(e.target.value))}
+                          className="w-full accent-slate-900"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Separate messages in the heading with //</p>
+                      </div>
+                    )}
+
+                    {currentlyEditingSection.type === 'Contact Form' && (
+                      <div className="space-y-2.5 bg-slate-50/90 p-3 rounded-xl border border-slate-200">
+                        <span className="block text-[10px] font-black text-slate-900 uppercase tracking-wider">Contact details</span>
+                        <p className="text-[10px] text-slate-400">Each line is shown only when filled in.</p>
+                        {[
+                          ['contactEmail', 'Email', 'hello@yourstore.com'],
+                          ['contactPhone', 'Phone', '+91 98765 43210'],
+                          ['contactAddress', 'Address', 'Studio address'],
+                          ['contactHours', 'Opening hours', 'Mon–Sat, 10am–7pm']
+                        ].map(([key, l, ph]) => (
+                          <div key={key}>
+                            <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">{l}</label>
+                            <input
+                              type="text"
+                              value={(currentlyEditingSection.settings as any)[key] || ''}
+                              onChange={(e) => handleUpdateSectionSettings(key, e.target.value)}
+                              placeholder={ph}
+                              className="w-full text-xs p-1.5 border rounded-lg bg-white"
+                            />
+                          </div>
+                        ))}
+                        <div>
+                          <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Image</label>
+                          <ImageUploadInput
+                            value={currentlyEditingSection.settings.imageUrl || ''}
+                            onChange={(url) => handleUpdateSectionSettings('imageUrl', url)}
+                            placeholder="Optional — a fashion photo is used when empty"
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -1361,7 +1446,7 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                       };
 
                       const handleAddItem = () => {
-                        const updated = [...items, { iconName: 'Truck', title: 'New Feature Title', description: 'Enter feature benefit details...', linkUrl: 'frontend-shop' }];
+                        const updated = [...items, { iconName: 'Truck', title: 'New feature', description: 'A short line about it.', linkUrl: '' }];
                         handleUpdateSectionSettings('iconItems', updated);
                       };
 
@@ -1432,14 +1517,23 @@ export const PagesTab: React.FC<PagesTabProps> = ({
                                       onChange={(e) => handleUpdateItem(iIdx, 'iconName', e.target.value)}
                                       className="w-full text-xs p-1.5 border rounded bg-slate-50 cursor-pointer"
                                     >
-                                      <option value="Truck">Truck / Fast Delivery</option>
-                                      <option value="Zap">Zap / Best Prices</option>
-                                      <option value="Shield">Shield / Discreet Packaging</option>
-                                      <option value="Clock">Clock / Cancel Anytime</option>
-                                      <option value="Award">Award / Loyalty Rewards</option>
-                                      <option value="Package">Package / Never Run Out</option>
-                                      <option value="Heart">Heart / Customer Choice</option>
-                                      <option value="Star">Star / Premium Rating</option>
+                                      <option value="Truck">Delivery</option>
+                                      <option value="RotateCcw">Returns</option>
+                                      <option value="Shield">Secure / protection</option>
+                                      <option value="Leaf">Sustainable</option>
+                                      <option value="Scissors">Craft / tailoring</option>
+                                      <option value="Gem">Quality</option>
+                                      <option value="Sparkles">New / special</option>
+                                      <option value="Heart">Loved / care</option>
+                                      <option value="Star">Rating</option>
+                                      <option value="Award">Award</option>
+                                      <option value="Tag">Price / offer</option>
+                                      <option value="Globe">Worldwide</option>
+                                      <option value="Badge">Verified</option>
+                                      <option value="Package">Packaging</option>
+                                      <option value="Clock">Fast / time</option>
+                                      <option value="Zap">Speed</option>
+                                      <option value="HelpCircle">Help</option>
                                     </select>
                                   </div>
                                   <div>

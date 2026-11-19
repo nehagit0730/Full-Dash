@@ -26,7 +26,7 @@ export default function BrandList({ collections, onBrandClick }: BrandListProps)
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {brandCollections.map(col => {
             const count = (col.productIds || []).length;
-            const image = cleanMediaUrl(col.image || '');
+            const image = col.image ? cleanMediaUrl(col.image) : '';
             return (
               <button
                 type="button"

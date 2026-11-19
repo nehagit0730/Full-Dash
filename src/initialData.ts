@@ -18,63 +18,70 @@ export const DEFAULT_PAGES: CustomPage[] = [
     isHomepage: true,
     sections: [
       {
-        id: 'h-s1',
+        id: 'h-hero',
         type: 'Image banner',
         settings: {
-          fullWidth: true,
-          backgroundColor: '#111827',
-          headingColor: '#FFFFFF',
-          textColor: '#E5E7EB',
-          title: 'New season, new favourites',
-          description: 'Discover our latest arrivals and everyday essentials.',
-          buttonText: 'Shop now',
-          buttonLink: '/shop',
-          imageUrl: ''
+          fullWidth: true, backgroundColor: '#1F1A17', headingColor: '#FFFFFF', textColor: '#FAF7F2',
+          badgeText: 'New collection', title: 'The new season edit',
+          description: 'Effortless silhouettes, considered fabrics and pieces made to be worn on repeat.',
+          buttonText: 'Shop now', buttonLink: '/shop', buttonText2: 'Explore the lookbook', buttonLink2: '/shop', imageUrl: ''
         }
       },
       {
-        id: 'h-s2',
-        type: 'Featured collection',
+        id: 'h-marquee',
+        type: 'Marquee text',
         settings: {
-          fullWidth: false,
-          backgroundColor: '#FFFFFF',
-          headingColor: '#111827',
-          textColor: '#4B5563',
-          title: 'Featured products',
-          description: '',
-          itemsCount: 8
+          fullWidth: true, backgroundColor: '#1F1A17', headingColor: '#FAF7F2', textColor: '#FAF7F2',
+          title: 'Free shipping over ₹1,999 // New arrivals every week // Easy 14-day returns // Secure checkout', marqueeSpeed: 3
         }
       },
       {
-        id: 'h-s3',
+        id: 'h-categories',
         type: 'Collection list',
         settings: {
-          fullWidth: false,
-          backgroundColor: '#F9FAFB',
-          headingColor: '#111827',
-          textColor: '#4B5563',
-          title: 'Shop by category',
-          description: '',
-          itemsCount: 4,
-          selectedCollectionIds: []
+          fullWidth: false, backgroundColor: '#FFFFFF', headingColor: '#1F1A17', textColor: '#6F6660',
+          badgeText: 'Shop by category', title: 'Find your favourites', description: '', itemsCount: 4, selectedCollectionIds: []
         }
       },
       {
-        id: 'h-s4',
+        id: 'h-featured',
+        type: 'Featured collection',
+        settings: {
+          fullWidth: false, backgroundColor: '#FAF7F2', headingColor: '#1F1A17', textColor: '#6F6660',
+          badgeText: 'Curated for you', title: 'Featured pieces', description: '', itemsCount: 8, showTabs: true, buttonText: 'View all', buttonLink: '/shop'
+        }
+      },
+      {
+        id: 'h-story',
+        type: 'Image with text',
+        settings: {
+          fullWidth: false, backgroundColor: '#FFFFFF', headingColor: '#1F1A17', textColor: '#6F6660',
+          badgeText: 'Our story', title: 'Made slowly, worn endlessly',
+          description: 'Every piece starts with fabric we would want to wear ourselves. We work with small workshops, in limited runs, so what you buy is made with care — and made to last.',
+          buttonText: 'Discover more', buttonLink: '/pages/about', imageUrl: '', imagePosition: 'left'
+        }
+      },
+      {
+        id: 'h-columns',
+        type: 'Text column with image',
+        settings: {
+          fullWidth: false, backgroundColor: '#FFFFFF', headingColor: '#1F1A17', textColor: '#6F6660',
+          badgeText: 'Why choose us', title: 'The details make the difference', description: ''
+        }
+      },
+      {
+        id: 'h-lookbook',
+        type: 'Images gallery',
+        settings: {
+          fullWidth: false, backgroundColor: '#FAF7F2', headingColor: '#1F1A17', textColor: '#6F6660',
+          badgeText: 'Lookbook', title: 'Styled in the everyday', description: 'Moments from our latest shoot — see how the collection wears.'
+        }
+      },
+      {
+        id: 'h-service',
         type: 'Icon with text',
         settings: {
-          fullWidth: false,
-          backgroundColor: '#FFFFFF',
-          headingColor: '#111827',
-          textColor: '#4B5563',
-          title: 'Why shop with us',
-          iconColor: '#111827',
-          iconItems: [
-            { iconName: 'Truck', title: 'Free delivery', description: 'On qualifying orders, tracked to your door.', linkUrl: '' },
-            { iconName: 'Shield', title: 'Secure checkout', description: 'Cards, UPI and wallets, fully encrypted.', linkUrl: '' },
-            { iconName: 'Package', title: 'Easy returns', description: 'Changed your mind? Returns are simple.', linkUrl: '' },
-            { iconName: 'Heart', title: 'Here to help', description: 'Friendly support before and after you buy.', linkUrl: '' }
-          ]
+          fullWidth: false, backgroundColor: '#FFFFFF', headingColor: '#1F1A17', textColor: '#6F6660', title: '', description: ''
         }
       }
     ]

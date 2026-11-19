@@ -51,7 +51,7 @@ export const AVAILABLE_SECTION_TEMPLATES = [
   { type: 'Rich text', label: 'Rich text', desc: 'A heading, paragraph and optional button.', icon: 'FileText' },
   { type: 'Icon with text', label: 'Icon with text', desc: 'Icons with short headings — delivery, returns, guarantees.', icon: 'Sparkles' },
   { type: 'Trust badges', label: 'Trust badges', desc: 'A row of store guarantees.', icon: 'Award' },
-  { type: 'How it works', label: 'How it works', desc: 'Numbered steps explaining how buying from you works.', icon: 'Compass' },
+  { type: 'How it works', label: 'Our process', desc: 'Numbered steps with images — how your pieces are designed, made and delivered.', icon: 'Compass' },
   { type: 'Marquee text', label: 'Scrolling text', desc: 'A continuously scrolling strip of short messages.', icon: 'Sparkles' },
   { type: 'Marquee images', label: 'Image reel', desc: 'A horizontal reel of images (or your latest products).', icon: 'Layers' },
   { type: 'Images gallery', label: 'Image gallery', desc: 'A grid of images.', icon: 'Layout' },
@@ -69,81 +69,89 @@ export const AVAILABLE_SECTION_TEMPLATES = [
  * placeholder) so no stock photo or demo video ends up live by accident.
  */
 export function defaultSectionSettings(type: PageSection['type']): PageSection['settings'] {
+  // Images start empty: every section shows a matching fashion placeholder
+  // until the merchant uploads their own, so nothing looks broken.
   const fullWidth = type === 'Image banner' || type === 'Slideshow' || type === 'Marquee text' || type === 'Video banner';
   const base: PageSection['settings'] = {
     fullWidth,
-    backgroundColor: type === 'Marquee text' ? '#111827' : '#FFFFFF',
-    headingColor: '#111827',
-    textColor: type === 'Marquee text' ? '#FFFFFF' : '#4B5563'
+    backgroundColor: type === 'Marquee text' ? '#1F1A17' : type === 'Trust badges' || type === 'Icon with text' ? '#FAF7F2' : '#FFFFFF',
+    headingColor: '#1F1A17',
+    textColor: type === 'Marquee text' ? '#FAF7F2' : '#6F6660'
   };
-  const brandItems = [1, 2, 3, 4].map(i => ({ imageUrl: '', linkUrl: '/shop', title: `Brand ${i}` }));
+  const brandItems = ['Maison Lune', 'Northwear', 'Atelier Noir', 'Oak & Linen', 'Solstice', 'Verdant Co.'].map(title => ({ imageUrl: '', linkUrl: '/shop', title }));
 
   switch (type) {
     case 'Image banner':
-      return { ...base, title: 'New season, new favourites', description: 'Discover our latest arrivals.', buttonText: 'Shop now', buttonLink: '/shop', imageUrl: '' };
+      return { ...base, badgeText: 'New collection', title: 'The new season edit', description: 'Effortless silhouettes, considered fabrics and pieces made to be worn on repeat.', buttonText: 'Shop women', buttonLink: '/shop', buttonText2: 'Explore the lookbook', buttonLink2: '/shop', imageUrl: '' };
     case 'Slideshow':
       return { ...base, slides: [
-        { title: 'New arrivals', description: 'Fresh styles, just landed.', imageUrl: '', buttonText: 'Shop new in', buttonLink: '/shop' },
-        { title: 'Bestsellers', description: 'The pieces our customers love most.', imageUrl: '', buttonText: 'Shop bestsellers', buttonLink: '/shop' }
+        { title: 'Summer, simplified', description: 'Light linens and easy shapes for long, warm days.', imageUrl: '', buttonText: 'Shop the edit', buttonLink: '/shop' },
+        { title: 'The knitwear edit', description: 'Soft textures and quiet colours, made to layer.', imageUrl: '', buttonText: 'Discover knitwear', buttonLink: '/shop' },
+        { title: 'Made to last', description: 'Timeless pieces designed for every day — and every year after.', imageUrl: '', buttonText: 'Shop essentials', buttonLink: '/shop' }
       ] };
     case 'Video banner':
-      return { ...base, title: 'Discover the new collection', description: 'Add an MP4 or YouTube link in the section settings.', buttonText: 'Shop now', buttonLink: '/shop', videoUrl: '', videoMp4Url: '' };
+      return { ...base, badgeText: 'The campaign', title: 'Designed to move with you', description: 'Discover the new collection — made in small batches from fabrics we love.', buttonText: 'Shop the collection', buttonLink: '/shop', videoUrl: '', videoMp4Url: '', showFeatureBar: true };
     case 'Image with text':
-      return { ...base, title: 'Image with text', description: 'Pair text with an image to focus on a product, collection or your story.', buttonText: 'Learn more', buttonLink: '/shop', imageUrl: '' };
+      return { ...base, badgeText: 'Our story', title: 'Made slowly, worn endlessly', description: 'Every piece starts with fabric we would want to wear ourselves. We work with small workshops, in limited runs, so what you buy is made with care — and made to last.', buttonText: 'Discover more', buttonLink: '/pages/about', imageUrl: '', imagePosition: 'left' };
     case 'Text column with image':
-      return { ...base, title: 'Why shop with us', description: 'Quality, care and service in everything we do.' };
+      return { ...base, badgeText: 'Why choose us', title: 'The details make the difference', description: '', columnItems: [
+        { title: 'Considered fabrics', description: 'Organic cotton, linen and recycled fibres — chosen for how they feel and how long they last.', imageUrl: '', badge: 'Materials', linkUrl: '' },
+        { title: 'Made in small batches', description: 'We produce in limited runs with workshops we know by name, so nothing goes to waste.', imageUrl: '', badge: 'Craft', linkUrl: '' },
+        { title: 'Delivered with care', description: 'Plastic-free packaging, tracked shipping and easy 14-day returns on every order.', imageUrl: '', badge: 'Service', linkUrl: '' }
+      ] };
     case 'Rich text':
-      return { ...base, title: 'Talk about your brand', description: 'Share what makes your store special.', buttonText: 'Shop now', buttonLink: '/shop' };
+      return { ...base, badgeText: 'Our philosophy', title: 'Fewer, better things', description: 'We design wardrobe staples with honest materials and timeless shapes — pieces that feel as good in five years as they do today.', buttonText: 'Read our story', buttonLink: '/pages/about' };
     case 'Featured collection':
-      return { ...base, title: 'Featured products', description: '', itemsCount: 8 };
+      return { ...base, badgeText: 'Curated for you', title: 'Featured pieces', description: '', itemsCount: 8, showTabs: true, buttonText: 'View all', buttonLink: '/shop' };
     case 'Collection list':
-      return { ...base, title: 'Shop by category', description: '', itemsCount: 4 };
+      return { ...base, badgeText: 'Shop by category', title: 'Find your favourites', description: '', itemsCount: 4 };
     case 'Clearance Sale':
-      return { ...base, title: 'On sale now', description: 'Limited-time prices while stocks last.', selectedProductIds: [] };
+      return { ...base, badgeText: 'Limited time', title: 'The sale', description: 'Selected styles at their lowest prices of the season — while sizes last.', selectedProductIds: [], itemsCount: 8, buttonText: 'Shop the sale', buttonLink: '/shop' };
     case 'Marquee text':
-      return { ...base, title: 'FREE DELIVERY ON QUALIFYING ORDERS // EASY RETURNS // SECURE CHECKOUT' };
+      return { ...base, title: 'Free shipping over ₹1,999 // New arrivals every week // Easy 14-day returns // Secure checkout', marqueeSpeed: 3 };
     case 'Marquee images':
-      return { ...base, title: 'New in', itemsCount: 6 };
+      return { ...base, badgeText: 'Just landed', title: 'New in', itemsCount: 8, buttonText: 'Shop all', buttonLink: '/shop' };
     case 'Images gallery':
-      return { ...base, title: 'Gallery', description: '' };
+      return { ...base, badgeText: 'Lookbook', title: 'Styled in the everyday', description: 'Moments from our latest shoot — see how the collection wears.' };
     case 'Logo list':
-      return { ...base, title: 'As featured in', description: '' };
+      return { ...base, badgeText: 'As seen in', title: 'Loved by the press', description: '' };
     case 'FAQs': {
       const faqs = [
-        { q: 'How long does delivery take?', a: 'Most orders arrive within 3–7 working days, with tracking.' },
-        { q: 'Can I return an item?', a: 'Yes. Contact us within the return window in our refund policy and we will arrange it.' },
-        { q: 'Which payment methods do you accept?', a: 'Cards, UPI, net banking and popular wallets.' }
+        { q: 'How long does delivery take?', a: 'Orders are dispatched within 1–2 working days and usually arrive in 3–7 days, with tracking.' },
+        { q: 'What is your returns policy?', a: 'Return unworn items with their tags within 14 days of delivery — start a return from your account.' },
+        { q: 'How do I find my size?', a: 'Every product page has a size guide with garment measurements. Between sizes? Size up for a relaxed fit.' },
+        { q: 'How should I care for my pieces?', a: 'Follow the care label — most of our garments prefer a cool, gentle wash and drying flat.' }
       ].map(x => ({ ...x, question: x.q, answer: x.a }));
-      return { ...base, title: 'Frequently asked questions', description: 'Quick answers about delivery, returns and payments.', faqItems: faqs, faqs };
+      return { ...base, badgeText: 'Help & FAQ', title: 'Questions, answered', description: 'Everything you need to know about orders, delivery and returns.', faqItems: faqs, faqs, buttonText: 'Still have a question? Contact us', buttonLink: '/pages/contact' };
     }
     case 'Blog post':
-      return { ...base, title: 'From the journal', description: '', columnsDesktop: 3, columnsMobile: 1 };
+      return { ...base, badgeText: 'The journal', title: 'Stories & style notes', description: '', columnsDesktop: 3, columnsMobile: 1, buttonText: 'Read the journal' };
     case 'Brand list':
-      return { ...base, title: 'Shop by brand', description: '', brandItems };
+      return { ...base, badgeText: 'Our brands', title: 'Shop by brand', description: '', brandItems, layout: 'grid' };
     case 'Brands we offer':
-      return { ...base, title: 'Brands we offer', description: '', brandItems };
+      return { ...base, badgeText: 'The labels we love', title: 'Brands we carry', description: 'Independent labels and modern classics, hand-picked for quality and timeless design.', brandItems };
     case 'Icon with text':
-      return { ...base, title: 'Why shop with us', description: '', iconColor: '#111827', iconItems: [
-        { iconName: 'Truck', title: 'Free delivery', description: 'On qualifying orders, tracked to your door.', linkUrl: '' },
-        { iconName: 'Shield', title: 'Secure checkout', description: 'Cards, UPI and wallets, fully encrypted.', linkUrl: '' },
-        { iconName: 'Package', title: 'Easy returns', description: 'Changed your mind? Returns are simple.', linkUrl: '' },
-        { iconName: 'Heart', title: 'Here to help', description: 'Friendly support before and after you buy.', linkUrl: '' }
+      return { ...base, title: '', description: '', iconItems: [
+        { iconName: 'Truck', title: 'Free shipping', description: 'Complimentary delivery on orders over ₹1,999.', linkUrl: '' },
+        { iconName: 'RotateCcw', title: 'Easy returns', description: 'Changed your mind? Return within 14 days.', linkUrl: '' },
+        { iconName: 'Shield', title: 'Secure payment', description: 'Cards, UPI and wallets — fully encrypted.', linkUrl: '' },
+        { iconName: 'Leaf', title: 'Responsibly made', description: 'Natural fibres and low-impact packaging.', linkUrl: '' }
       ] };
     case 'How it works':
-      return { ...base, title: 'Shopping made simple', description: '', stepItems: [
-        { number: '1', title: 'Browse the collection', description: 'Find what you love across our range.', imageUrl: '' },
-        { number: '2', title: 'Check out securely', description: 'Pay with cards, UPI or wallets in a few taps.', imageUrl: '' },
-        { number: '3', title: 'Delivered to your door', description: 'Tracked shipping with updates along the way.', imageUrl: '' }
+      return { ...base, badgeText: 'Our process', title: 'From sketch to your wardrobe', description: '', buttonText: 'Discover our story', buttonLink: '/pages/about', stepItems: [
+        { number: '1', title: 'Designed in-house', description: 'Every piece begins as a sketch in our studio, refined through fittings until it feels just right.', imageUrl: '' },
+        { number: '2', title: 'Crafted with care', description: 'Small, trusted workshops cut and sew each garment in limited runs — never mass-produced.', imageUrl: '' },
+        { number: '3', title: 'Delivered to you', description: 'Packed by hand in plastic-free packaging and shipped with tracking straight to your door.', imageUrl: '' }
       ] };
     case 'Trust badges':
       return { ...base, trustBadges: [
-        { iconType: 'shield', title: 'SECURE CHECKOUT', description: 'Encrypted, trusted payments.' },
-        { iconType: 'badge', title: 'QUALITY CHECKED', description: 'Every order inspected before dispatch.' },
-        { iconType: 'globe', title: 'TRACKED DELIVERY', description: 'Follow your order to the door.' },
-        { iconType: 'tag', title: 'FAIR PRICES', description: 'Great value, every day.' }
+        { iconType: 'badge', title: 'Quality guaranteed', description: 'Every piece inspected before it ships' },
+        { iconType: 'shield', title: 'Secure checkout', description: 'Encrypted payments you can trust' },
+        { iconType: 'globe', title: 'Tracked delivery', description: 'Follow your order to the door' },
+        { iconType: 'tag', title: 'Fair pricing', description: 'Honest prices, no inflated markups' }
       ] };
     case 'Contact Form':
-      return { ...base, title: 'Get in touch', description: 'Questions about an order or a product? We reply within one working day.' };
+      return { ...base, badgeText: 'Customer care', title: 'We would love to hear from you', description: 'Questions about an order, sizing or a product? Send us a note and our team will get back to you within one working day.', contactEmail: '', contactPhone: '', contactAddress: '', contactHours: '', imageUrl: '' };
     default:
       return { ...base, title: String(type), description: '' };
   }
@@ -156,29 +164,29 @@ export const getSectionLabel = (type: string): string => {
 
 export const getSectionIcon = (type: string) => {
   switch (type) {
-    case 'Image banner': return <ImageIcon className="h-4 w-4 text-teal-600" />;
-    case 'Image with text': return <Columns className="h-4 w-4 text-emerald-500" />;
-    case 'Text column with image': return <Grid className="h-4 w-4 text-sky-500" />;
-    case 'Featured collection': return <ShoppingBag className="h-4 w-4 text-indigo-650" />;
-    case 'Collection list': return <FolderHeart className="h-4 w-4 text-purple-600" />;
-    case 'Slideshow': return <PlaySquare className="h-4 w-4 text-blue-500" />;
-    case 'Video banner': return <Video className="h-4 w-4 text-rose-500" />;
-    case 'Rich text': return <FileText className="h-4 w-4 text-slate-500" />;
-    case 'Marquee text': return <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />;
-    case 'Marquee images': return <Layers className="h-4 w-4 text-indigo-500" />;
-    case 'Logo list': return <Award className="h-4 w-4 text-cyan-500" />;
-    case 'Images gallery': return <Layout className="h-4 w-4 text-sky-600" />;
-    case 'FAQs': return <HelpCircle className="h-4 w-4 text-violet-500" />;
-    case 'Blog post': return <BookOpen className="h-4 w-4 text-orange-600" />;
-    case 'Brand list': return <LayoutGrid className="h-4 w-4 text-pink-500" />;
-    case 'Icon with text': return <Sparkles className="h-4 w-4 text-indigo-650 animate-pulse" />;
-    case 'Brands we offer': return <Layers className="h-4 w-4 text-amber-600 animate-bounce" />;
-    case 'How it works': return <Compass className="h-4 w-4 text-blue-600 animate-spin" style={{ animationDuration: '6s' }} />;
-    case 'Trust badges': return <Award className="h-4 w-4 text-yellow-600 animate-pulse" />;
-    case 'Plans': return <LayoutGrid className="h-4 w-4 text-amber-500 animate-pulse" />;
-    case 'Clearance Sale': return <Flame className="h-4 w-4 text-red-500 animate-pulse" />;
-    case 'Contact Form': return <Mail className="h-4 w-4 text-emerald-600" />;
-    default: return <FileCode className="h-4 w-4 text-slate-400" />;
+    case 'Image banner': return <ImageIcon className="h-4 w-4 text-slate-600" />;
+    case 'Image with text': return <Columns className="h-4 w-4 text-slate-600" />;
+    case 'Text column with image': return <Grid className="h-4 w-4 text-slate-600" />;
+    case 'Featured collection': return <ShoppingBag className="h-4 w-4 text-slate-600" />;
+    case 'Collection list': return <FolderHeart className="h-4 w-4 text-slate-600" />;
+    case 'Slideshow': return <PlaySquare className="h-4 w-4 text-slate-600" />;
+    case 'Video banner': return <Video className="h-4 w-4 text-slate-600" />;
+    case 'Rich text': return <FileText className="h-4 w-4 text-slate-600" />;
+    case 'Marquee text': return <Sparkles className="h-4 w-4 text-slate-600" />;
+    case 'Marquee images': return <Layers className="h-4 w-4 text-slate-600" />;
+    case 'Logo list': return <Award className="h-4 w-4 text-slate-600" />;
+    case 'Images gallery': return <Layout className="h-4 w-4 text-slate-600" />;
+    case 'FAQs': return <HelpCircle className="h-4 w-4 text-slate-600" />;
+    case 'Blog post': return <BookOpen className="h-4 w-4 text-slate-600" />;
+    case 'Brand list': return <LayoutGrid className="h-4 w-4 text-slate-600" />;
+    case 'Icon with text': return <Sparkles className="h-4 w-4 text-slate-600" />;
+    case 'Brands we offer': return <Layers className="h-4 w-4 text-slate-600" />;
+    case 'How it works': return <Compass className="h-4 w-4 text-slate-600" />;
+    case 'Trust badges': return <Award className="h-4 w-4 text-slate-600" />;
+    case 'Plans': return <LayoutGrid className="h-4 w-4 text-slate-600" />;
+    case 'Clearance Sale': return <Flame className="h-4 w-4 text-slate-600" />;
+    case 'Contact Form': return <Mail className="h-4 w-4 text-slate-600" />;
+    default: return <FileCode className="h-4 w-4 text-slate-600" />;
   }
 };
 

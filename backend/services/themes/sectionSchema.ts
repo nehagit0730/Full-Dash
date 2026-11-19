@@ -50,7 +50,9 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Image banner',
     file: 'image-banner',
     description: 'Large hero image with heading, text and up to two buttons.',
-    settings: [title('Welcome to our store'), description, { key: 'imageUrl', type: 'image', label: 'Image' }, ...button(), fullWidth, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
+    settings: [title('Welcome to our store'), description, { key: 'imageUrl', type: 'image', label: 'Image' }, ...button(),
+      { key: 'buttonText2', type: 'text', label: 'Second button label' }, { key: 'buttonLink2', type: 'link', label: 'Second button link' },
+      { key: 'bannerLink', type: 'link', label: 'Whole-banner link' }, fullWidth, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'New season, new favourites', description: 'Discover the latest arrivals.', imageUrl: IMG, buttonText: 'Shop now', buttonLink: '/shop', fullWidth: true }
   },
   {
@@ -60,14 +62,16 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     settings: [title('Watch the story'), description,
       { key: 'videoMp4Url', type: 'video', label: 'MP4 video URL', info: 'Used first when set.' },
       { key: 'videoUrl', type: 'url', label: 'YouTube URL', info: 'e.g. https://www.youtube.com/watch?v=…' }, ...button(), fullWidth,
-      { key: 'showFeatureBar', type: 'boolean', label: 'Show the delivery / returns bar', default: true }],
+      { key: 'showFeatureBar', type: 'boolean', label: 'Show the delivery / returns bar', default: true }, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'Made with care', description: 'See how every piece is finished by hand.', videoMp4Url: '', videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', buttonText: 'Shop now', buttonLink: '/shop', fullWidth: true }
   },
   {
     type: 'Image with text',
     file: 'image-with-text',
     description: 'An image beside a heading, text and button.',
-    settings: [title('Image with text'), description, { key: 'imageUrl', type: 'image', label: 'Image' }, ...button()],
+    settings: [title('Image with text'), description, { key: 'imageUrl', type: 'image', label: 'Image' }, ...button(),
+      { key: 'imageLink', type: 'link', label: 'Image link' },
+      { key: 'imagePosition', type: 'select', label: 'Image position', options: ['left', 'right'], default: 'left' }, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'Designed to last', description: 'Pair text with an image to focus on your chosen product, collection or story.', imageUrl: IMG, buttonText: 'Learn more', buttonLink: '/pages/about' }
   },
   {
@@ -88,21 +92,22 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Rich text',
     file: 'rich-text',
     description: 'A heading, paragraph and optional button. Good for intros and announcements.',
-    settings: [title('Talk about your brand'), description, ...button()],
+    settings: [title('Talk about your brand'), description, ...button(), { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'Talk about your brand', description: 'Share information about your brand with your customers.', buttonText: 'Read our story', buttonLink: '/pages/about' }
   },
   {
     type: 'Marquee text',
     file: 'marquee-text',
     description: 'A continuously scrolling strip of text, e.g. shipping and offer messages.',
-    settings: [{ key: 'title', type: 'text', label: 'Scrolling text', info: 'Separate messages with "//".' }, fullWidth],
+    settings: [{ key: 'title', type: 'text', label: 'Scrolling text', info: 'Separate messages with "//".' },
+      { key: 'marqueeSpeed', type: 'number', label: 'Speed', min: 1, max: 10, default: 3 }, fullWidth],
     example: { title: 'FREE SHIPPING OVER ₹999 // EASY RETURNS // SECURE CHECKOUT', fullWidth: true, backgroundColor: '#111111', textColor: '#FFFFFF' }
   },
   {
     type: 'Marquee images',
     file: 'marquee-images',
-    description: 'A horizontal reel of images. Shows your products when no images are set.',
-    settings: [title('')],
+    description: 'A slowly scrolling reel of tall images. Shows your products (or placeholders) when no images are set.',
+    settings: [title('New in'), { key: 'badgeText', type: 'text', label: 'Small label above the heading' }, ...button(), { key: 'itemsCount', type: 'number', label: 'Products to show', min: 2, max: 16, default: 8 }],
     lists: [{ key: 'galleryImages', label: 'Images', ofImages: true, item: [{ key: '', type: 'image', label: 'Image URL' }] }],
     example: { title: 'As seen on you', galleryImages: [IMG, IMG, IMG, IMG] }
   },
@@ -110,7 +115,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Logo list',
     file: 'logo-list',
     description: 'A row of partner or brand logos.',
-    settings: [title('Brands we work with'), description],
+    settings: [title('Brands we work with'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'logoImages', label: 'Logo images', ofImages: true, item: [{ key: '', type: 'image', label: 'Logo URL' }] }],
     example: { title: 'As featured in', logoImages: [IMG, IMG, IMG] }
   },
@@ -120,7 +125,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     description: 'Cards linking to your collections.',
     settings: [title('Shop by category'), description,
       { key: 'selectedCollectionIds', type: 'collections', label: 'Collections', info: 'Collection ids from this store. Empty shows all collections.' },
-      { key: 'itemsCount', type: 'number', label: 'Maximum to show', min: 1, max: 24, default: 4 }],
+      { key: 'itemsCount', type: 'number', label: 'Maximum to show', min: 1, max: 24, default: 4 }, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'Shop by category', selectedCollectionIds: [], itemsCount: 4 }
   },
   {
@@ -131,7 +136,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
       { key: 'selectedCollectionId', type: 'collection', label: 'Collection', info: 'A collection id from this store. Empty shows all products.' },
       { key: 'itemsCount', type: 'number', label: 'Products to show', min: 1, max: 24, default: 8 },
       { key: 'showTabs', type: 'boolean', label: 'Show New / Bestsellers / On sale tabs', default: true, info: 'Bestsellers = products tagged "bestseller"; On sale = compare-at price above price.' },
-      ...button()],
+      ...button(), { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'Bestsellers', selectedCollectionId: '', itemsCount: 8, buttonText: 'View all', buttonLink: '/shop' }
   },
   {
@@ -141,7 +146,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     settings: [title('Clearance sale'), description,
       { key: 'selectedProductIds', type: 'products', label: 'Products', info: 'Product ids from this store. Empty shows every product with a compare-at price above its price.' },
       { key: 'itemsCount', type: 'number', label: 'Products to show', min: 1, max: 24, default: 8 },
-      ...button()],
+      ...button(), { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     example: { title: 'Final clearance', description: 'While stocks last.', selectedProductIds: [] }
   },
   {
@@ -156,7 +161,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'FAQs',
     file: 'faqs',
     description: 'Expandable questions and answers.',
-    settings: [title('Frequently asked questions'), description],
+    settings: [title('Frequently asked questions'), description, ...button(), { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'faqItems', label: 'Questions', item: [
       { key: 'question', type: 'text', label: 'Question' },
       { key: 'answer', type: 'textarea', label: 'Answer' }
@@ -184,7 +189,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Blog post',
     file: 'blog-posts',
     description: 'Your latest blog posts.',
-    settings: [title('From the journal'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' },
+    settings: [title('From the journal'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }, { key: 'buttonText', type: 'text', label: 'Link label' },
       { key: 'columnsDesktop', type: 'number', label: 'Columns on desktop', min: 1, max: 4, default: 3 },
       { key: 'columnsMobile', type: 'number', label: 'Columns on mobile', min: 1, max: 2, default: 1 }],
     example: { title: 'From the journal', columnsDesktop: 3, columnsMobile: 1 }
@@ -193,7 +198,8 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Brand list',
     file: 'brand-list',
     description: 'Image cards for brands, each with a link.',
-    settings: [title('Shop by brand'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
+    settings: [title('Shop by brand'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' },
+      { key: 'layout', type: 'select', label: 'Layout', options: ['grid', 'masonry'], default: 'grid' }],
     lists: [{ key: 'brandItems', label: 'Brands', item: [
       { key: 'title', type: 'text', label: 'Name' },
       { key: 'imageUrl', type: 'image', label: 'Image' },
@@ -216,8 +222,8 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
   {
     type: 'How it works',
     file: 'how-it-works',
-    description: 'Numbered steps with images.',
-    settings: [title('How it works'), description, ...button(), { key: 'accentColor', type: 'color', label: 'Number and button color' }],
+    description: 'Our process: numbered steps, each with an image — design, make, deliver.',
+    settings: [title('Our process'), description, ...button(), { key: 'accentColor', type: 'color', label: 'Number color' }, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'stepItems', label: 'Steps', item: [
       { key: 'number', type: 'text', label: 'Step number' },
       { key: 'title', type: 'text', label: 'Heading' },
@@ -231,9 +237,9 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: 'Icon with text',
     file: 'icon-with-text',
     description: 'Icons with short headings — delivery, returns, guarantees.',
-    settings: [title('Why shop with us'), description, { key: 'iconColor', type: 'color', label: 'Icon color' }],
+    settings: [title('Why shop with us'), description, { key: 'iconColor', type: 'color', label: 'Icon color' }, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }],
     lists: [{ key: 'iconItems', label: 'Items', item: [
-      { key: 'iconName', type: 'select', label: 'Icon', options: ['Truck', 'Zap', 'Shield', 'Clock', 'Award', 'Package', 'Heart', 'HelpCircle', 'Star'] },
+      { key: 'iconName', type: 'select', label: 'Icon', options: ['Truck', 'RotateCcw', 'Shield', 'Leaf', 'Scissors', 'Gem', 'Sparkles', 'Heart', 'Star', 'Award', 'Tag', 'Globe', 'Badge', 'Package', 'Clock', 'Zap', 'HelpCircle'] },
       { key: 'title', type: 'text', label: 'Heading' },
       { key: 'description', type: 'textarea', label: 'Text' },
       { key: 'linkUrl', type: 'link', label: 'Link' }
@@ -256,8 +262,10 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
   {
     type: 'Contact Form',
     file: 'contact-form',
-    description: 'A contact form; messages arrive in the dashboard.',
-    settings: [title('Get in touch'), description],
+    description: 'A contact form with your contact details; messages arrive in the dashboard.',
+    settings: [title('Get in touch'), description, { key: 'badgeText', type: 'text', label: 'Small label above the heading' }, { key: 'imageUrl', type: 'image', label: 'Image' },
+      { key: 'contactEmail', type: 'text', label: 'Email' }, { key: 'contactPhone', type: 'text', label: 'Phone' },
+      { key: 'contactAddress', type: 'text', label: 'Address' }, { key: 'contactHours', type: 'text', label: 'Opening hours' }],
     example: { title: 'Get in touch', description: 'We reply within one working day.' }
   }
 ];

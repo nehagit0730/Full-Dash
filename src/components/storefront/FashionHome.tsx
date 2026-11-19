@@ -32,7 +32,8 @@ export default function FashionHome({ products, collections, customer, onAddToCa
   }, [catalogue]);
 
   const categories = useMemo(() => (collections || []).filter(c => c && c.title && c.id !== 'all').slice(0, 6), [collections]);
-  const heroImage = cleanMediaUrl(newArrivals.find(p => p.image)?.image || '');
+  const heroSource = newArrivals.find(p => p.image)?.image;
+  const heroImage = heroSource ? cleanMediaUrl(heroSource) : '';
   const openProduct = (p: Product) => navigate('product-detail', p.slug || p.id);
 
   const grid = (items: Product[], priority = false) => (

@@ -327,7 +327,7 @@ export interface PageSection {
       linkUrl?: string;
     }[];
     iconItems?: {
-      iconName: 'Truck' | 'Zap' | 'Shield' | 'Clock' | 'Award' | 'Package' | 'Heart' | 'HelpCircle' | 'Star';
+      iconName: 'Truck' | 'Zap' | 'Shield' | 'Clock' | 'Award' | 'Package' | 'Heart' | 'HelpCircle' | 'Star' | 'Leaf' | 'Gem' | 'Scissors' | 'RotateCcw' | 'Sparkles' | 'Tag' | 'Globe' | 'Badge';
       title: string;
       description: string;
       linkUrl?: string;
